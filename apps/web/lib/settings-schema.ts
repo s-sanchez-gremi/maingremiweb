@@ -7,13 +7,26 @@ const linkFields: Field[] = [
   { name: "url", label: "Enllaç", kind: "link", required: true },
 ];
 
+const navFields: Field[] = [
+  { name: "label", label: "Text", kind: "ltext", required: true },
+  { name: "url", label: "Enllaç (deixa-ho buit si té submenú)", kind: "link" },
+  { name: "children", label: "Submenú (desplegable)", kind: "list", max: 12, fields: linkFields },
+];
+
 export const settingsFields: Field[] = [
   { name: "homepage", label: "Pàgina d'inici", kind: "entry" },
   { name: "phone", label: "Telèfon", kind: "text" },
   { name: "email", label: "Correu de contacte", kind: "text" },
-  { name: "portalUrl", label: "Enllaç «Portal clients» (buit = no es mostra)", kind: "link" },
-  { name: "contactUrl", label: "Enllaç «Contacte» (buit = no es mostra)", kind: "link" },
-  { name: "nav", label: "Menú principal", kind: "list", max: 8, fields: linkFields },
+  { name: "headerButtons", label: "Botons de la capçalera (p. ex. Campus virtual)", kind: "list", max: 3, fields: [
+    { name: "label", label: "Text", kind: "ltext", required: true },
+    { name: "url", label: "Enllaç (pot ser una web externa)", kind: "link", required: true },
+    { name: "style", label: "Aspecte", kind: "select", options: [{ value: "primary", label: "Destacat (vermell)" }, { value: "outline", label: "Contorn" }] },
+  ] },
+  { name: "social", label: "Xarxes socials (barra superior)", kind: "list", max: 6, fields: [
+    { name: "network", label: "Xarxa", kind: "select", options: [{ value: "facebook", label: "Facebook" }, { value: "x", label: "X" }, { value: "instagram", label: "Instagram" }, { value: "youtube", label: "YouTube" }, { value: "linkedin", label: "LinkedIn" }] },
+    { name: "url", label: "Enllaç", kind: "link", required: true },
+  ] },
+  { name: "nav", label: "Menú principal (cada element pot tenir un submenú)", kind: "list", max: 8, fields: navFields },
   { name: "footerText", label: "Text del peu de pàgina", kind: "ltext" },
   { name: "footerColumns", label: "Columnes del peu de pàgina", kind: "list", max: 4, fields: [
     { name: "title", label: "Títol de la columna", kind: "ltext", required: true },
@@ -27,9 +40,12 @@ export const settingsFields: Field[] = [
 type LText = { ca: string; es: string; en: string };
 type Link = { label: LText; url: string };
 // Written out by hand so the rest of the code is typed; the schema below is generated from settingsFields.
+export type NavItem = { label: LText; url: string; children: Link[] };
+export type HeaderButton = { label: LText; url: string; style: "primary" | "outline" };
+export type Social = { network: "facebook" | "x" | "instagram" | "youtube" | "linkedin"; url: string };
 export type Settings = {
-  homepage: string; phone: string; email: string; portalUrl: string; contactUrl: string;
-  nav: Link[]; footerText: LText; footerColumns: { title: LText; links: Link[] }[]; legalLinks: Link[];
+  homepage: string; phone: string; email: string; headerButtons: HeaderButton[]; social: Social[];
+  nav: NavItem[]; footerText: LText; footerColumns: { title: LText; links: Link[] }[]; legalLinks: Link[];
   seoTitle: LText; seoDescription: LText;
 };
 export const settingsSchema = z.object(shape(settingsFields)) as unknown as z.ZodType<Settings>;

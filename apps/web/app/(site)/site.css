@@ -159,8 +159,6 @@
   .site .topbar .contact{display:flex}
   .site .topbar .wrap{min-height:40px}
   .site .langs a{min-width:36px;min-height:36px}
-  .site .nav-mobile{display:none}
-  .site .nav-desktop,.site .header-actions{display:flex}
   .site .header .wrap{min-height:88px}
   .site .logo{font-size:28px}
   .site .hero .wrap{min-height:460px;padding-top:var(--sp-7);padding-bottom:var(--sp-7)}
@@ -207,3 +205,28 @@
 .site .cookie-table thead th{background:var(--bg2);font-weight:700}
 .site .embed .facade .btn.light{border-color:var(--bg);color:var(--bg)}
 @media (min-width:900px){.site .consent-banner .wrap{grid-template-columns:1fr auto;align-items:center}}
+
+/* ---------- dropdown navigation + social icons + header buttons ---------- */
+.site .social{list-style:none;margin:0;padding:0;display:flex;gap:2px}
+.site .social a{display:inline-flex;align-items:center;justify-content:center;width:var(--tap);height:var(--tap);color:var(--ink-text);border-radius:var(--r)}
+.site .social a:hover{color:var(--bg);background:var(--ink2)}
+.site .topbar .contact{margin-right:auto}
+.site .langs{margin-left:0}
+.site .nav-desktop ul{gap:clamp(14px,2vw,36px)}
+.site .nav-desktop .has-sub{position:relative}
+.site .nav-desktop .has-sub>button{display:inline-flex;align-items:center;gap:6px;min-height:var(--tap);padding:0;border:0;background:none;font:inherit;font-weight:500;color:inherit;cursor:pointer}
+.site .nav-desktop .has-sub>button:hover{color:var(--accent)}
+.site .nav-desktop .has-sub>button[aria-expanded=true] svg{transform:rotate(180deg)}
+.site .nav-desktop .submenu{position:absolute;left:-16px;top:100%;min-width:270px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-card);padding:var(--sp-2) 0;z-index:30;display:block}
+.site .nav-desktop .submenu[hidden]{display:none}
+.site .nav-desktop .submenu li a{display:flex;align-items:center;min-height:var(--tap);padding:0 20px;font-weight:400;font-size:var(--fs-sm);white-space:normal}
+.site .nav-desktop .submenu li a:hover{background:var(--bg2);color:var(--accent)}
+.site .nav-mobile details.sub summary{list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:var(--tap);padding:var(--sp-2) 0;border-bottom:1px solid var(--line);font-weight:500;cursor:pointer;border-radius:0;border-top:0;border-inline:0}
+.site .nav-mobile details.sub summary::after{content:"+";font-size:20px;color:var(--text2)}
+.site .nav-mobile details.sub[open] summary::after{content:"−"}
+.site .nav-mobile details.sub ul{padding-left:var(--sp-4);background:var(--bg2)}
+.site .nav-mobile details.sub li a{font-weight:400;padding-left:0}
+@media (min-width:1100px){
+  .site .nav-mobile{display:none}
+  .site .nav-desktop,.site .header-actions{display:flex}
+}

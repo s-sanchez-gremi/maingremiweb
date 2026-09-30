@@ -40,8 +40,14 @@ test.beforeAll(async ({ request }) => {
   await addEntry("page", live("Formació", "formacio", showcase.slice(3)));
   const L3 = (ca: string) => ({ ca, es: ca, en: ca });
   const settings = {
-    homepage: home, phone: "+34 93 000 00 00", email: "info@apex.example", portalUrl: "/ca/blog", contactUrl: "/ca/formacio",
-    nav: [{ label: L3("Formació"), url: "/ca/formacio" }, { label: L3("Actualitat"), url: "/ca/blog" }],
+    homepage: home, phone: "+34 93 000 00 00", email: "info@apex.example",
+    headerButtons: [{ label: L3("Campus virtual"), url: "https://campus.example", style: "primary" }, { label: L3("Contacte"), url: "/ca/formacio", style: "outline" }],
+    social: [{ network: "facebook", url: "https://www.facebook.com/" }, { network: "instagram", url: "https://www.instagram.com/" }, { network: "youtube", url: "https://www.youtube.com/" }],
+    nav: [
+      { label: L3("El GREMI"), url: "", children: [{ label: L3("Nosaltres"), url: "/ca/formacio" }, { label: L3("Serveis del GREMI"), url: "/ca/blog" }] },
+      { label: L3("Formació"), url: "/ca/formacio", children: [] },
+      { label: L3("Actualitat"), url: "", children: [{ label: L3("Notícies"), url: "/ca/blog" }, { label: L3("Revista"), url: "/ca/formacio" }] },
+    ],
     footerText: L3("Representant i donant suport als professionals de la indústria gràfica de Catalunya."),
     footerColumns: [{ title: L3("Recursos"), links: [{ label: L3("Formació"), url: "/ca/formacio" }, { label: L3("Actualitat"), url: "/ca/blog" }] }],
     legalLinks: [{ label: L3("Avís legal"), url: "/ca/formacio" }], seoTitle: L3("Apex"), seoDescription: L3("Indústria gràfica"),
@@ -107,4 +113,114 @@ test("language switcher points at real translations and marks the current langua
   const langs = page.locator(".langs a");
   await expect(langs.filter({ hasText: "CA" })).toHaveAttribute("aria-current", "true");
   await expect(langs.filter({ hasText: "ES" })).toHaveAttribute("href", "/es"); // no Spanish version: falls back to its home
+});
+
+test.describe("navigation with dropdowns, header buttons and social links", () => {
+  const scan = async (page: Page, label: string) => {
+    const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+    expect(r.violations.map((v) => `${v.id}: ${v.nodes[0]?.target}`), label).toEqual([]);
+  };
+
+  for (const width of [1100, 1440]) {
+    test(`desktop menu @${width}: parents are buttons, keyboard opens and closes them, no accessibility violations while open`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await settle(page, "/ca");
+      const nav = page.getByRole("navigation", { name: "Principal" });
+      const parent = nav.getByRole("button", { name: "El GREMI" });
+      await expect(parent).toHaveAttribute("aria-expanded", "false");
+      await expect(nav.getByRole("link", { name: "Nosaltres" })).toBeHidden(); // closed submenus are not reachable
+      await expect(nav.getByRole("link", { name: "Formació" })).toBeVisible(); // plain items stay links
+
+      await parent.focus();
+      await page.keyboard.press("Enter");
+      await expect(parent).toHaveAttribute("aria-expanded", "true");
+      await expect(nav.getByRole("link", { name: "Nosaltres" })).toBeVisible();
+      await scan(page, `menu open @${width}`);
+
+      await page.keyboard.press("Tab");
+      await expect(nav.getByRole("link", { name: "Nosaltres" })).toBeFocused(); // Tab walks into the submenu
+      await page.keyboard.press("Escape");
+      await expect(parent).toHaveAttribute("aria-expanded", "false");
+      await expect(parent).toBeFocused(); // and Escape returns focus to the button
+
+      await parent.click();
+      await expect(parent).toHaveAttribute("aria-expanded", "true");
+      await page.locator("main").click({ position: { x: 5, y: 5 } }); // clicking elsewhere closes it
+      await expect(parent).toHaveAttribute("aria-expanded", "false");
+
+      await parent.click();
+      await nav.getByRole("link", { name: "Serveis del GREMI" }).click();
+      await expect(page).toHaveURL(/\/ca\/blog$/);
+    });
+  }
+
+  test("the Campus button and social links: real links, labelled, big enough, external ones are safe", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await settle(page, "/ca");
+    const campus = page.locator(".header-actions").getByRole("link", { name: "Campus virtual" });
+    await expect(campus).toHaveAttribute("href", "https://campus.example");
+    await expect(campus).toHaveAttribute("rel", /noopener/);
+    expect((await campus.boundingBox())!.height).toBeGreaterThanOrEqual(40);
+    const social = page.locator(".social a");
+    expect(await social.evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")))).toEqual(["Facebook", "Instagram", "YouTube"]);
+    for (const box of await social.evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height))) expect(box).toBeGreaterThanOrEqual(44);
+  });
+
+  test("mobile menu: sections expand with the keyboard and hold their links; the Campus button is in the panel", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await settle(page, "/ca");
+    await page.getByText("Menú", { exact: true }).click();
+    const panel = page.locator(".nav-mobile .panel");
+    await expect(panel.getByRole("link", { name: "Campus virtual" })).toBeVisible();
+    await expect(panel.getByRole("link", { name: "Nosaltres" })).toBeHidden();
+    const sec = panel.getByText("El GREMI", { exact: true });
+    await sec.focus();
+    await page.keyboard.press("Enter");
+    await expect(panel.getByRole("link", { name: "Nosaltres" })).toBeVisible();
+    await expect(panel.getByRole("link", { name: "Serveis del GREMI" })).toBeVisible();
+    await scan(page, "mobile menu open");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
+  });
+
+  test("an editor can build the menu in the admin: a section with a submenu and a header button", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1400 });
+    await page.goto("/admin/login");
+    await page.getByLabel("Correu electrònic").fill("admin@e2e.test");
+    await page.getByLabel("Contrasenya").fill(process.env.E2E_ADMIN_PASSWORD!);
+    await page.getByRole("button", { name: "Entra" }).click();
+    await expect(page.getByRole("heading", { name: "Tauler" })).toBeVisible();
+    await page.goto("/admin/settings");
+    const form = page.locator("form").filter({ has: page.locator("input[name=data]") });
+
+    const NAV = "Menú principal (cada element pot tenir un submenú)";
+    const list = form.locator(".nested", { has: page.getByText(NAV, { exact: true }) }).first();
+    const items = list.locator(":scope > .card"); // top-level menu entries only (not their submenu entries)
+    const before = await items.count();
+    await list.getByRole("button", { name: "+ Afegeix" }).last().click();
+    await expect(items).toHaveCount(before + 1); // wait for the new entry to exist before typing into it
+    const item = items.nth(before);
+    await item.getByRole("group", { name: "Text" }).first().getByLabel("CA").fill("Recursos");
+    await item.locator(":scope > .nested").getByRole("button", { name: "+ Afegeix" }).click(); // a submenu entry
+    const child = item.locator(":scope > .nested > .card");
+    await expect(child).toHaveCount(1);
+    await child.getByRole("group", { name: "Text" }).getByLabel("CA").fill("Guia de l'associat");
+    await child.getByLabel("Enllaç").fill("/ca/formacio");
+    await form.getByRole("button", { name: "Desa" }).click();
+    await expect(page.getByRole("status")).toContainText("Desat");
+
+    await page.goto("/ca");
+    await page.getByRole("navigation", { name: "Principal" }).getByRole("button", { name: "Recursos" }).click();
+    await expect(page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: "Guia de l'associat" })).toBeVisible();
+
+    // A top-level item with neither a link nor a submenu is refused.
+    await page.goto("/admin/settings");
+    const list2 = page.locator("form").filter({ has: page.locator("input[name=data]") }).locator(".nested", { has: page.getByText(NAV, { exact: true }) }).first();
+    const items2 = list2.locator(":scope > .card");
+    const n2 = await items2.count();
+    await list2.getByRole("button", { name: "+ Afegeix" }).last().click();
+    await expect(items2).toHaveCount(n2 + 1);
+    await items2.nth(n2).getByRole("group", { name: "Text" }).first().getByLabel("CA").fill("Buit");
+    await page.getByRole("button", { name: "Desa" }).click();
+    await expect(page.getByRole("status")).toContainText("necessita un enllaç");
+  });
 });

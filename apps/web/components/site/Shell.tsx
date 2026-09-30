@@ -1,6 +1,8 @@
 import { getSettings } from "@/lib/content";
 import { L, locales, ui, type Locale } from "@/lib/i18n";
 import { SmartLink } from "./SmartLink";
+import { NavDesktop, type NavEntry } from "./NavDesktop";
+import { SocialLinks } from "./Social";
 
 export type Alt = { locale: Locale; href: string };
 
@@ -8,12 +10,11 @@ export async function Shell({ locale, alternates, children }: { locale: Locale; 
   const s = await getSettings();
   const t = ui(locale);
   const home = `/${locale}`;
-  const nav = s.nav.length ? s.nav.map((n) => ({ label: L(n.label, locale), url: n.url })) : [{ label: t.blog, url: `/${locale}/blog` }];
+  const nav: NavEntry[] = s.nav.length
+    ? s.nav.map((n) => ({ label: L(n.label, locale), url: n.url, children: n.children.map((c) => ({ label: L(c.label, locale), url: c.url })) }))
+    : [{ label: t.blog, url: `/${locale}/blog`, children: [] }];
   const hrefFor = (l: Locale) => alternates.find((a) => a.locale === l)?.href ?? `/${l}`;
-  const buttons = [
-    s.portalUrl ? { label: t.portal, url: s.portalUrl, primary: false } : null,
-    s.contactUrl ? { label: t.contact, url: s.contactUrl, primary: true } : null,
-  ].filter((b) => b !== null);
+  const buttons = s.headerButtons.map((b) => ({ label: L(b.label, locale), url: b.url, primary: b.style === "primary" }));
 
   return (
     <>
@@ -24,6 +25,7 @@ export async function Shell({ locale, alternates, children }: { locale: Locale; 
             {s.phone && <a href={`tel:${s.phone.replace(/\s/g, "")}`}>{s.phone}</a>}
             {s.email && <a href={`mailto:${s.email}`}>{s.email}</a>}
           </div>
+          <SocialLinks items={s.social} />
           <nav className="langs" aria-label={t.language}>
             {locales.map((l) => (
               <a key={l} href={hrefFor(l)} hrefLang={l} lang={l} aria-current={l === locale ? "true" : undefined}>{l.toUpperCase()}</a>
@@ -34,16 +36,25 @@ export async function Shell({ locale, alternates, children }: { locale: Locale; 
       <header className="header">
         <div className="wrap">
           <SmartLink href={home} className="logo">APEX</SmartLink>
-          <nav className="nav-desktop" aria-label="Principal">
-            <ul>{nav.map((n, i) => <li key={i}><SmartLink href={n.url}>{n.label}</SmartLink></li>)}</ul>
-          </nav>
+          <NavDesktop items={nav} label="Principal" />
           <div className="header-actions">
             {buttons.map((b, i) => <SmartLink key={i} href={b.url} className={`btn${b.primary ? " primary" : ""}`}>{b.label}</SmartLink>)}
           </div>
           <details className="nav-mobile">
             <summary>{t.menu}</summary>
             <div className="panel">
-              <ul>{nav.map((n, i) => <li key={i}><SmartLink href={n.url}>{n.label}</SmartLink></li>)}</ul>
+              <ul>
+                {nav.map((n, i) => n.children.length === 0 ? (
+                  <li key={i}><SmartLink href={n.url}>{n.label}</SmartLink></li>
+                ) : (
+                  <li key={i}>
+                    <details className="sub">
+                      <summary>{n.label}</summary>
+                      <ul>{n.children.map((c, j) => <li key={j}><SmartLink href={c.url}>{c.label}</SmartLink></li>)}</ul>
+                    </details>
+                  </li>
+                ))}
+              </ul>
               {buttons.length > 0 && (
                 <div className="actions">
                   {buttons.map((b, i) => <SmartLink key={i} href={b.url} className={`btn${b.primary ? " primary" : ""}`}>{b.label}</SmartLink>)}

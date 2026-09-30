@@ -92,9 +92,29 @@ await entry({ type: "page", tr: { ca: { title: "Política de cookies", slug: "co
 ] } } });
 
 const L3 = (ca: string, es = ca, en = ca) => ({ ca, es, en });
+// One placeholder page per section of the current website, so the whole menu can be clicked through. DEV ONLY.
+const stubs: [string, string][] = [["nosaltres", "Nosaltres"], ["serveis", "Serveis del GREMI"], ["comite-executiu", "Comitè Executiu"], ["patrocinadors", "Patrocinadors"], ["galeria-dimatges", "Galeria d'Imatges"], ["projectes-europeus", "Projectes Europeus"], ["identitat-corporativa", "Identitat corporativa"], ["noticies-laboral", "Notícies Laboral"], ["conveni-laboral", "Conveni, Taules Salarials i Calendari Laboral"], ["revista", "Revista"], ["borsa-de-treball", "Borsa de treball"], ["agremiat", "Agremia't"]];
+for (const [slug, title] of stubs) await entry({ type: "page", tr: { ca: { title, slug, sections: [sec("header", { title, subtitle: "", image: "" }), body("**[CONTINGUT PENDENT DE MIGRAR]** Aquí anirà el contingut d'aquest apartat del web actual.")] } } });
 await db.update(settings).set({ data: {
-  homepage: home, phone: "+34 93 000 00 00", email: "info@apex.example", portalUrl: "/ca", contactUrl: "/ca/formacio",
-  nav: [{ label: L3("Formació", "Formación", "Training"), url: "/ca/formacio" }, { label: L3("Actualitat", "Actualidad", "News"), url: "/ca/blog" }],
+  homepage: home, phone: "+34 93 000 00 00", email: "info@apex.example",
+  nav: [
+    { label: L3("El GREMI", "El GREMI", "The GREMI"), url: "", children: [
+      { label: L3("Nosaltres", "Nosotros", "About us"), url: "/ca/nosaltres" }, { label: L3("Serveis del GREMI", "Servicios del GREMI", "GREMI services"), url: "/ca/serveis" },
+      { label: L3("Comitè Executiu", "Comité Ejecutivo", "Executive Committee"), url: "/ca/comite-executiu" }, { label: L3("Patrocinadors", "Patrocinadores", "Sponsors"), url: "/ca/patrocinadors" },
+      { label: L3("Galeria d'Imatges", "Galería de imágenes", "Image gallery"), url: "/ca/galeria-dimatges" }, { label: L3("Projectes Europeus", "Proyectos Europeos", "European projects"), url: "/ca/projectes-europeus" },
+      { label: L3("Identitat corporativa", "Identidad corporativa", "Corporate identity"), url: "/ca/identitat-corporativa" } ] },
+    { label: L3("Laboral", "Laboral", "Labour"), url: "", children: [
+      { label: L3("Notícies Laboral", "Noticias Laboral", "Labour news"), url: "/ca/noticies-laboral" },
+      { label: L3("Conveni, Taules Salarials i Calendari Laboral", "Convenio, Tablas Salariales y Calendario Laboral", "Agreement, pay scales and working calendar"), url: "/ca/conveni-laboral" } ] },
+    { label: L3("Formació", "Formación", "Training"), url: "/ca/formacio", children: [] },
+    { label: L3("Actualitat", "Actualidad", "News"), url: "", children: [
+      { label: L3("Notícies", "Noticias", "News"), url: "/ca/blog" }, { label: L3("Revista", "Revista", "Magazine"), url: "/ca/revista" } ] },
+    { label: L3("Borsa de treball", "Bolsa de trabajo", "Job board"), url: "/ca/borsa-de-treball", children: [] },
+    { label: L3("Agremia't", "Afíliate", "Join"), url: "/ca/agremiat", children: [] },
+  ],
+  // Placeholder address: replace with the real virtual campus URL in Configuració.
+  headerButtons: [{ label: L3("Campus virtual", "Campus virtual", "Virtual campus"), url: "https://campus.example", style: "primary" }],
+  social: [{ network: "facebook", url: "https://www.facebook.com/" }, { network: "x", url: "https://x.com/" }, { network: "instagram", url: "https://www.instagram.com/" }, { network: "youtube", url: "https://www.youtube.com/" }, { network: "linkedin", url: "https://www.linkedin.com/" }],
   footerText: L3("Representant i donant suport als professionals de la indústria gràfica de Catalunya.", "Representando y apoyando a los profesionales de la industria gráfica de Cataluña.", "Representing and supporting professionals of Catalonia's graphic industry."),
   footerColumns: [{ title: L3("Recursos", "Recursos", "Resources"), links: [{ label: L3("Formació", "Formación", "Training"), url: "/ca/formacio" }, { label: L3("Actualitat", "Actualidad", "News"), url: "/ca/blog" }] }],
   legalLinks: [{ label: L3("Avís legal", "Aviso legal", "Legal notice"), url: "/ca/avis-legal" }, { label: L3("Política de privacitat", "Política de privacidad", "Privacy policy"), url: "/ca/privacitat" }, { label: L3("Política de cookies", "Política de cookies", "Cookie policy"), url: "/ca/cookies" }], seoTitle: L3("Apex"), seoDescription: L3("Indústria gràfica de Catalunya"),
