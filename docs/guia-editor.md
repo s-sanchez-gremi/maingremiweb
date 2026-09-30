@@ -89,10 +89,14 @@ Dins de cada article o pàgina, al panell lateral, hi ha els idiomes (CA, ES, EN
 - **Tauler → Estat del sistema** (administradors) diu si les tasques programades funcionen, si hi ha correus pendents o fallits i quants errors oberts hi ha.
 - **Un article programat no ha sortit:** mira l'estat del sistema. Si diu *Aturades*, avisa qui manté el servidor.
 - **No arriben els correus d'avís dels formularis:** mira *Correus fallits* al tauler. Les respostes no es perden mai; el sistema reintenta l'enviament durant un dia.
-- **Has publicat una cosa per error:** obre-la i prem **Passa a esborrany**: deixa de ser visible al web. El sistema guarda les últimes 10 versions publicades; si necessites recuperar-ne una, demana-ho a l'administrador.
+- **Has publicat una cosa per error:** obre-la i prem **Passa a esborrany**: deixa de ser visible al web. Si vols recuperar una versió anterior, al panell lateral hi ha **Versions publicades**: prem **Restaura** i es copia a l'esborrany (no canvia el web fins que tornis a publicar). Es guarden les últimes 10.
 - **El web no respon:** mira-ho des d'un altre dispositiu i avisa qui manté el servidor. Les pàgines ja visitades continuen servint-se encara que falli la base de dades.
 
-## 9. Consells de seguretat
+## 9. Cercador
+
+El web té un cercador a la capçalera (i al menú del mòbil). Només troba contingut **publicat**, en l'idioma que s'està veient, i no distingeix accents ni majúscules. Un esborrany mai no hi surt.
+
+## 10. Consells de seguretat
 
 - Mai no comparteixis la teva contrasenya. Cada persona té el seu usuari.
 - Surt (**Surt**) si fas servir un ordinador compartit.

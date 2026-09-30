@@ -62,6 +62,16 @@ async function run(entryId: string, locale: Locale, at?: Date): Promise<{ status
   });
 }
 
+/** Copies an older published version back into the DRAFT. Never touches what is live: the editor reviews it, then publishes. */
+export async function restoreVersion(entryId: string, locale: Locale, versionId: string) {
+  const [v] = await db.select().from(entryVersions)
+    .where(and(eq(entryVersions.id, versionId), eq(entryVersions.entryId, entryId), eq(entryVersions.locale, locale)));
+  if (!v) throw new PublishError("Version not found");
+  const snap = v.snapshot as { title: string; slug: string; sections: unknown[]; seo: Record<string, string> };
+  await db.update(entryTranslations).set({ title: snap.title, slug: snap.slug, sections: snap.sections, seo: snap.seo, updatedAt: new Date() })
+    .where(and(eq(entryTranslations.entryId, entryId), eq(entryTranslations.locale, locale)));
+}
+
 export async function unpublish(entryId: string, locale: Locale) {
   await db.update(entryTranslations).set({ status: "draft", publishAt: null, live: null })
     .where(and(eq(entryTranslations.entryId, entryId), eq(entryTranslations.locale, locale)));

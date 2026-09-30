@@ -57,7 +57,7 @@ test.beforeAll(async ({ request }) => {
   // The rows above were written straight to the database, so tell the app to drop anything it cached earlier.
   const r = await request.post("/api/cron/revalidate", { headers: { authorization: `Bearer ${CRON_SECRET}` } });
   expect(r.status()).toBe(200);
-  PAGES = ["/ca", "/es", "/ca/blog", "/ca/blog/categoria/empresa", "/ca/blog/article-1", "/ca/formacio", "/ca/no-existeix", "/styleguide"];
+  PAGES = ["/ca", "/es", "/ca/blog", "/ca/blog/categoria/empresa", "/ca/blog/article-1", "/ca/formacio", "/ca/no-existeix", "/ca/search?q=conveni", "/ca/search?q=zzqqxx", "/ca/search", "/styleguide"];
 });
 
 const fmt = (v: { id: string; help: string; nodes: { target: unknown[]; failureSummary?: string }[] }[]) =>
@@ -70,6 +70,7 @@ async function settle(page: Page, path: string) {
 
 for (const width of WIDTHS) {
   test(`no accessibility violations or overflow at ${width}px`, async ({ page }) => {
+    test.setTimeout(150_000); // one test walks every public page
     await page.setViewportSize({ width, height: 900 });
     for (const path of PAGES) {
       await settle(page, path);
@@ -223,4 +224,15 @@ test.describe("navigation with dropdowns, header buttons and social links", () =
     await page.getByRole("button", { name: "Desa" }).click();
     await expect(page.getByRole("status")).toContainText("necessita un enllaç");
   });
+});
+
+test("search: header box finds published content (accent-insensitive) and says so when nothing matches", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await settle(page, "/ca");
+  await page.locator(".header-actions").getByRole("searchbox", { name: "Cerca al web" }).fill("intelligencia artificial");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/ca\/search\?q=/);
+  await expect(page.getByRole("link", { name: "Com impacta la intel·ligència artificial al sector" })).toBeVisible();
+  await settle(page, "/ca/search?q=zzqqxx");
+  await expect(page.getByRole("status")).toContainText("No hem trobat res");
 });

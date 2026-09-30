@@ -230,3 +230,15 @@
   .site .nav-mobile{display:none}
   .site .nav-desktop,.site .header-actions{display:flex}
 }
+
+/* ---------- search ---------- */
+.site .search{display:flex;gap:6px}
+.site .search input{font:inherit;font-size:var(--fs-sm);min-height:var(--tap);padding:0 12px;border:1px solid var(--field-border);border-radius:var(--r);background:#fff;color:var(--ink);width:100%;min-width:0}
+.site .search button{min-height:var(--tap);padding:0 14px;border-radius:var(--r);border:1px solid var(--ink);background:transparent;color:var(--ink);font:inherit;font-size:var(--fs-sm);font-weight:600;cursor:pointer}
+.site .search button:hover{background:var(--ink);color:var(--bg)}
+.site .header-actions .search{width:190px}
+.site .nav-mobile .search{margin-bottom:var(--sp-4)}
+.site .results{list-style:none;margin:0;padding:0;display:grid;gap:var(--sp-4)}
+.site .results li{border-bottom:1px solid var(--line);padding-bottom:var(--sp-4)}
+.site .results a{font-family:var(--serif);font-size:var(--fs-lg,20px);font-weight:700}
+.site .results a:hover{color:var(--accent)}

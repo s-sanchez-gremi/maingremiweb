@@ -136,3 +136,21 @@ test("admins see system status and the error log; the scheduler heartbeat drives
   expect(tick.ok()).toBe(true);
   expect((await page.request.get("/api/health?deep=1")).status()).toBe(200);
 });
+
+test("a previous published version can be restored into the draft without touching the live page", async ({ page }) => {
+  await login(page, "admin");
+  await page.goto("/admin/content?type=post");
+  await page.getByRole("button", { name: "Nou article" }).click();
+  await page.waitForURL(/\/admin\/content\/[0-9a-f-]{36}/);
+  const v1 = `Versió uno ${Date.now()}`, v2 = `Versió dos ${Date.now()}`;
+  await page.getByLabel("Títol", { exact: true }).fill(v1);
+  await page.getByRole("button", { name: "Publica" }).click();
+  await expect(page.getByText("Publicat.")).toBeVisible();
+  await page.getByLabel("Títol", { exact: true }).fill(v2);
+  await page.getByRole("button", { name: "Publica" }).click();
+  await expect(page.getByText("Publicat.")).toBeVisible();
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Restaura" }).last().click(); // oldest version
+  await expect(page.getByText("Versió restaurada")).toBeVisible();
+  await expect(page.getByLabel("Títol", { exact: true })).toHaveValue(v1);
+});

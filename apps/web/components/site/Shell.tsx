@@ -3,6 +3,7 @@ import { L, locales, ui, type Locale } from "@/lib/i18n";
 import { SmartLink } from "./SmartLink";
 import { NavDesktop, type NavEntry } from "./NavDesktop";
 import { SocialLinks } from "./Social";
+import { SearchBox } from "./SearchBox";
 
 export type Alt = { locale: Locale; href: string };
 
@@ -38,11 +39,13 @@ export async function Shell({ locale, alternates, children }: { locale: Locale; 
           <SmartLink href={home} className="logo">APEX</SmartLink>
           <NavDesktop items={nav} label="Principal" />
           <div className="header-actions">
+            <SearchBox locale={locale} />
             {buttons.map((b, i) => <SmartLink key={i} href={b.url} className={`btn${b.primary ? " primary" : ""}`}>{b.label}</SmartLink>)}
           </div>
           <details className="nav-mobile">
             <summary>{t.menu}</summary>
             <div className="panel">
+              <SearchBox locale={locale} />
               <ul>
                 {nav.map((n, i) => n.children.length === 0 ? (
                   <li key={i}><SmartLink href={n.url}>{n.label}</SmartLink></li>

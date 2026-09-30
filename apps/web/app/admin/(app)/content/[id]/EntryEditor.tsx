@@ -5,7 +5,7 @@ import { ListEditor } from "@/components/admin/ListEditor";
 import { FieldForm, emptyData, type Options } from "@/components/admin/FieldForm";
 import { sectionByName, sectionDefs } from "@/sections/registry";
 import type { Field } from "@/sections/fields";
-import { deleteEntry, saveEntry } from "../actions";
+import { deleteEntry, restoreEntryVersion, saveEntry } from "../actions";
 
 type SectionItem = { id: string; type: string; data: Record<string, unknown> };
 type Opt = { id: string; label: string };
@@ -17,6 +17,7 @@ export function EntryEditor(p: {
   locale: string;
   translation: { title: string; slug: string; sections: SectionItem[]; seo: { title?: string; description?: string }; status: Status; publishAt: string | null; exists: boolean; hasLive: boolean; dirty: boolean };
   langs: { code: string; status: Status | null }[];
+  versions: { id: string; at: string; title: string }[];
   categories: Opt[]; authors: Opt[]; options: Options;
   message: { kind: "err" | "ok"; text: string } | null;
 }) {
@@ -85,6 +86,20 @@ export function EntryEditor(p: {
               <button className="btn" type="submit" name="intent" value="schedule">Programa</button>
               {(t.hasLive || t.status === "scheduled") && <button className="btn" type="submit" name="intent" value="unpublish">Passa a esborrany</button>}
             </div>
+
+            {p.versions.length > 0 && (
+              <div className="card">
+                <h3>Versions publicades</h3>
+                <p className="hint">Restaurar ho copia a l&apos;esborrany (substitueix el que hi ha ara). No canvia el web fins que publiquis.</p>
+                {p.versions.map((v) => (
+                  <div className="row" key={v.id}>
+                    <span>{new Date(v.at).toLocaleString("ca-ES", { dateStyle: "short", timeStyle: "short" })}</span>
+                    <button className="btn link" type="submit" formAction={restoreEntryVersion.bind(null, v.id)} formNoValidate
+                      onClick={(e) => { if (!confirm("Restaurar aquesta versió? Es perdran els canvis de l'esborrany actual.")) e.preventDefault(); }}>Restaura</button>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="card">
               <h3>Detalls</h3>

@@ -89,7 +89,7 @@ Posts and landing pages share **one** `entries` table; the only difference is `t
 - **Public reads** go through one `getEntry(type, slug, locale)` returning only `published`; pages are ISR with tag revalidation.
 - **Migrations:** plain SQL files in git, applied by one script; run automatically in staging, by hand (reviewed) in production.
 - **Tests:** unit tests for section validation, `can()`, `publish()`, the public queries, media pipeline and the lead pipeline (throwaway DB); Playwright end-to-end suite (login throttle, draft → publish → live, hidden draft edits, unpublish, scheduled publish via cron, editor permissions) run in CI on every change.
-- **Size budget:** whole CMS (admin + API + registry) target under ~6,000 lines maximum; if it grows past that, stop and simplify.
+- **Size budget:** whole CMS (admin + API + registry) soft target of ~6,000 lines. It is a guideline, not a hard stop (decision: flexible). When it is exceeded, say so and review for simplification before adding more; current size is recorded in the phase notes.
 
 ### How to extend
 | Need | Change |

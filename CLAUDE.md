@@ -56,7 +56,7 @@ Posts and landing pages share **one** `entries` table; the only difference is `t
 - **Public reads** go through one `getEntry(type, slug, locale)` returning only `published`; pages are ISR with tag revalidation.
 - **Migrations:** plain SQL files in git, applied by one script; run automatically in staging, by hand (reviewed) in production.
 - **Tests:** unit tests for section validation, `can()`, `publish()`, the public queries, media pipeline and the lead pipeline (throwaway DB); Playwright end-to-end suite (login throttle, draft → publish → live, hidden draft edits, unpublish, scheduled publish via cron, editor permissions) run in CI on every change.
-- **Size budget:** whole CMS (admin + API + registry) target under ~6,000 lines maximum; if it grows past that, stop and simplify.
+- **Size budget:** whole CMS (admin + API + registry) soft target of ~6,000 lines. It is a guideline, not a hard stop (decision: flexible). When it is exceeded, say so and review for simplification before adding more; current size is recorded in the phase notes.
 
 #### How to extend
 | Need | Change |
@@ -204,7 +204,7 @@ Ask the person running this guide for the mockup artifact link(s) if they weren'
 - **Header buttons:** *Botons de la capçalera* (up to 3, label per language, link may be an external site, red or outline) — this is where **"Campus virtual"** goes.
 - **Social links:** *Xarxes socials* (Facebook, X, Instagram, YouTube, LinkedIn) as labelled icons in the top bar. Plus the phone/email, language switcher and footer already described.
 - **Demo data:** `seed:demo` loads the real section structure (El GREMI, Laboral, Formació, Actualitat, Borsa de treball, Agremia't) with placeholder pages marked `[CONTINGUT PENDENT DE MIGRAR]`; the Campus link is a placeholder (`https://campus.example`) until the real address is set. Migrating the actual page content from gremi.net is a separate task.
-- **Not built (yet):** the site search box present on gremi.net.
+- **Site search:** a plain GET form in the header (and mobile menu) → `/{locale}/search?q=` (`lib/search.ts`): Postgres over the LIVE snapshot only, accent/case-insensitive (also the Catalan middle dot), every word must match, title matches first, 20 results, `noindex`. No extension, no index, no service. It is the one public page rendered per request (needs the database); `search` is a reserved slug.
 
 ## CI and deployment foundation (phase 7)
 - **CI** (`.github/workflows/ci.yml`, three parallel jobs; the logic is in `scripts/ci.sh` so it runs identically on a laptop: `pnpm verify`, or `pnpm verify:fast`): (1) lockfile-exact install, lint, types, unit + database tests, a **build with no configuration and no database**, the full Playwright end-to-end suite (accessibility, consent, forms, security headers); (2) the production **Docker image** is built and smoke-tested on a fresh database (`scripts/docker-smoke.sh`: migrations, pages, headers, startup refusal, native libraries, first admin); (3) `pnpm audit` for known vulnerabilities. Dependabot opens weekly update PRs (npm, GitHub Actions, Docker); CI decides if they are safe. The workflow file itself has not been run on GitHub yet (only its script and its YAML validity were verified here).
@@ -224,3 +224,7 @@ Ask the person running this guide for the mockup artifact link(s) if they weren'
 - **Errors:** `onRequestError` in `instrumentation.ts` → `lib/errors.ts` writes to our own `error_log` (migration 0008): deduplicated by fingerprint with a counter, message + short stack + route path only (no query/body/cookies), one e-mail to `ALERT_EMAIL` per new error (reminder after 24 h while open), purged 90 days after resolved. Admin screen *Errors*, plus *Estat del sistema* on the dashboard. No third-party service. Note: a page that throws for a normal "not allowed" case is logged as a bug, so use `notFound()` like the other admin pages.
 - **Backup alerts:** `BACKUP_PING_URL` / `DRILL_PING_URL` dead-man's-switch URLs (see `DEPLOY.md`, Monitoring).
 - **Editor guide:** `docs/guia-editor.md` (Catalan).
+
+## Version restore and size note
+- **Restore:** the editor's side panel lists the last 10 published versions; *Restaura* copies one back into the **draft** (never into live); the editor reviews and presses Publica (`restoreVersion()` in `lib/publish.ts`).
+- **Size:** app code ≈ 6,200 lines after search, restore and monitoring; the 6,000 target is now a soft guideline (client decision).

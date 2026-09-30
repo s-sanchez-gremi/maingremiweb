@@ -6,7 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { PublishError, publish, unpublish } from "@/lib/publish";
+import { PublishError, publish, restoreVersion, unpublish } from "@/lib/publish";
 import { slugify } from "@/lib/slug";
 import { entries, entryTranslations, locales, type Locale } from "@/db/schema";
 import { sectionDefs } from "@/sections/registry";
@@ -84,4 +84,18 @@ export async function saveEntry(formData: FormData) {
     }
   }
   back("saved=" + intent);
+}
+
+export async function restoreEntryVersion(versionId: string, formData: FormData) { // versionId is bound in the editor (a button's own name/value is not sent with function actions)
+  await requireUser("content:write");
+  const id = z.string().uuid().parse(formData.get("id"));
+  const locale = z.enum(locales).parse(formData.get("locale")) as Locale;
+  try { await restoreVersion(id, locale, z.string().uuid().parse(versionId)); }
+  catch (e) {
+    const code = (e as { code?: string; cause?: { code?: string } }).cause?.code ?? (e as { code?: string }).code;
+    const msg = e instanceof PublishError ? e.message : code === "23505" ? "Aquest slug ja s'utilitza en aquest idioma." : null;
+    if (!msg) throw e;
+    redirect(`/admin/content/${id}?locale=${locale}&error=${encodeURIComponent(msg)}`);
+  }
+  redirect(`/admin/content/${id}?locale=${locale}&saved=restore`);
 }
