@@ -79,13 +79,21 @@ Dins de cada article o pàgina, al panell lateral, hi ha els idiomes (CA, ES, EN
 - Si una persona demana que s'esborrin les seves dades, demana-ho a un administrador: pot eliminar el contacte amb totes les seves peticions, notes, respostes, fitxers i el client creat a partir d'ell.
 - Les caselles de consentiment es mostren amb el text exacte que s'ha configurat. **No canviïs aquest text sense consultar-ho amb el/la responsable legal.** La casella del butlletí mai no ve marcada.
 
-## 7. Què només fan els administradors
+## 7. Projectes i tasques
+
+- A **Projectes** crees un projecte (amb client opcional). A dins hi ha dues llistes:
+  - **Tasques:** escriu què cal fer, tria qui n'és el responsable i, si vols, una data límit. Prem **✓** quan estigui feta (i **↺** per reobrir-la). Les tasques vençudes surten marcades amb ⚠.
+  - **Documents:** puja un fitxer (PDF, imatge, Word o Excel, fins a 10 MB) o afegeix un enllaç. Els fitxers no són públics: només els veu qui ha entrat al sistema.
+- **Tasques** (al menú) mostra totes les tasques obertes de tots els projectes. Per defecte veus les teves; prem **Totes** per veure les de tothom.
+- Al **Tauler** hi ha el nombre de tasques obertes que tens assignades.
+
+## 8. Què només fan els administradors
 
 - **Usuaris**: crear-ne, canviar el rol (administrador o editor), restablir contrasenyes i eliminar.
 - **Configuració**: menú principal, peu de pàgina, botons de la capçalera (per exemple, *Campus virtual*), xarxes socials, dades de contacte, enllaços legals, SEO per defecte i pàgina d'inici.
 - **Errors**: problemes inesperats del web (vegeu l'apartat següent).
 
-## 8. Si alguna cosa no va bé
+## 9. Si alguna cosa no va bé
 
 - **Tauler → Estat del sistema** (administradors) diu si les tasques programades funcionen, si hi ha correus pendents o fallits i quants errors oberts hi ha.
 - **Un article programat no ha sortit:** mira l'estat del sistema. Si diu *Aturades*, avisa qui manté el servidor.
@@ -93,11 +101,11 @@ Dins de cada article o pàgina, al panell lateral, hi ha els idiomes (CA, ES, EN
 - **Has publicat una cosa per error:** obre-la i prem **Passa a esborrany**: deixa de ser visible al web. Si vols recuperar una versió anterior, al panell lateral hi ha **Versions publicades**: prem **Restaura** i es copia a l'esborrany (no canvia el web fins que tornis a publicar). Es guarden les últimes 10.
 - **El web no respon:** mira-ho des d'un altre dispositiu i avisa qui manté el servidor. Les pàgines ja visitades continuen servint-se encara que falli la base de dades.
 
-## 9. Cercador
+## 10. Cercador
 
 El web té un cercador a la capçalera (i al menú del mòbil). Només troba contingut **publicat**, en l'idioma que s'està veient, i no distingeix accents ni majúscules. Un esborrany mai no hi surt.
 
-## 10. Consells de seguretat
+## 11. Consells de seguretat
 
 - Mai no comparteixis la teva contrasenya. Cada persona té el seu usuari.
 - Surt (**Surt**) si fas servir un ordinador compartit.

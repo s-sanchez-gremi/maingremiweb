@@ -228,3 +228,27 @@ export const heartbeats = pgTable("heartbeats", {
   name: text().primaryKey(),
   at: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
+
+export const tasks = pgTable("tasks", {
+  id: uuid().primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  title: text().notNull(),
+  ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+  dueDate: date("due_date"),
+  doneAt: timestamp("done_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const projectDocuments = pgTable("project_documents", {
+  id: uuid().primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  kind: text().$type<"file" | "link">().notNull(),
+  title: text().notNull(),
+  url: text(),
+  fileKey: text("file_key"),
+  fileName: text("file_name"),
+  mime: text(),
+  size: integer(),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

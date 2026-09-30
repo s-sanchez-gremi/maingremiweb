@@ -4,7 +4,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { projects } from "@/db/schema";
+import { projects, tasks } from "@/db/schema";
+import { ProjectError, addFile, addLink, addTask, deleteDocument, deleteProject, deleteTask, setTaskDone } from "@/lib/projects";
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const status = z.enum(["active", "paused", "done"]);
@@ -29,6 +30,56 @@ export async function saveProject(fd: FormData) {
 
 export async function removeProject(fd: FormData) {
   await requireUser("projects:write");
-  await db.delete(projects).where(eq(projects.id, z.string().uuid().parse(fd.get("id"))));
+  await deleteProject(z.string().uuid().parse(fd.get("id")));
   redirect("/admin/projects?deleted=1");
+}
+
+// ---- tasks and documents ----
+const uuid = (fd: FormData, k = "id") => z.string().uuid().parse(fd.get(k));
+const backTo = (fd: FormData, projectId: string) => (fd.get("from") === "tasks" ? "/admin/tasks" : `/admin/projects/${projectId}`); // only our own two pages, never a URL from the form
+const fail = (to: string, e: unknown): never => {
+  if (!(e instanceof ProjectError)) throw e;
+  redirect(`${to}?error=${encodeURIComponent(e.message)}`);
+};
+
+export async function createTask(fd: FormData) {
+  await requireUser("projects:write");
+  const projectId = uuid(fd, "projectId"), to = `/admin/projects/${projectId}`;
+  const owner = s(fd, "ownerId");
+  try { await addTask(projectId, s(fd, "title"), z.string().uuid().safeParse(owner).success ? owner : null, s(fd, "dueDate") || null); } catch (e) { fail(to, e); }
+  redirect(`${to}?saved=task`);
+}
+
+export async function toggleTask(fd: FormData) {
+  await requireUser("projects:write");
+  const id = uuid(fd), [t] = await db.select({ projectId: tasks.projectId }).from(tasks).where(eq(tasks.id, id));
+  if (!t) redirect("/admin/tasks");
+  await setTaskDone(id, fd.get("done") === "1");
+  redirect(backTo(fd, t.projectId));
+}
+
+export async function removeTask(fd: FormData) {
+  await requireUser("projects:write");
+  const id = uuid(fd), [t] = await db.select({ projectId: tasks.projectId }).from(tasks).where(eq(tasks.id, id));
+  if (t) await deleteTask(id);
+  redirect(t ? backTo(fd, t.projectId) : "/admin/tasks");
+}
+
+export async function createDocument(fd: FormData) {
+  const user = await requireUser("projects:write");
+  const projectId = uuid(fd, "projectId"), to = `/admin/projects/${projectId}`;
+  try {
+    const file = fd.get("file");
+    if (file instanceof File && file.size > 0) await addFile(projectId, user.id, s(fd, "title"), { name: file.name, bytes: Buffer.from(await file.arrayBuffer()) });
+    else if (s(fd, "url")) await addLink(projectId, user.id, s(fd, "title"), s(fd, "url"));
+    else throw new ProjectError("Tria un fitxer o indica un enllaç");
+  } catch (e) { fail(to, e); }
+  redirect(`${to}?saved=doc`);
+}
+
+export async function removeDocument(fd: FormData) {
+  await requireUser("projects:write");
+  const projectId = uuid(fd, "projectId");
+  await deleteDocument(uuid(fd));
+  redirect(`/admin/projects/${projectId}?saved=1`);
 }

@@ -9,6 +9,7 @@ const items = [
   { href: "/admin/forms", label: "Formularis", match: (p: string) => p.startsWith("/admin/forms") },
   { href: "/admin/leads", label: "Contactes", match: (p: string) => p.startsWith("/admin/leads") },
   { href: "/admin/projects", label: "Projectes", match: (p: string) => p.startsWith("/admin/projects") },
+  { href: "/admin/tasks", label: "Tasques", match: (p: string) => p.startsWith("/admin/tasks") },
   { href: "/admin/clients", label: "Clients", match: (p: string) => p.startsWith("/admin/clients") },
   { href: "/admin/media", label: "Fitxers", match: (p: string) => p.startsWith("/admin/media") },
   { href: "/admin/categories", label: "Categories", match: (p: string) => p.startsWith("/admin/categories") },
