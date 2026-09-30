@@ -38,6 +38,8 @@ if [ "$FAST" = 0 ]; then
     ./scripts/docker-smoke.sh
     step "Deploy drill (release, automatic rollback of a broken release, failed migration)"
     ./scripts/deploy-drill.sh
+    step "Staging stack drill (app + PostgreSQL in Docker: data survives a release, database is private)"
+    ./scripts/staging-drill.sh
     step "Backup drill (encrypted off-platform backup restores; a corrupt backup is caught)"
     ./scripts/backup-drill.sh
   fi

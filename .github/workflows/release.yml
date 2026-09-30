@@ -52,7 +52,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   staging:
-    name: Deploy to staging
+    name: Deploy to staging (small server, PostgreSQL in Docker)
     needs: build
     runs-on: ubuntu-24.04
     environment: staging
@@ -64,6 +64,7 @@ jobs:
       - uses: ./.github/actions/deploy
         with:
           tag: ${{ needs.build.outputs.tag }}
+          compose-file: deploy/compose.staging.yml
           host: ${{ secrets.DEPLOY_HOST }}
           user: ${{ secrets.DEPLOY_USER }}
           dir: ${{ secrets.DEPLOY_DIR }}

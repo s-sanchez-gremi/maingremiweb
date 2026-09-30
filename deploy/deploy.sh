@@ -7,7 +7,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 TAG="${1:?usage: deploy.sh <image-tag>}"
-COMPOSE=(docker compose -f "${COMPOSE_FILE:-compose.yml}")
+export COMPOSE_FILE="${COMPOSE_FILE:-compose.yml}"   # docker compose reads this itself (several files may be joined with ":")
+COMPOSE=(docker compose)
 STATE=.current-tag
 PREV="$(cat "$STATE" 2>/dev/null || true)"
 WAIT="${HEALTH_WAIT_SECONDS:-120}"
@@ -24,6 +25,13 @@ healthy() {
 alive() { local id; id="$("${COMPOSE[@]}" ps -q app 2>/dev/null || true)"; [ -n "$id" ] && [ "$(docker inspect -f '{{.State.Status}}' "$id" 2>/dev/null)" = "running" ]; }
 
 if [ "${PULL:-1}" = "1" ]; then say "pull $TAG"; "${COMPOSE[@]}" pull app; fi
+
+# A stack that carries its own database (staging) must have it running before migrating; the managed-database stack has no "db" service.
+SERVICES="$("${COMPOSE[@]}" config --services)"   # captured, not piped: `| grep -q` can die of SIGPIPE under pipefail
+if grep -qx db <<<"$SERVICES"; then
+  say "start the database"
+  "${COMPOSE[@]}" up -d --wait db
+fi
 
 say "apply database migrations (release $TAG)"
 "${COMPOSE[@]}" run --rm --no-deps app migrate

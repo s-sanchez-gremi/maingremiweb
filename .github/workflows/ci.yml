@@ -61,6 +61,7 @@ jobs:
           for i in $(seq 1 60); do curl -fsS "localhost:9090/apex-media?list-type=2" >/dev/null 2>&1 && break; sleep 1; done
           ./scripts/docker-smoke.sh
           ./scripts/deploy-drill.sh
+          ./scripts/staging-drill.sh
           ./scripts/backup-drill.sh
 
   audit:

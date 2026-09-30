@@ -9,10 +9,13 @@ holds the data · **IONOS S3 Object Storage** holds the files (three buckets) ·
 > details (marked ⚠) must be confirmed on the first run. Do them together with the person who has the IONOS login.
 
 ## 0. Decide first
-- **Location**: pick one where *all three* exist: Cloud servers, Managed PostgreSQL, S3. (S3 is offered in Frankfurt, Berlin and
-  Logroño; confirm the database and server products in the same place in the IONOS console before you create anything.)
-- **Staging**: a second, smaller copy (server + database) is recommended so releases are tried before production. It doubles the
-  cost of the database; a cheaper alternative is staging on a small server with PostgreSQL in Docker. Everything below works for either.
+- **Location (decided): Logroño, Spain** (`es/vit`; S3 region `eu-south-2`). ⚠ S3 in Logroño is documented; before creating anything confirm in the
+  IONOS console that Cloud servers **and** Managed PostgreSQL are also offered in Logroño. If the managed database is not, fall back to Frankfurt for
+  *everything* (server and database must share a data center; S3 region `de`) and change the endpoint/region values.
+- **Staging (decided): the cheaper alternative.** Staging runs on its **own small server** with **PostgreSQL in Docker** (`deploy/compose.staging.yml`,
+  `deploy/ionos/staging.env.example`), no managed database. Production uses the managed database (`deploy/compose.yml`). Use **separate S3 buckets and
+  separate S3 keys** for staging, and only test data in staging. Follow sections 1, 3, 4, 5, 6, 7 for staging too and **skip section 2** (the database
+  is the container); the staging database is backed up by the same `backup.sh` (`DOCKER_NETWORK=apex-staging_default`, `DATABASE_URL` pointing at host `db`).
 - **Names**: S3 bucket names are global across IONOS: use a unique prefix (`yourprefix-apex-media`, `-private`, `-backups`).
 
 ## 1. Network and server

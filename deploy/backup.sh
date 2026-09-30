@@ -11,6 +11,8 @@ set -a; source "${BACKUP_ENV:-$(dirname "$0")/backup.env}"; set +a
 PG_IMAGE="${PG_IMAGE:-postgres:17}"
 RETENTION_DAYS="${RETENTION_DAYS:-30}"
 NET_ARGS=(); [ -n "${DOCKER_NETWORK:-}" ] && NET_ARGS=(--network "$DOCKER_NETWORK")
+# shellcheck disable=SC2206
+[ -n "${DOCKER_EXTRA_ARGS:-}" ] && NET_ARGS+=(${DOCKER_EXTRA_ARGS})
 ping() { [ -n "${BACKUP_PING_URL:-}" ] && curl -fsS -m 10 --retry 3 "${BACKUP_PING_URL}$1" >/dev/null 2>&1 || true; }
 AWS=(docker run --rm -i "${NET_ARGS[@]}" -e AWS_ACCESS_KEY_ID="$BACKUP_ACCESS_KEY" -e AWS_SECRET_ACCESS_KEY="$BACKUP_SECRET_KEY"
      -e AWS_DEFAULT_REGION="${BACKUP_S3_REGION:-eu-west-1}" -e AWS_EC2_METADATA_DISABLED=true amazon/aws-cli --endpoint-url "$BACKUP_S3_ENDPOINT")
@@ -21,7 +23,9 @@ ping /start
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 docker run --rm "${NET_ARGS[@]}" "$PG_IMAGE" pg_dump --format=custom --no-owner --no-privileges "$DATABASE_URL" > "$TMP/dump"
 [ "$(wc -c < "$TMP/dump")" -gt 1024 ] || { echo "dump is suspiciously small"; false; }
-docker run --rm -i "$PG_IMAGE" pg_restore --list < "$TMP/dump" | grep -q "TABLE DATA" || { echo "dump has no table data"; false; } # readable and non-empty
+# Readable and non-empty. (Capture first: `pg_restore | grep -q` can die of SIGPIPE when grep quits early, and pipefail would fail a good backup.)
+LIST="$(docker run --rm -i "$PG_IMAGE" pg_restore --list < "$TMP/dump")"
+grep -q "TABLE DATA" <<<"$LIST" || { echo "dump has no table data"; false; }
 
 KEY="db/apex-$STAMP.dump"; FILE="$TMP/dump"
 if [ -n "${BACKUP_PASSPHRASE:-}" ]; then

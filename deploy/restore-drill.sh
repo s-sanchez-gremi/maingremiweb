@@ -6,6 +6,8 @@ set -euo pipefail
 set -a; source "${BACKUP_ENV:-$(dirname "$0")/backup.env}"; set +a
 PG_IMAGE="${PG_IMAGE:-postgres:17}"
 NET_ARGS=(); [ -n "${DOCKER_NETWORK:-}" ] && NET_ARGS=(--network "$DOCKER_NETWORK")
+# shellcheck disable=SC2206
+[ -n "${DOCKER_EXTRA_ARGS:-}" ] && NET_ARGS+=(${DOCKER_EXTRA_ARGS})
 ping() { [ -n "${DRILL_PING_URL:-}" ] && curl -fsS -m 10 --retry 3 "${DRILL_PING_URL}$1" >/dev/null 2>&1 || true; }
 AWS=(docker run --rm -i "${NET_ARGS[@]}" -e AWS_ACCESS_KEY_ID="$BACKUP_ACCESS_KEY" -e AWS_SECRET_ACCESS_KEY="$BACKUP_SECRET_KEY"
      -e AWS_DEFAULT_REGION="${BACKUP_S3_REGION:-eu-west-1}" -e AWS_EC2_METADATA_DISABLED=true amazon/aws-cli --endpoint-url "$BACKUP_S3_ENDPOINT")

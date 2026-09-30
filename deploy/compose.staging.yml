@@ -1,0 +1,56 @@
+# STAGING on a small server: the app, PostgreSQL in Docker, and Caddy. (Production uses IONOS Managed PostgreSQL instead: compose.yml.)
+# The database is reachable only from the app (no published port). Its data lives in the "pgdata" volume and is backed up
+# to S3 like production (deploy/backup.sh with DOCKER_NETWORK=<project>_default).
+name: ${APEX_ENV:-apex-staging}
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+  app:
+    image: ${APEX_IMAGE:-ghcr.io/OWNER/apex}:${APEX_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: "3000"
+    depends_on:
+      db: { condition: service_healthy }
+    expose: ["3000"]
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      app: { condition: service_healthy }
+    ports: ["80:80", "443:443"]
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?set SITE_DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

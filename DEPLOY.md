@@ -3,7 +3,7 @@
 One Docker image runs everywhere (staging and production); only the environment differs. The image contains the website,
 the admin and the API. Everything else (database, file storage, mail, reverse proxy, scheduler) is provided by the host.
 
-**Hosting: IONOS Cloud** (server + Managed PostgreSQL + S3 Object Storage). The step-by-step setup is `deploy/ionos/README.md`;
+**Hosting: IONOS Cloud, Logroño** — production: server + Managed PostgreSQL + S3; staging: a small separate server with PostgreSQL in Docker (cheaper). The step-by-step setup is `deploy/ionos/README.md`;
 the environment template is `deploy/ionos/production.env.example`.
 
 **Every change is checked by CI** (`.github/workflows/ci.yml`, locally: `pnpm verify`): lint, types, 129+ unit/database tests,
@@ -13,7 +13,7 @@ and a dependency vulnerability audit.
 ## What you need from the host
 | Need | Notes |
 |---|---|
-| PostgreSQL 17, EU region | one database, backed up daily (`scripts/backup.sh`, restore tested with `scripts/restore.sh`) |
+| PostgreSQL 17, EU region (production: IONOS Managed; staging: in Docker) | one database, backed up daily (`scripts/backup.sh`, restore tested with `scripts/restore.sh`) |
 | S3-compatible storage, EU region | **two buckets**: `S3_BUCKET` (media, publicly readable, ideally behind a CDN) and `S3_PRIVATE_BUCKET` (visitor uploads, **never public**) |
 | SMTP account | transactional mail (form notifications) |
 | Reverse proxy with HTTPS | see `deploy/Caddyfile`; it must append the client address to `X-Forwarded-For` (`TRUSTED_PROXY_HOPS`, default 1) |
