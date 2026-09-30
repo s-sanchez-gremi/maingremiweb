@@ -12,6 +12,8 @@
     "db:restore": "./scripts/restore.sh",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
-    "build": "pnpm --filter web build"
+    "build": "pnpm --filter web build",
+    "verify": "./scripts/ci.sh",
+    "verify:fast": "./scripts/ci.sh --fast"
   }
 }

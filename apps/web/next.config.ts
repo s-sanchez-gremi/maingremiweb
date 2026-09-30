@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
+import { resolve } from "node:path";
 
 const nextConfig: NextConfig = {
   agentRules: false,
+  // Only when building the production Docker image: a self-contained server (monorepo root so workspace files are traced).
+  ...(process.env.NEXT_STANDALONE ? { output: "standalone" as const, outputFileTracingRoot: resolve(process.cwd(), "../..") } : {}),
   // The e2e run builds into its own folder so its cache can never mix with dev or production data.
   distDir: process.env.NEXT_DIST_DIR || ".next",
   // Browser hardening that never changes: the Content-Security-Policy and framing rules are set per request in proxy.ts.

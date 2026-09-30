@@ -7,7 +7,7 @@ export const MAX_NUMBER = 60_000;          // ~30k hashes on average: well under
 const TTL_MS = 30 * 60 * 1000;
 
 export function botSecret(): string {
-  const s = process.env.BOT_SECRET || process.env.SESSION_SECRET || "";
+  const s = process.env.BOT_SECRET || "";
   const local = ["local", "e2e", "test"].includes(process.env.APP_ENV ?? "") || process.env.NODE_ENV === "test" || process.env.VITEST;
   if (!s || (s === "change-me" && !local)) throw new Error("BOT_SECRET is not configured");
   return s;

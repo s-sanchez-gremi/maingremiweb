@@ -1,0 +1,76 @@
+# Runs on every pull request and every push to main. The logic lives in scripts/ so it can be run (and debugged) locally.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Lint, types, tests, build, end-to-end
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4            # version comes from "packageManager" in package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Local configuration for the test services
+        run: cp .env.example .env && ln -sf ../../.env apps/web/.env
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter web exec playwright install --with-deps chromium
+      - name: All checks
+        run: ./scripts/ci.sh --no-docker
+      - name: Keep test evidence when something fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            apps/web/test-results
+            apps/web/playwright-report
+          retention-days: 7
+
+  docker:
+    name: Production image builds and starts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Local configuration for the test services
+        run: cp .env.example .env
+      - name: Start the services and run the image smoke test
+        run: |
+          docker compose up -d --wait db mail
+          docker compose up -d s3
+          for i in $(seq 1 60); do curl -fsS "localhost:9090/apex-media?list-type=2" >/dev/null 2>&1 && break; sleep 1; done
+          ./scripts/docker-smoke.sh
+
+  audit:
+    name: Known vulnerabilities in production dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm audit --prod --audit-level=high
