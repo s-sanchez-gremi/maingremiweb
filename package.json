@@ -1,0 +1,15 @@
+{
+  "name": "apex",
+  "private": true,
+  "packageManager": "pnpm@10.34.6",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "docker compose up -d && pnpm --filter web dev",
+    "db:migrate": "pnpm --filter web db:migrate",
+    "db:backup": "./scripts/backup.sh",
+    "db:restore": "./scripts/restore.sh",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "build": "pnpm --filter web build"
+  }
+}
