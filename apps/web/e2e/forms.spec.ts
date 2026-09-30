@@ -261,6 +261,11 @@ test("uploads are private and identified by content; staff download through sign
   expect(await count("clients", sql`where email = 'eva@e2e.test'`)).toBe(1);
   await page.goto("/admin/leads?status=won&q=eva");
   await expect(page.getByText("eva@e2e.test")).toBeVisible();
+  await page.goto("/admin/leads?view=people&q=" + encodeURIComponent("e2e.test"));
+  await expect(page.getByRole("columnheader", { name: "Peticions" })).toBeVisible();
+  await expect(page.getByText("eva@e2e.test")).toBeVisible();
+  await page.goto("/admin/search?q=eva%40e2e");
+  await expect(page.getByRole("heading", { name: /Contactes i peticions/ })).toBeVisible();
   await page.goto("/admin/leads?status=lost");
   await expect(page.getByText("eva@e2e.test")).toHaveCount(0);
 

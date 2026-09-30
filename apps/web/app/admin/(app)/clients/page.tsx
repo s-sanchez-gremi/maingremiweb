@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { asc, count, eq } from "drizzle-orm";
+import { asc, count, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { clients, projects } from "@/db/schema";
+import { matchAll } from "@/lib/search";
 import { createClient } from "./actions";
 
-export default async function Clients({ searchParams }: { searchParams: Promise<{ error?: string; deleted?: string }> }) {
+export default async function Clients({ searchParams }: { searchParams: Promise<{ error?: string; deleted?: string; q?: string }> }) {
   const sp = await searchParams;
-  const rows = await db.select({ c: clients, n: count(projects.id) }).from(clients).leftJoin(projects, eq(projects.clientId, clients.id)).groupBy(clients.id).orderBy(asc(clients.name));
+  const rows = await db.select({ c: clients, n: count(projects.id) }).from(clients).leftJoin(projects, eq(projects.clientId, clients.id)).where(matchAll(sql`${clients.name} || ' ' || ${clients.email} || ' ' || ${clients.phone} || ' ' || ${clients.notes}`, sp.q)).groupBy(clients.id).orderBy(asc(clients.name));
   return (
     <>
       <div className="top"><div><div className="crumb">Projectes</div><h1>Clients</h1></div></div>
@@ -15,7 +16,8 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
         {sp.deleted && <p role="status" className="msg ok">Client eliminat.</p>}
         <div className="cols">
           <div className="col-main">
-            {rows.length === 0 ? <p className="hint">Encara no hi ha cap client.</p> : (
+            <form method="get" className="row" role="search"><label className="sr-only" htmlFor="cq">Cerca clients</label><input id="cq" name="q" type="search" defaultValue={sp.q ?? ""} placeholder="Cerca clients" style={{ flex: 1 }} /><button className="btn" type="submit">Cerca</button></form>
+            {rows.length === 0 ? <p className="hint">{sp.q ? "Cap client coincideix." : "Encara no hi ha cap client."}</p> : (
               <table>
                 <thead><tr><th>Nom</th><th>Contacte</th><th>Projectes</th></tr></thead>
                 <tbody>{rows.map(({ c, n }) => <tr key={c.id}><td><Link href={`/admin/clients/${c.id}`}><strong>{c.name}</strong></Link></td><td className="hint">{[c.email, c.phone].filter(Boolean).join(" · ") || "—"}</td><td>{n}</td></tr>)}</tbody>

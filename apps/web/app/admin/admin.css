@@ -49,3 +49,8 @@
 .admin .langs a[aria-current=page]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .admin .hint{font-size:12px;color:var(--text2)}
 @media (max-width:900px){.admin .shell{flex-direction:column}.admin .side{width:auto}.admin .cols{flex-direction:column}.admin .col-side{width:100%}.admin .body,.admin .top{padding:16px}}
+.admin .btn[aria-current=page]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.admin .side-search{padding:0 12px 8px;display:grid;gap:6px}
+.admin .side-search input{font:inherit;font-size:13px;padding:8px 10px;border-radius:6px;border:1px solid var(--ink2);background:var(--ink2);color:var(--bg);width:100%;min-width:0}
+.admin .side-search input::placeholder{color:var(--ink-text)}
+.admin .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

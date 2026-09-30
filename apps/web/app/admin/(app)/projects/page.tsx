@@ -1,15 +1,16 @@
 import Link from "next/link";
-import { asc, count, eq } from "drizzle-orm";
+import { asc, count, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { clients, projects, submissions } from "@/db/schema";
+import { matchAll } from "@/lib/search";
 import { createProject } from "./actions";
 
 const label = { active: "Actiu", paused: "En pausa", done: "Acabat" } as const;
 
-export default async function Projects({ searchParams }: { searchParams: Promise<{ error?: string; deleted?: string; client?: string }> }) {
+export default async function Projects({ searchParams }: { searchParams: Promise<{ error?: string; deleted?: string; client?: string; q?: string }> }) {
   const sp = await searchParams;
   const rows = await db.select({ p: projects, client: clients.name, n: count(submissions.id) }).from(projects)
-    .leftJoin(clients, eq(clients.id, projects.clientId)).leftJoin(submissions, eq(submissions.projectId, projects.id)).groupBy(projects.id, clients.name).orderBy(asc(projects.name));
+    .leftJoin(clients, eq(clients.id, projects.clientId)).leftJoin(submissions, eq(submissions.projectId, projects.id)).where(matchAll(sql`${projects.name} || ' ' || ${projects.notes} || ' ' || coalesce(${clients.name}, '')`, sp.q)).groupBy(projects.id, clients.name).orderBy(asc(projects.name));
   const cl = await db.select({ id: clients.id, name: clients.name }).from(clients).orderBy(asc(clients.name));
   return (
     <>
@@ -19,7 +20,8 @@ export default async function Projects({ searchParams }: { searchParams: Promise
         {sp.deleted && <p role="status" className="msg ok">Projecte eliminat.</p>}
         <div className="cols">
           <div className="col-main">
-            {rows.length === 0 ? <p className="hint">Encara no hi ha cap projecte.</p> : (
+            <form method="get" className="row" role="search"><label className="sr-only" htmlFor="pq">Cerca projectes</label><input id="pq" name="q" type="search" defaultValue={sp.q ?? ""} placeholder="Cerca projectes" style={{ flex: 1 }} /><button className="btn" type="submit">Cerca</button></form>
+            {rows.length === 0 ? <p className="hint">{sp.q ? "Cap projecte coincideix." : "Encara no hi ha cap projecte."}</p> : (
               <table>
                 <thead><tr><th>Projecte</th><th>Client</th><th>Estat</th><th>Respostes</th></tr></thead>
                 <tbody>{rows.map(({ p, client, n }) => (

@@ -1,8 +1,9 @@
 // Lead management on top of the pipeline's tables: status, owner, notes, and turning a contact into a client.
 // Plain DB logic (no Next imports) so it is testable; the server actions call it.
-import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "./db";
-import { clients, contacts, forms, leadNotes, leads, users } from "@/db/schema";
+import { clients, contacts, forms, leadNotes, leads, submissions, users } from "@/db/schema";
+import { matchAll } from "./search";
 
 export const LEAD_STATUSES = ["new", "contacted", "qualified", "won", "lost"] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
@@ -10,20 +11,43 @@ export const statusLabel: Record<LeadStatus, string> = { new: "Nou", contacted: 
 export const isStatus = (v: unknown): v is LeadStatus => (LEAD_STATUSES as readonly unknown[]).includes(v);
 
 export const PAGE_SIZE = 50;
-const esc = (s: string) => s.replace(/[\\%_]/g, "\\$&");
+export type LeadFilter = { status?: string; owner?: string; q?: string; page?: number };
 
-export async function listLeads(f: { status?: string; owner?: string; q?: string; page?: number }) {
-  const q = f.q?.trim().slice(0, 100);
-  const where = and(
-    isStatus(f.status) ? eq(leads.status, f.status) : undefined,
-    f.owner === "none" ? sql`${leads.ownerId} is null` : f.owner && /^[0-9a-f-]{36}$/.test(f.owner) ? eq(leads.ownerId, f.owner) : undefined,
-    q ? or(ilike(contacts.name, `%${esc(q)}%`), ilike(contacts.email, `%${esc(q)}%`), ilike(contacts.company, `%${esc(q)}%`)) : undefined,
-  );
-  const base = db.select({ l: leads, c: contacts, formName: forms.name, ownerEmail: users.email }).from(leads)
-    .innerJoin(contacts, eq(contacts.id, leads.contactId)).leftJoin(forms, eq(forms.id, leads.formId)).leftJoin(users, eq(users.id, leads.ownerId)).where(where);
+// One haystack per lead: the contact's details, every note, and every answer the person gave (values only, not field names).
+const haystack = sql`coalesce(${contacts.name}, '') || ' ' || ${contacts.email} || ' ' || ${contacts.phone} || ' ' || ${contacts.company}
+  || ' ' || coalesce((select string_agg(${leadNotes.body}, ' ') from ${leadNotes} where ${leadNotes.leadId} = ${leads.id}), '')
+  || ' ' || coalesce((select string_agg(v #>> '{}', ' ') from jsonb_path_query(${submissions.answers}, 'strict $[*].value.**') v where jsonb_typeof(v) in ('string', 'number')), '')`;
+
+const where = (f: LeadFilter) => and(
+  isStatus(f.status) ? eq(leads.status, f.status) : undefined,
+  f.owner === "none" ? sql`${leads.ownerId} is null` : f.owner && /^[0-9a-f-]{36}$/.test(f.owner) ? eq(leads.ownerId, f.owner) : undefined,
+  matchAll(haystack, f.q),
+);
+const offset = (f: LeadFilter) => Math.max(0, (f.page ?? 1) - 1) * PAGE_SIZE;
+
+/** Requests (one row per lead). */
+export async function listLeads(f: LeadFilter) {
+  const from = () => db.select({ l: leads, c: contacts, formName: forms.name, ownerEmail: users.email }).from(leads)
+    .innerJoin(contacts, eq(contacts.id, leads.contactId)).innerJoin(submissions, eq(submissions.id, leads.submissionId))
+    .leftJoin(forms, eq(forms.id, leads.formId)).leftJoin(users, eq(users.id, leads.ownerId)).where(where(f));
   const [rows, [{ n }]] = await Promise.all([
-    base.orderBy(desc(leads.createdAt)).limit(PAGE_SIZE).offset(Math.max(0, (f.page ?? 1) - 1) * PAGE_SIZE),
-    db.select({ n: sql<number>`count(*)::int` }).from(leads).innerJoin(contacts, eq(contacts.id, leads.contactId)).where(where),
+    from().orderBy(desc(leads.createdAt)).limit(PAGE_SIZE).offset(offset(f)),
+    db.select({ n: sql<number>`count(*)::int` }).from(leads).innerJoin(contacts, eq(contacts.id, leads.contactId)).innerJoin(submissions, eq(submissions.id, leads.submissionId)).where(where(f)),
+  ]);
+  return { rows, total: n };
+}
+
+/** People (one row per contact that has at least one matching request), with how many requests and the latest one. */
+export async function listPeople(f: LeadFilter) {
+  const base = () => db.select({
+    c: contacts, requests: sql<number>`count(${leads.id})::int`, last: sql<Date>`max(${leads.createdAt})`,
+    latestLeadId: sql<string>`(array_agg(${leads.id} order by ${leads.createdAt} desc))[1]`,
+    latestStatus: sql<string>`(array_agg(${leads.status} order by ${leads.createdAt} desc))[1]`,
+    clientId: sql<string | null>`(select ${clients.id} from ${clients} where ${clients.contactId} = ${contacts.id})`,
+  }).from(contacts).innerJoin(leads, eq(leads.contactId, contacts.id)).innerJoin(submissions, eq(submissions.id, leads.submissionId)).where(where(f)).groupBy(contacts.id);
+  const [rows, [{ n }]] = await Promise.all([
+    base().orderBy(sql`max(${leads.createdAt}) desc`).limit(PAGE_SIZE).offset(offset(f)),
+    db.select({ n: sql<number>`count(distinct ${contacts.id})::int` }).from(contacts).innerJoin(leads, eq(leads.contactId, contacts.id)).innerJoin(submissions, eq(submissions.id, leads.submissionId)).where(where(f)),
   ]);
   return { rows, total: n };
 }
