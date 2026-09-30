@@ -60,3 +60,41 @@ describe("publish()", () => {
     void id;
   });
 });
+
+describe("draft vs live", () => {
+  const liveOf = async (id: string) => (await row(id)).live;
+  it("editing a published item never changes what is live", async () => {
+    const id = await makeEntry();
+    await publish(id, "ca");
+    await db.update(entryTranslations).set({ title: "Nou títol", sections: [{ id: "a", type: "text", data: { body: "" } }] }).where(eq(entryTranslations.entryId, id));
+    expect((await liveOf(id))?.title).toBe("Títol");
+    await expect(publish(id, "ca")).rejects.toThrow(/invalid/i);
+    expect((await liveOf(id))?.title).toBe("Títol");
+    expect((await row(id)).status).toBe("published");
+  });
+  it("scheduling keeps the old live version serving until due", async () => {
+    const id = await makeEntry();
+    await publish(id, "ca");
+    await db.update(entryTranslations).set({ title: "Versió 2" }).where(eq(entryTranslations.entryId, id));
+    await publish(id, "ca", new Date(Date.now() + 60_000));
+    expect((await liveOf(id))?.title).toBe("Títol");
+    expect((await row(id)).status).toBe("scheduled");
+    await publishDue(new Date(Date.now() + 120_000));
+    expect((await liveOf(id))?.title).toBe("Versió 2");
+  });
+  it("unpublish removes the live copy", async () => {
+    const id = await makeEntry();
+    await publish(id, "ca");
+    await unpublish(id, "ca");
+    expect(await liveOf(id)).toBeNull();
+    expect((await row(id)).status).toBe("draft");
+  });
+  it("two items cannot go live with the same slug in one language", async () => {
+    const a = await makeEntry({ slug: "x" });
+    await publish(a, "ca");
+    await db.update(entryTranslations).set({ slug: "y" }).where(eq(entryTranslations.entryId, a)); // draft renamed, live still "x"
+    const b = await makeEntry({ slug: "x" });
+    await expect(publish(b, "ca")).rejects.toThrow(/slug/i);
+    expect((await row(b)).status).toBe("draft");
+  });
+});

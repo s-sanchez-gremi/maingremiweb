@@ -12,6 +12,16 @@ export class PublishError extends Error {}
 
 /** Validates and publishes now, or schedules when `at` is in the future. Returns the cache tag to revalidate. */
 export async function publish(entryId: string, locale: Locale, at?: Date): Promise<{ status: "published" | "scheduled"; tag: string }> {
+  try {
+    return await run(entryId, locale, at);
+  } catch (e) {
+    const code = (e as { code?: string; cause?: { code?: string } }).cause?.code ?? (e as { code?: string }).code;
+    if (code === "23505") throw new PublishError("Slug already used by another published item in this language");
+    throw e;
+  }
+}
+
+async function run(entryId: string, locale: Locale, at?: Date): Promise<{ status: "published" | "scheduled"; tag: string }> {
   return db.transaction(async (tx) => {
     const [t] = await tx.select().from(entryTranslations)
       .where(and(eq(entryTranslations.entryId, entryId), eq(entryTranslations.locale, locale))).for("update");
@@ -30,8 +40,11 @@ export async function publish(entryId: string, locale: Locale, at?: Date): Promi
       .orderBy(desc(entryVersions.createdAt)).offset(KEEP_VERSIONS);
     for (const o of old) await tx.delete(entryVersions).where(eq(entryVersions.id, o.id));
 
+    // Status: scheduled = a future publish is pending (any existing `live` keeps serving); else published if live exists.
+    // Publishing now copies the validated draft to `live`; a scheduled one is copied by publishDue().
+    const live = future ? t.live : { title: t.title, slug: t.slug, sections: parsed.data, seo: t.seo, publishedAt: new Date().toISOString() };
     await tx.update(entryTranslations)
-      .set({ status, publishAt: future ? at : null, updatedAt: new Date() })
+      .set({ status, publishAt: future ? at : null, live, updatedAt: t.updatedAt })
       .where(and(eq(entryTranslations.entryId, entryId), eq(entryTranslations.locale, locale)));
     if (!future) await tx.update(entries).set({ publishedOn: sql`coalesce(${entries.publishedOn}, current_date)` }).where(eq(entries.id, entryId));
     return { status, tag: entryTag(entryId, locale) };
@@ -39,7 +52,7 @@ export async function publish(entryId: string, locale: Locale, at?: Date): Promi
 }
 
 export async function unpublish(entryId: string, locale: Locale) {
-  await db.update(entryTranslations).set({ status: "draft", publishAt: null, updatedAt: new Date() })
+  await db.update(entryTranslations).set({ status: "draft", publishAt: null, live: null })
     .where(and(eq(entryTranslations.entryId, entryId), eq(entryTranslations.locale, locale)));
   return entryTag(entryId, locale);
 }

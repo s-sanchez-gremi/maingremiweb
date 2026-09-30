@@ -47,6 +47,10 @@ export const entries = pgTable("entries", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export type LiveContent = {
+  title: string; slug: string; sections: unknown[]; seo: { title?: string; description?: string }; publishedAt: string;
+};
+
 export const entryTranslations = pgTable(
   "entry_translations",
   {
@@ -58,6 +62,8 @@ export const entryTranslations = pgTable(
     seo: jsonb().$type<{ title?: string; description?: string }>().notNull().default({}),
     status: text().$type<"draft" | "scheduled" | "published">().notNull().default("draft"),
     publishAt: timestamp("publish_at", { withTimezone: true }),
+    // Validated snapshot served publicly; the columns above are the editable draft.
+    live: jsonb().$type<LiveContent | null>(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.entryId, t.locale] })],
