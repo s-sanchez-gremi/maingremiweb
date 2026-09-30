@@ -120,6 +120,19 @@ test("editors cannot manage users or settings", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Configuració" })).toHaveCount(0);
   expect((await page.goto("/admin/users"))?.status()).toBe(404);
   expect((await page.goto("/admin/settings"))?.status()).toBe(404);
+  expect((await page.goto("/admin/errors"))?.status()).toBe(404);
   await page.goto("/admin/content?type=post"); // but they can do their job
   await expect(page.getByRole("button", { name: "Nou article" })).toBeVisible();
+});
+
+test("admins see system status and the error log; the scheduler heartbeat drives the deep health check", async ({ page }) => {
+  await login(page, "admin");
+  await page.goto("/admin");
+  await expect(page.getByText("Estat del sistema")).toBeVisible();
+  await page.goto("/admin/errors");
+  await expect(page.getByRole("heading", { name: "Errors" })).toBeVisible();
+  await expect(page.getByText("No hi ha cap error obert.")).toBeVisible();
+  const tick = await page.request.post("/api/cron/tick", { headers: { authorization: `Bearer ${CRON_SECRET}` } });
+  expect(tick.ok()).toBe(true);
+  expect((await page.request.get("/api/health?deep=1")).status()).toBe(200);
 });

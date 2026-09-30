@@ -80,7 +80,8 @@ After that: **merging to `main` → CI → image → staging automatically**; **
    30 3 * * *  BACKUP_ENV=/srv/apex/production/backup.env /srv/apex/production/backup.sh
    0 4 1 * *   BACKUP_ENV=/srv/apex/production/backup.env /srv/apex/production/restore-drill.sh
    ```
-3. Acceptance checklist (tick each): `/api/health` is 200 · the site loads with a padlock · `curl -I` shows the security headers ·
+3. Monitoring: create the external uptime monitor on `https://DOMAIN/api/health?deep=1`, the two dead-man's-switch checks (`BACKUP_PING_URL` in `backup.env`, `DRILL_PING_URL`) and set `ALERT_EMAIL` in the app env (see DEPLOY.md, Monitoring).
+4. Acceptance checklist (tick each): `/api/health?deep=1` is 200 · the site loads with a padlock · `curl -I` shows the security headers ·
    log in to the admin and change the password · upload an image and see it on a page (proves S3 public + private) ·
    submit a form: lead appears, both e-mails arrive · a file upload from a form is only downloadable from the admin ·
    run `backup.sh` once and `restore-drill.sh` once by hand and see **RESTORE DRILL PASSED** · save the backup passphrase somewhere outside the server.

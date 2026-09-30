@@ -200,3 +200,21 @@ export const settings = pgTable("settings", {
   id: integer().primaryKey().default(1),
   data: jsonb().notNull().default({}),
 });
+
+export const errorLog = pgTable("error_log", {
+  id: bigserial({ mode: "number" }).primaryKey(),
+  fingerprint: text().notNull().unique(),
+  message: text().notNull(),
+  stack: text().notNull().default(""),
+  path: text().notNull().default(""),
+  count: integer().notNull().default(1),
+  firstSeen: timestamp("first_seen", { withTimezone: true }).notNull().defaultNow(),
+  lastSeen: timestamp("last_seen", { withTimezone: true }).notNull().defaultNow(),
+  notifiedAt: timestamp("notified_at", { withTimezone: true }),
+  resolved: boolean().notNull().default(false),
+});
+
+export const heartbeats = pgTable("heartbeats", {
+  name: text().primaryKey(),
+  at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});

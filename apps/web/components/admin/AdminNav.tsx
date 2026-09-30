@@ -14,6 +14,7 @@ const items = [
   { href: "/admin/categories", label: "Categories", match: (p: string) => p.startsWith("/admin/categories") },
   { href: "/admin/users", label: "Usuaris", adminOnly: true, match: (p: string) => p.startsWith("/admin/users") },
   { href: "/admin/settings", label: "Configuració", adminOnly: true, match: (p: string) => p.startsWith("/admin/settings") },
+  { href: "/admin/errors", label: "Errors", adminOnly: true, match: (p: string) => p.startsWith("/admin/errors") },
   { href: "/admin/account", label: "El meu compte", match: (p: string) => p.startsWith("/admin/account") },
 ];
 

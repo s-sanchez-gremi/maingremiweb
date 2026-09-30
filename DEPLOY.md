@@ -47,7 +47,7 @@ docker run --env-file staging.env -e AUTO_MIGRATE=1 -p 3000:3000 apex      # sta
 docker run --env-file production.env apex migrate                          # apply pending migrations only, then exit
 docker run --env-file production.env -p 3000:3000 apex                     # start
 ```
-Health endpoint for load balancers/uptime checks: `GET /api/health` (200 = up and the database answers, 503 otherwise).
+Health endpoints: `GET /api/health` (200 = up and the database answers, 503 otherwise; used by the container health check) and `GET /api/health?deep=1` (also requires the scheduler to have run in the last 10 minutes: **point the external uptime monitor here**).
 
 ## First deployment checklist
 1. Create the database, both buckets (public read only on `S3_BUCKET`), the SMTP account, DNS and TLS (proxy).
@@ -82,6 +82,13 @@ Independent of IONOS's own database backups: `deploy/backup.sh` (daily) dumps, v
 `deploy/restore-drill.sh` (monthly) restores the newest backup into a throw-away Postgres and checks it. `scripts/backup-drill.sh` proves both,
 including that a corrupt backup is detected. Optional ping URLs (`BACKUP_PING_URL`, `DRILL_PING_URL`) alert you if a run is missing or fails (phase 8).
 
+## Monitoring (phase 8)
+- **Uptime:** any external monitor (UptimeRobot, Better Stack, Healthchecks… free tiers are enough) checking `https://DOMAIN/api/health?deep=1` every minute, alerting by e-mail/SMS. 503 = database down **or** the scheduler stopped (scheduled publishing and e-mails would silently stall).
+- **Errors:** unhandled server errors are stored in our own database (`error_log`; message, short stack, route path only, no query string/body/cookies), deduplicated with a counter, shown to admins in *Errors*, and e-mailed to `ALERT_EMAIL` the first time they appear (reminder after 24 h if still open; resolved ones are purged after 90 days). No third-party service, nothing personal leaves the platform. Unset `ALERT_EMAIL` = logged but not e-mailed.
+- **Backups:** set `BACKUP_PING_URL` (nightly backup) and `DRILL_PING_URL` (monthly restore drill) to dead-man's-switch check URLs (e.g. Healthchecks.io): you are alerted if a run **fails or does not happen**. Also set the monitor's grace period to ~26 h (backup) / ~32 days (drill).
+- **Admin dashboard** (*Tauler → Estat del sistema*, admins): scheduler running, pending/failed e-mails, open errors.
+- **Editor handover:** `docs/guia-editor.md` (Catalan).
+
 ## Not included yet
-Error tracking and uptime alerts (phase 8); the GitHub release workflow and the IONOS console steps are documented but have not been
+The GitHub release workflow and the IONOS console steps are documented but have not been
 run on a real repository/account yet (see the verification notes in `deploy/ionos/README.md`).
