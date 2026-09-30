@@ -1,7 +1,7 @@
 // Data-protection and reporting helpers: erasure, retention purge, completion statistics.
 import { eq, sql } from "drizzle-orm";
 import { db } from "../db";
-import { contacts, formStarts, forms, newsletterOptins, submissions } from "@/db/schema";
+import { clients, contacts, formStarts, forms, newsletterOptins, submissions } from "@/db/schema";
 import { deletePrivatePrefix } from "../storage";
 
 export async function deleteSubmission(id: string) {
@@ -16,7 +16,8 @@ export async function eraseContact(contactId: string) {
   const subs = await db.select({ id: submissions.id }).from(submissions).where(eq(submissions.contactId, contactId));
   for (const s of subs) await deletePrivatePrefix(`submissions/${s.id}/`);
   await db.delete(newsletterOptins).where(eq(newsletterOptins.email, c.email));
-  await db.delete(contacts).where(eq(contacts.id, contactId)); // cascades to leads + submissions
+  await db.delete(clients).where(eq(clients.contactId, contactId)); // a client created from this contact holds a copy of their data (projects stay, unattached)
+  await db.delete(contacts).where(eq(contacts.id, contactId)); // cascades to leads, notes + submissions
 }
 
 export async function purgeIpHashes() {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { entryTranslations, errorLog } from "@/db/schema";
+import { entryTranslations, errorLog, leads } from "@/db/schema";
 import { getUser } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { isFresh, lastBeat } from "@/lib/heartbeat";
@@ -11,6 +11,7 @@ export default async function Dashboard() {
   const rows = await db.select({ status: entryTranslations.status, n: sql<number>`count(*)::int` })
     .from(entryTranslations).groupBy(entryTranslations.status);
   const n = (s: string) => rows.find((r) => r.status === s)?.n ?? 0;
+  const newLeads = (await db.select({ n: sql<number>`count(*)::int` }).from(leads).where(sql`status = 'new'`))[0].n;
   const admin = can(await getUser(), "settings:write");
   const sys = admin ? { beat: await lastBeat(), mail: await outboxCounts(), errors: (await db.select({ n: sql<number>`count(*)::int` }).from(errorLog).where(sql`not resolved`))[0].n } : null;
   return (
@@ -22,6 +23,7 @@ export default async function Dashboard() {
           <div className="row"><span>Publicat</span><strong>{n("published")}</strong></div>
           <div className="row"><span>Programat</span><strong>{n("scheduled")}</strong></div>
           <div className="row"><span>Esborrany</span><strong>{n("draft")}</strong></div>
+          <div className="row"><span>Leads nous</span><strong><Link href="/admin/leads?status=new">{newLeads}</Link></strong></div>
           <Link className="btn primary" href="/admin/content?type=post" style={{ textAlign: "center" }}>Obre els articles</Link>
         </div>
         {sys && (

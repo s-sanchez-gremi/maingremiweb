@@ -86,6 +86,7 @@ export const clients = pgTable("clients", {
   email: text().notNull().default(""),
   phone: text().notNull().default(""),
   notes: text().notNull().default(""),
+  contactId: uuid("contact_id").unique().references(() => contacts.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -164,6 +165,15 @@ export const leads = pgTable("leads", {
   locale: text().notNull(),
   utm: jsonb().$type<Record<string, string>>().notNull().default({}),
   status: text().notNull().default("new"),
+  ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const leadNotes = pgTable("lead_notes", {
+  id: uuid().primaryKey().defaultRandom(),
+  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  authorId: uuid("author_id").references(() => users.id, { onDelete: "set null" }),
+  body: text().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

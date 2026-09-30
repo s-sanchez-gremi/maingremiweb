@@ -74,8 +74,9 @@ Dins de cada article o pàgina, al panell lateral, hi ha els idiomes (CA, ES, EN
 - Cada formulari té una **destinació**: crear un contacte amb una petició, adjuntar la resposta a un projecte o client, o només recollir respostes.
 - Perquè es vegi al web, posa la secció **Formulari** en una pàgina, o comparteix l'enllaç o el codi per incrustar que surt al constructor.
 - **Respostes**: a cada formulari veus les respostes i les pots **exportar a CSV** (s'obre a Excel o Google Sheets).
-- **Contactes** és la llista de persones que han escrit. Les dades personals són responsabilitat nostra: no les copiïs a llocs fora del sistema sense necessitat.
-- Si una persona demana que s'esborrin les seves dades, demana-ho a un administrador: pot eliminar el contacte amb totes les seves respostes i fitxers.
+- **Contactes** és la llista de peticions rebudes. Pots **cercar** (nom, correu, empresa) i **filtrar** per estat i responsable. Obre una petició per veure les respostes i el consentiment, canviar l'**estat** (Nou, Contactat, Qualificat, Guanyat, Perdut), assignar-hi un **responsable**, afegir **notes** internes i, si la persona esdevé client, prémer **Converteix en client**.
+- Les dades personals són responsabilitat nostra: no les copiïs a llocs fora del sistema sense necessitat.
+- Si una persona demana que s'esborrin les seves dades, demana-ho a un administrador: pot eliminar el contacte amb totes les seves peticions, notes, respostes, fitxers i el client creat a partir d'ell.
 - Les caselles de consentiment es mostren amb el text exacte que s'ha configurat. **No canviïs aquest text sense consultar-ho amb el/la responsable legal.** La casella del butlletí mai no ve marcada.
 
 ## 7. Què només fan els administradors

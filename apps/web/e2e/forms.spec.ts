@@ -248,10 +248,29 @@ test("uploads are private and identified by content; staff download through sign
   await page.goto("/admin/leads");
   await expect(page.getByText("eva@e2e.test")).toBeVisible();
 
-  // right to erasure: contact, lead, submission, file
+  // lead follow-up: status, note, conversion into a client
+  await page.getByRole("link", { name: /HYPERLINK/ }).first().click();
+  await page.getByLabel("Estat").selectOption("contacted");
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Desat");
+  await page.getByLabel("Nova nota").fill("Trucar dimarts");
+  await page.getByRole("button", { name: "Afegeix la nota" }).click();
+  await expect(page.getByText("Trucar dimarts")).toBeVisible();
+  await page.getByRole("button", { name: "Converteix en client" }).click();
+  await expect(page).toHaveURL(/\/admin\/clients\/[0-9a-f-]{36}/);
+  expect(await count("clients", sql`where email = 'eva@e2e.test'`)).toBe(1);
+  await page.goto("/admin/leads?status=won&q=eva");
+  await expect(page.getByText("eva@e2e.test")).toBeVisible();
+  await page.goto("/admin/leads?status=lost");
+  await expect(page.getByText("eva@e2e.test")).toHaveCount(0);
+
+  // right to erasure: contact, lead, notes, the client made from it, submission, file
+  await page.goto("/admin/leads?q=eva");
+  await page.getByRole("link", { name: /HYPERLINK/ }).first().click();
   page.once("dialog", (d) => d.accept());
   await page.getByRole("button", { name: "Elimina les dades" }).first().click();
   await expect(page.getByRole("status")).toContainText("eliminats");
+  expect(await count("clients", sql`where email = 'eva@e2e.test'`)).toBe(0);
   expect(await count("contacts", sql`where email = 'eva@e2e.test'`)).toBe(0);
   expect(await count("submissions", sql`where form_id = ${id}`)).toBe(0);
   expect((await fetch(signed)).status).toBe(404); // the stored file is really gone
