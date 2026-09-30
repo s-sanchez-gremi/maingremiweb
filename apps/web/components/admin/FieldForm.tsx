@@ -4,7 +4,7 @@ import type { Field } from "@/sections/fields";
 import { ListEditor } from "./ListEditor";
 
 type Data = Record<string, unknown>;
-export type Options = { media: { id: string; label: string }[]; forms: { id: string; label: string }[] };
+export type Options = { media: { id: string; label: string; url?: string }[]; forms: { id: string; label: string }[] };
 
 export function emptyData(fields: Field[]): Data {
   return Object.fromEntries(fields.map((f) => [f.name, f.kind === "list" ? [] : ""]));
@@ -31,6 +31,10 @@ export function FieldForm({ fields, data, onChange, options }: {
                   <option value="">— cap —</option>
                   {list.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
                 </select>
+                {f.kind === "image" && v ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={options.media.find((m) => m.id === v)?.url} alt="" style={{ maxHeight: 90, objectFit: "contain", alignSelf: "start", borderRadius: 4 }} />
+                ) : null}
                 {list.length === 0 && <span className="hint">{f.kind === "image" ? "Encara no hi ha imatges pujades." : "Encara no hi ha formularis."}</span>}
               </label>
             );

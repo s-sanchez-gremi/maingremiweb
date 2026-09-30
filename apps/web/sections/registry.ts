@@ -60,3 +60,20 @@ const variants = sectionDefs.map((d) =>
 export const sectionSchema = z.discriminatedUnion("type", variants as unknown as [(typeof variants)[0], ...typeof variants]);
 export const sectionsSchema = z.array(sectionSchema).max(60);
 export type Section = z.infer<typeof sectionSchema>;
+
+/** Every media id referenced by a list of sections (walks the field descriptions, so new types work automatically). */
+export function collectMediaIds(sections: { type: string; data: Record<string, unknown> }[]): string[] {
+  const out = new Set<string>();
+  const walk = (fields: Field[], data: Record<string, unknown>) => {
+    for (const f of fields) {
+      const v = data?.[f.name];
+      if (f.kind === "image" && typeof v === "string" && v) out.add(v);
+      if (f.kind === "list" && Array.isArray(v)) v.forEach((item) => walk(f.fields, item as Record<string, unknown>));
+    }
+  };
+  for (const s of sections) {
+    const def = sectionByName[s.type];
+    if (def) walk(def.fields, s.data);
+  }
+  return [...out];
+}

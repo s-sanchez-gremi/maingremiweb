@@ -1,9 +1,9 @@
 // The ONLY code that changes a translation's publish status. Pure DB logic (no Next imports) so it is testable;
 // the server action / cron route call it and then revalidate the returned tags.
-import { and, desc, eq, lte, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
 import { db } from "./db";
-import { entries, entryTranslations, entryVersions, type Locale } from "@/db/schema";
-import { sectionsSchema } from "@/sections/registry";
+import { entries, entryTranslations, entryVersions, media, type Locale } from "@/db/schema";
+import { collectMediaIds, sectionsSchema } from "@/sections/registry";
 
 const KEEP_VERSIONS = 10;
 export const entryTag = (entryId: string, locale: string) => `entry:${entryId}:${locale}`;
@@ -30,6 +30,15 @@ async function run(entryId: string, locale: Locale, at?: Date): Promise<{ status
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(t.slug)) throw new PublishError("Invalid slug");
     const parsed = sectionsSchema.safeParse(t.sections);
     if (!parsed.success) throw new PublishError("Sections are invalid: " + parsed.error.issues[0]?.message);
+
+    // Accessibility: every image used must have alt text in THIS language.
+    const [entry] = await tx.select({ cover: entries.coverMediaId }).from(entries).where(eq(entries.id, entryId));
+    const ids = [...new Set([...collectMediaIds(parsed.data), ...(entry?.cover ? [entry.cover] : [])])];
+    if (ids.length) {
+      const rows = await tx.select({ id: media.id, mime: media.mime, alt: media.alt, filename: media.filename }).from(media).where(inArray(media.id, ids));
+      const missing = rows.find((m) => m.mime.startsWith("image/") && !m.alt?.[locale]?.trim());
+      if (missing) throw new PublishError(`Falta el text alternatiu (${locale.toUpperCase()}) de la imatge "${missing.filename || missing.id}"`);
+    }
 
     const future = !!at && at.getTime() > Date.now();
     const status = future ? "scheduled" : "published";

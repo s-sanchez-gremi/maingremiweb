@@ -13,7 +13,7 @@ type Status = "draft" | "scheduled" | "published";
 const statusLabel = { published: "Publicat", scheduled: "Programat", draft: "Esborrany" } as const;
 
 export function EntryEditor(p: {
-  entry: { id: string; type: "post" | "page"; theme: string; tags: string; publishedOn: string; categoryId: string; authorId: string };
+  entry: { id: string; type: "post" | "page"; theme: string; tags: string; publishedOn: string; categoryId: string; authorId: string; coverMediaId: string };
   locale: string;
   translation: { title: string; slug: string; sections: SectionItem[]; seo: { title?: string; description?: string }; status: Status; publishAt: string | null; exists: boolean; hasLive: boolean; dirty: boolean };
   langs: { code: string; status: Status | null }[];
@@ -95,6 +95,9 @@ export function EntryEditor(p: {
                   </label>
                   <label>Categoria
                     <select name="categoryId" defaultValue={p.entry.categoryId}><option value="">—</option>{p.categories.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</select>
+                  </label>
+                  <label>Imatge de portada
+                    <select name="coverMediaId" defaultValue={p.entry.coverMediaId}><option value="">—</option>{p.options.media.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}</select>
                   </label>
                   <label>Etiquetes (separades per comes)<input name="tags" defaultValue={p.entry.tags} /></label>
                   <label>Data de publicació<input type="date" name="publishedOn" defaultValue={p.entry.publishedOn} /></label>

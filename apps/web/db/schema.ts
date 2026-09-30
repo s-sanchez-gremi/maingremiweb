@@ -32,6 +32,9 @@ export const media = pgTable("media", {
   mime: text().notNull(),
   alt: jsonb().$type<Partial<Record<Locale, string>>>().notNull().default({}),
   credit: text().notNull().default(""),
+  filename: text().notNull().default(""),
+  width: integer(),
+  height: integer(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { eq, asc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { categories, entries, entryTranslations, forms, locales, media, users, type Locale } from "@/db/schema";
+import { mediaUrl } from "@/lib/media";
 import { EntryEditor } from "./EntryEditor";
 
 export default async function EditEntry({ params, searchParams }: {
@@ -27,13 +28,13 @@ export default async function EditEntry({ params, searchParams }: {
   return (
     <EntryEditor
       key={`${id}:${locale}`}
-      entry={{ id, type: entry.type, theme: entry.theme, tags: entry.tags.join(", "), publishedOn: entry.publishedOn ?? "", categoryId: entry.categoryId ?? "", authorId: entry.authorId ?? "" }}
+      entry={{ id, type: entry.type, theme: entry.theme, tags: entry.tags.join(", "), publishedOn: entry.publishedOn ?? "", categoryId: entry.categoryId ?? "", authorId: entry.authorId ?? "", coverMediaId: entry.coverMediaId ?? "" }}
       locale={locale}
       translation={{ title: t?.title ?? "", slug: t?.slug ?? "", sections: (t?.sections as never[]) ?? [], seo: t?.seo ?? {}, status: t?.status ?? "draft", publishAt: t?.publishAt?.toISOString() ?? null, exists: !!t, hasLive: !!t?.live, dirty: !!t?.live && t.updatedAt.toISOString() > t.live.publishedAt }}
       langs={locales.map((l) => ({ code: l, status: trs.find((x) => x.locale === l)?.status ?? null }))}
       categories={cats.map((c) => ({ id: c.id, label: c.names[locale] || c.names.ca || c.slug }))}
       authors={authors.map((a) => ({ id: a.id, label: a.name || a.label }))}
-      options={{ media: mediaRows.map((m) => ({ id: m.id, label: m.key })), forms: formRows.map((f) => ({ id: f.id, label: f.name })) }}
+      options={{ media: mediaRows.filter((m) => m.mime.startsWith("image/")).map((m) => ({ id: m.id, label: m.filename || m.key, url: mediaUrl(m, 480) })), forms: formRows.map((f) => ({ id: f.id, label: f.name })) }}
       message={sp.error ? { kind: "err", text: sp.error } : sp.saved ? { kind: "ok", text: sp.saved === "publish" ? "Publicat." : sp.saved === "schedule" ? "Programat." : sp.saved === "unpublish" ? "Passat a esborrany." : "Desat." } : null}
     />
   );

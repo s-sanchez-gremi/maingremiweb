@@ -85,7 +85,7 @@ Posts and landing pages share **one** `entries` table; the only difference is `t
 - **Auth:** email + password, argon2id, session cookie backed by `sessions`, CSRF, login rate-limit; ~150 lines in one file. Permissions: one `can(user, action)` function. No SSO, no user-defined roles.
 - **Draft vs live:** editable columns on `entry_translations` are the draft; `live` (jsonb) is the validated snapshot the public site serves. Saving never changes what is live; only `publish()` copies draft → live. Status: `scheduled` if a future publish is pending, else `published` if `live` exists, else `draft`.
 - **Versions:** on publish, copy the translation row into `entry_versions` (keep last 10). Restore = copy back. No diff UI.
-- **Media:** presigned upload to S3; `sharp` makes 3 fixed widths; alt required per language.
+- **Media:** uploaded through the app (`POST /api/media`, logged-in users only), not presigned browser uploads, so every file is checked on the server: real type detected from bytes, images re-encoded by `sharp` to WebP at 3 fixed widths (480/960/1600, never upscaled, metadata stripped), PDFs stored as-is, SVG rejected, max 15 MB. **Alt text per language is required** on any image before its page can be published. A file in use can't be deleted.
 - **Public reads** go through one `getEntry(type, slug, locale)` returning only `published`; pages are ISR with tag revalidation.
 - **Migrations:** plain SQL files in git, applied by one script; run automatically in staging, by hand (reviewed) in production.
 - **Tests:** unit tests for section validation, `can()`, `publish()`, lead pipeline; one Playwright test: login → draft → publish → page live.

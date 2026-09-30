@@ -56,7 +56,7 @@ export async function saveEntry(formData: FormData) {
   try {
     await db.update(entries).set({
       theme: str(formData, "theme"), tags, publishedOn,
-      categoryId: uuidOrNull(str(formData, "categoryId")), authorId: uuidOrNull(str(formData, "authorId")),
+      categoryId: uuidOrNull(str(formData, "categoryId")), coverMediaId: uuidOrNull(str(formData, "coverMediaId")), authorId: uuidOrNull(str(formData, "authorId")),
     }).where(eq(entries.id, id));
     await db.insert(entryTranslations)
       .values({ entryId: id, locale, title, slug, sections, seo })

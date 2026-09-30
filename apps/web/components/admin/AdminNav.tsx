@@ -6,6 +6,7 @@ const items = [
   { href: "/admin", label: "Tauler", match: (p: string) => p === "/admin" },
   { href: "/admin/content?type=post", label: "Articles", match: (p: string, t: string | null) => p.startsWith("/admin/content") && t !== "page" },
   { href: "/admin/content?type=page", label: "Pàgines", match: (p: string, t: string | null) => p.startsWith("/admin/content") && t === "page" },
+  { href: "/admin/media", label: "Fitxers", match: (p: string) => p.startsWith("/admin/media") },
   { href: "/admin/categories", label: "Categories", match: (p: string) => p.startsWith("/admin/categories") },
 ];
 

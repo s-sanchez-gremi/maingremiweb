@@ -98,3 +98,14 @@ describe("draft vs live", () => {
     expect((await row(b)).status).toBe("draft");
   });
 });
+
+describe("alt text rule", () => {
+  it("blocks publishing an image without alt text in that language, allows it once filled", async () => {
+    const { media } = await import("@/db/schema");
+    const [m] = await db.insert(media).values({ key: "media/t-" + Math.random(), mime: "image/webp", filename: "portada.webp", alt: { es: "solo español" } }).returning();
+    const id = await makeEntry({ sections: [{ id: "a", type: "image", data: { image: m.id, caption: "" } }] });
+    await expect(publish(id, "ca")).rejects.toThrow(/alternatiu \(CA\).*portada/);
+    await db.update(media).set({ alt: { ca: "Una foto" } }).where(eq(media.id, m.id));
+    expect((await publish(id, "ca")).status).toBe("published");
+  });
+});

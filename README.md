@@ -18,3 +18,14 @@ local / staging / production each have their own database and secrets (see `.env
 
 ## Backups
 `pnpm db:backup` (daily on staging/production via cron) · `pnpm db:restore` — restore must be tested into a scratch DB.
+
+## Scheduled publishing
+`POST /api/cron/publish` with header `Authorization: Bearer $CRON_SECRET` publishes every due scheduled item (idempotent).
+Call it **every minute** from the host's scheduler, e.g. a crontab line:
+```
+* * * * * curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://YOUR-DOMAIN/api/cron/publish
+```
+The endpoint refuses to run if `CRON_SECRET` is unset or still `change-me`. Locally, call it by hand with the secret from `.env`.
+
+## Media storage
+Uploads go to the S3-compatible bucket in `.env` (`S3_*`). `S3_PUBLIC_URL` must be the public/CDN base URL of that bucket.
