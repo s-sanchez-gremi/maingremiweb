@@ -54,6 +54,7 @@ jobs:
   staging:
     name: Deploy to staging (small server, PostgreSQL in Docker)
     needs: build
+    if: vars.STAGING_ENABLED == 'true'   # set this repository variable once the staging server and its secrets exist
     runs-on: ubuntu-24.04
     environment: staging
     concurrency: deploy-staging

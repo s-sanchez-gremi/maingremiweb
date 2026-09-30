@@ -85,3 +85,5 @@ After that: **merging to `main` → CI → image → staging automatically**; **
    log in to the admin and change the password · upload an image and see it on a page (proves S3 public + private) ·
    submit a form: lead appears, both e-mails arrive · a file upload from a form is only downloadable from the admin ·
    run `backup.sh` once and `restore-drill.sh` once by hand and see **RESTORE DRILL PASSED** · save the backup passphrase somewhere outside the server.
+
+> GitHub side: until the staging server exists the release workflow only builds and publishes the image; the staging deploy is skipped. After adding the `DEPLOY_*` secrets to the `staging` environment, run `gh variable set STAGING_ENABLED --body true`.
