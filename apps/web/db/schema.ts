@@ -80,6 +80,26 @@ export const entryVersions = pgTable("entry_versions", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const clients = pgTable("clients", {
+  id: uuid().primaryKey().defaultRandom(),
+  name: text().notNull(),
+  email: text().notNull().default(""),
+  phone: text().notNull().default(""),
+  notes: text().notNull().default(""),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const projects = pgTable("projects", {
+  id: uuid().primaryKey().defaultRandom(),
+  clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
+  name: text().notNull(),
+  status: text().$type<"active" | "paused" | "done">().notNull().default("active"),
+  notes: text().notNull().default(""),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 type LText = Partial<Record<Locale, string>>;
 export type FormItem = { id: string; type: string; data: Record<string, unknown> };
 export type FormNotifications = { staffEmail?: boolean; staffAddresses?: string; confirmToSender?: boolean; confirmSubject?: LText; confirmBody?: LText };
@@ -92,6 +112,8 @@ export const forms = pgTable("forms", {
   active: boolean().notNull().default(true),
   fields: jsonb().$type<FormItem[]>().notNull().default([]),
   destination: text().$type<"crm_lead" | "project" | "responses_only">().notNull().default("crm_lead"),
+  targetProjectId: uuid("target_project_id").references(() => projects.id, { onDelete: "set null" }),
+  targetClientId: uuid("target_client_id").references(() => clients.id, { onDelete: "set null" }),
   notifications: jsonb().$type<FormNotifications>().notNull().default({}),
   consent: jsonb().$type<LText>().notNull().default({}),
   confirmation: jsonb().$type<LText>().notNull().default({}),
@@ -116,6 +138,8 @@ export const submissions = pgTable("submissions", {
   id: uuid().primaryKey().defaultRandom(),
   formId: uuid("form_id").notNull().references(() => forms.id, { onDelete: "cascade" }),
   contactId: uuid("contact_id").references(() => contacts.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
+  clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
   answers: jsonb().$type<Answer[]>().notNull(),
   locale: text().notNull(),
   sourcePath: text("source_path").notNull().default(""),

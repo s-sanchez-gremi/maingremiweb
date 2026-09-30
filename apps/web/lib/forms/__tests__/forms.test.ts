@@ -112,6 +112,10 @@ describe("form definition checks", () => {
     expect(checkDefinition([email, item("email", { map: "email" })], "responses_only")[0]).toMatch(/Només un/);
     expect(checkDefinition([item("email", { map: "email" })], "crm_lead")[0]).toMatch(/obligatori/);
   });
+  it("a project destination needs a target", () => {
+    expect(checkDefinition([item("text")], "project", "")[0]).toMatch(/projecte o client/);
+    expect(checkDefinition([item("text")], "project", "project:abc")).toEqual([]);
+  });
   it("conditions must point at an EARLIER field and a real option", () => {
     const later = item("text");
     const early = item("text", { showField: later.id, showValue: "x" });

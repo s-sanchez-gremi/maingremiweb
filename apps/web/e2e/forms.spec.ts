@@ -324,3 +324,46 @@ test("a form inside a landing page tags the lead with that page and its theme", 
   const [lead] = await sql`select * from leads where source_path = '/ca/jornada-form'`;
   expect(lead).toMatchObject({ theme: "esdeveniments", locale: "ca", source_entry_id: e.id });
 });
+
+test("projects module: create a client and a project, point a form at it, and the response shows up on the project", async ({ page, request }) => {
+  await login(page);
+  await page.goto("/admin/clients");
+  await page.getByLabel("Nom").fill("Rovellosa Packaging");
+  await page.getByRole("button", { name: "Crea el client" }).click();
+  await expect(page.getByRole("heading", { name: "Rovellosa Packaging" })).toBeVisible();
+
+  await page.getByRole("link", { name: "Nou projecte" }).click();
+  await page.waitForURL(/\/admin\/projects\?client=/);
+  await expect(page.getByRole("heading", { name: "Nou projecte" })).toBeVisible(); // wait for the new page before typing
+  await page.getByLabel("Nom").fill("Web corporativa");
+  await page.getByRole("button", { name: "Crea el projecte" }).click();
+  await expect(page.getByRole("heading", { name: "Web corporativa" })).toBeVisible();
+  await expect(page.getByLabel("Client")).toHaveValue(/[0-9a-f-]{36}/); // came pre-filled from the client page
+  const projectUrl = page.url();
+  const projectId = projectUrl.split("/").pop()!.split("?")[0];
+
+  // a form built in the admin with the "attach to a project" destination
+  const nom = F("text", { label: L("Nom"), required: "yes" });
+  const em = F("email", { label: L("Correu"), required: "yes" });
+  const formId = await seedForm("brief-web", [nom, em], { destination: "project", consent: L("Accepto") });
+  await sql`update forms set target_project_id = ${projectId} where id = ${formId}`;
+  await page.goto(`/admin/forms/${formId}`);
+  await expect(page.getByLabel("Adjunta les respostes a")).toHaveValue(`project:${projectId}`);
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Desat");
+
+  const r = await submitApi(request, "brief-web", { [nom.id]: "Marta", [em.id]: "marta@e2e.test" }, { xff: "198.51.100.90" });
+  expect(r.status()).toBe(200);
+  expect(await count("contacts", sql`where email = 'marta@e2e.test'`)).toBe(0); // attach-only: no CRM contact
+
+  await page.goto(projectUrl);
+  await expect(page.getByText("Nom: Marta")).toBeVisible();
+  await page.goto("/admin/projects");
+  await expect(page.getByRole("row", { name: /Web corporativa/ })).toContainText("1");
+
+  // an editor of the form must choose a target before saving
+  await page.goto(`/admin/forms/${formId}`);
+  await page.getByLabel("Adjunta les respostes a").selectOption("");
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Tria el projecte");
+});

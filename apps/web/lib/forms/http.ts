@@ -9,11 +9,18 @@ export async function loadForm(slug: string) {
   return f ?? null;
 }
 
-/** Behind a reverse proxy the proxy MUST overwrite X-Forwarded-For (documented in the README). */
-export function clientHash(req: Request): string {
-  const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || req.headers.get("x-real-ip") || "unknown";
-  return ipHash(ip);
+/**
+ * The visitor's address behind a reverse proxy. Proxies APPEND the address they saw to X-Forwarded-For, so the
+ * trustworthy entry is counted from the RIGHT: with one proxy in front (TRUSTED_PROXY_HOPS=1, the default) it is the
+ * last entry. Anything a visitor writes into the header sits further left and is ignored, so it cannot be spoofed.
+ */
+export function clientIp(headers: Headers, hops = Number(process.env.TRUSTED_PROXY_HOPS ?? 1)): string {
+  const list = (headers.get("x-forwarded-for") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+  if (hops <= 0) return headers.get("x-real-ip") ?? "unknown";
+  return list[list.length - hops] ?? headers.get("x-real-ip") ?? "unknown";
 }
+
+export const clientHash = (req: Request): string => ipHash(clientIp(req.headers));
 
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"];
 export function cleanUtm(raw: unknown): Record<string, string> {

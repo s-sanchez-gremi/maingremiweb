@@ -46,6 +46,9 @@ export const sectionDefs = [
       { name: "text", label: "Text", kind: "text" },
     ] },
   ] },
+  { name: "cookieList", label: "Llista de cookies (automàtica)", fields: [
+    { name: "heading", label: "Títol (opcional)", kind: "text" },
+  ] },
   { name: "latestPosts", label: "Últimes notícies (automàtic)", fields: [
     { name: "heading", label: "Títol", kind: "text" },
     { name: "count", label: "Quantes", kind: "select", options: [{ value: "3", label: "3" }, { value: "6", label: "6" }, { value: "9", label: "9" }] },

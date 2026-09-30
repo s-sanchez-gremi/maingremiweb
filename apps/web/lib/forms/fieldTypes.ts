@@ -53,7 +53,7 @@ export const optionValues = (item: Item): string[] =>
 export const isRequired = (item: Item) => item.data.required === "yes";
 
 /** Problems with a form DEFINITION (checked when the form is saved). Returns human-readable messages. */
-export function checkDefinition(items: Item[], destination: string): string[] {
+export function checkDefinition(items: Item[], destination: string, target?: string | null): string[] {
   const issues: string[] = [];
   const seenBefore = new Map<string, Item>();
   const label = (i: Item) => lt(i.data.label ?? i.data.title, "ca") || i.type;
@@ -82,6 +82,7 @@ export function checkDefinition(items: Item[], destination: string): string[] {
   }
   const emails = items.filter((i) => i.data.map === "email" || (i.type === "email" && !i.data.map));
   if (emails.filter((i) => i.data.map === "email").length > 1) issues.push("Només un camp pot guardar-se com a correu del contacte");
+  if (destination === "project" && !target) issues.push("Tria el projecte o client on s'adjuntaran les respostes");
   if (destination === "crm_lead") {
     const em = items.find((i) => i.data.map === "email");
     if (!em) issues.push("Per crear contactes al CRM cal un camp de correu marcat «Guarda-ho al contacte com a: Correu»");

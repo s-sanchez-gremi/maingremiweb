@@ -185,3 +185,25 @@
 .site .form-done:focus{outline:var(--focus)}
 .site .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .site .choice a,.site .field a{text-decoration:underline;text-underline-offset:3px;color:var(--accent)}
+
+/* ---------- cookie consent ---------- */
+.site .consent-banner{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--ink);color:var(--bg);border-top:3px solid var(--accent);box-shadow:0 -8px 24px rgba(20,20,19,.25)}
+.site .consent-banner .wrap{display:grid;gap:var(--sp-4);padding-top:var(--sp-4);padding-bottom:var(--sp-4)}
+.site .consent-text p{margin:4px 0 0;color:var(--ink-text);font-size:var(--fs-sm);max-width:80ch}
+.site .consent-actions{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center}
+.site .consent-banner .btn{border-color:var(--bg);color:var(--bg)}
+.site .consent-banner .btn:hover{background:var(--bg);color:var(--ink)}
+.site .btn.link-btn{border-color:transparent;text-decoration:underline;text-underline-offset:3px}
+.site .consent-dialog{border:0;border-radius:var(--r-lg);padding:var(--sp-5);max-width:min(560px,calc(100vw - 32px));width:100%;background:var(--bg);color:var(--ink);box-shadow:0 24px 64px rgba(20,20,19,.4)}
+.site .consent-dialog::backdrop{background:rgba(20,20,19,.6)}
+.site .consent-dialog form{display:grid;gap:var(--sp-4);position:relative}
+.site .consent-dialog h2{font-size:22px;padding-right:44px}
+.site .consent-cat{display:grid;gap:2px;padding-bottom:var(--sp-3);border-bottom:1px solid var(--line)}
+.site .consent-cat .hint{margin-left:36px;font-size:13px;color:var(--text2)}
+.site .consent-x{position:absolute;right:-8px;top:-8px;width:var(--tap);height:var(--tap);font-size:26px;line-height:1;border:0;background:none;cursor:pointer;color:var(--ink);border-radius:var(--r)}
+.site .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface)}
+.site .cookie-table{border-collapse:collapse;width:100%;min-width:640px;font-size:var(--fs-sm)}
+.site .cookie-table th,.site .cookie-table td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+.site .cookie-table thead th{background:var(--bg2);font-weight:700}
+.site .embed .facade .btn.light{border-color:var(--bg);color:var(--bg)}
+@media (min-width:900px){.site .consent-banner .wrap{grid-template-columns:1fr auto;align-items:center}}

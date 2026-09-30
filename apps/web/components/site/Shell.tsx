@@ -72,7 +72,10 @@ export async function Shell({ locale, alternates, children }: { locale: Locale; 
           </div>
           <div className="footer-bottom">
             <span>© {new Date().getFullYear()} Apex. {t.rights}</span>
-            <ul>{s.legalLinks.map((l, i) => <li key={i}><SmartLink href={l.url}>{L(l.label, locale)}</SmartLink></li>)}</ul>
+            <ul>
+              {s.legalLinks.map((l, i) => <li key={i}><SmartLink href={l.url}>{L(l.label, locale)}</SmartLink></li>)}
+              <li><a href="#cookie-settings">{t.cookieSettings}</a></li>{/* always available: withdrawing consent must be as easy as giving it */}
+            </ul>
           </div>
         </div>
       </footer>

@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { revalidateContent } from "@/lib/cache";
 import { slugify } from "@/lib/slug";
-import { forms } from "@/db/schema";
+import { clients, forms, projects } from "@/db/schema";
 import { checkDefinition, formItemsSchema } from "@/lib/forms/fieldTypes";
 import { formSettingsSchema } from "@/lib/forms/settings-fields";
 import { deleteForm, deleteSubmission } from "@/lib/forms/admin-data";
@@ -20,7 +20,7 @@ export async function createForm() {
 
 const payload = z.object({
   id: z.string().uuid(), name: z.string().trim().min(1).max(120), slug: z.string().max(80), active: z.boolean(),
-  destination: z.enum(["crm_lead", "responses_only"]), // "project" arrives with the Projects module
+  destination: z.enum(["crm_lead", "project", "responses_only"]), target: z.string().default(""), // "project:<id>" or "client:<id>"
   fields: formItemsSchema, settings: formSettingsSchema,
 });
 
@@ -31,15 +31,22 @@ export async function saveForm(fd: FormData) {
   const parsed = payload.safeParse(JSON.parse(String(fd.get("data") ?? "{}")));
   if (!parsed.success) return fail("Hi ha camps no vàlids: revisa les etiquetes i els textos obligatoris de cada camp.");
   const d = parsed.data;
-  const issues = checkDefinition(d.fields, d.destination);
-  if (d.destination === "crm_lead" && !d.settings.consent.ca.trim()) issues.push("Cal un text de consentiment quan es creen contactes al CRM");
+  const issues = checkDefinition(d.fields, d.destination, d.target);
+  let targetProjectId: string | null = null, targetClientId: string | null = null;
+  if (d.destination === "project" && d.target) {
+    const [kind, tid] = d.target.split(":");
+    if (kind === "project" && (await db.select({ id: projects.id }).from(projects).where(eq(projects.id, tid ?? "")).limit(1)).length) targetProjectId = tid;
+    else if (kind === "client" && (await db.select({ id: clients.id }).from(clients).where(eq(clients.id, tid ?? "")).limit(1)).length) targetClientId = tid;
+    else issues.push("El projecte o client triat ja no existeix");
+  }
+  if (d.destination !== "responses_only" && !d.settings.consent.ca.trim()) issues.push("Cal un text de consentiment quan es desen dades de persones (CRM o projecte)");
   if (d.settings.newsletterEnabled === "yes" && !d.settings.newsletterText.ca.trim()) issues.push("Escriu el text de la casella del butlletí");
   if (issues.length) return fail(issues.join(" · "));
 
   const s = d.settings;
   try {
     await db.update(forms).set({
-      name: d.name, slug: slugify(d.slug || d.name) || `form-${d.id.slice(0, 8)}`, active: d.active, destination: d.destination, fields: d.fields,
+      name: d.name, slug: slugify(d.slug || d.name) || `form-${d.id.slice(0, 8)}`, active: d.active, destination: d.destination, targetProjectId, targetClientId, fields: d.fields,
       title: s.title, confirmation: s.confirmation, consent: s.consent,
       newsletter: { enabled: s.newsletterEnabled === "yes", text: s.newsletterText },
       notifications: { staffEmail: s.staffEmail === "yes", staffAddresses: s.staffAddresses, confirmToSender: s.confirmToSender === "yes", confirmSubject: s.confirmSubject, confirmBody: s.confirmBody },

@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { forms } from "@/db/schema";
+import { asc } from "drizzle-orm";
+import { clients, forms, projects } from "@/db/schema";
 import { formStats } from "@/lib/forms/admin-data";
 import type { FormSettings } from "@/lib/forms/settings-fields";
 import { siteUrl } from "@/lib/urls";
@@ -17,6 +18,7 @@ export default async function EditForm({ params, searchParams }: { params: Promi
   const [f] = await db.select().from(forms).where(eq(forms.id, id));
   if (!f) notFound();
   const stats = await formStats(id);
+  const [projs, cls] = await Promise.all([db.select({ id: projects.id, name: projects.name }).from(projects).orderBy(asc(projects.name)), db.select({ id: clients.id, name: clients.name }).from(clients).orderBy(asc(clients.name))]);
   const n = f.notifications ?? {};
   const settings: FormSettings = {
     title: lt3(f.title), confirmation: lt3(f.confirmation), consent: lt3(f.consent),
@@ -26,7 +28,8 @@ export default async function EditForm({ params, searchParams }: { params: Promi
   };
   return (
     <FormEditor
-      initial={{ id, name: f.name, slug: f.slug, active: f.active, destination: f.destination === "project" ? "responses_only" : f.destination, fields: f.fields as never, settings }}
+      initial={{ id, name: f.name, slug: f.slug, active: f.active, destination: f.destination, target: f.targetProjectId ? `project:${f.targetProjectId}` : f.targetClientId ? `client:${f.targetClientId}` : "", fields: f.fields as never, settings }}
+      targets={{ projects: projs, clients: cls }}
       stats={stats} site={siteUrl()}
       message={sp.error ? { kind: "err", text: sp.error } : sp.saved ? { kind: "ok", text: "Desat." } : null}
     />

@@ -8,20 +8,22 @@ import { formSettingsFields, type FormSettings } from "@/lib/forms/settings-fiel
 import type { Field } from "@/sections/fields";
 import { removeForm, saveForm } from "../actions";
 
-type Initial = { id: string; name: string; slug: string; active: boolean; destination: "crm_lead" | "responses_only"; fields: Item[]; settings: FormSettings };
+type Initial = { id: string; name: string; slug: string; active: boolean; destination: "crm_lead" | "project" | "responses_only"; target: string; fields: Item[]; settings: FormSettings };
 const pick = (names: string[]) => formSettingsFields.filter((f) => names.includes(f.name)) as Field[];
 const NO_MEDIA = { media: [], forms: [] };
 
-export function FormEditor({ initial, stats, site, message }: {
+export function FormEditor({ initial, stats, site, message, targets }: {
+  targets: { projects: { id: string; name: string }[]; clients: { id: string; name: string }[] };
   initial: Initial; stats: { submissions: number; starts: number; completion: number | null }; site: string; message: { kind: "ok" | "err"; text: string } | null;
 }) {
   const [name, setName] = useState(initial.name);
   const [slug, setSlug] = useState(initial.slug);
   const [active, setActive] = useState(initial.active);
   const [destination, setDestination] = useState(initial.destination);
+  const [target, setTarget] = useState(initial.target);
   const [items, setItems] = useState<Item[]>(initial.fields);
   const [settings, setSettings] = useState<Record<string, unknown>>(initial.settings as never);
-  const data = JSON.stringify({ id: initial.id, name, slug, active, destination, fields: items, settings });
+  const data = JSON.stringify({ id: initial.id, name, slug, active, destination, target, fields: items, settings });
 
   const optionLabel = (i: Item) => `${lt(i.data.label, "ca") || formTypeByName[i.type].label}`;
   const summary = (i: Item) => {
@@ -83,14 +85,20 @@ export function FormEditor({ initial, stats, site, message }: {
             <fieldset className="card" style={{ border: "1px solid var(--line)" }}>
               <legend style={{ display: "none" }}>Destinació</legend>
               <h3>Destinació de les respostes</h3>
-              {([["crm_lead", "Crear contacte i lead al CRM"], ["responses_only", "Només recollir respostes"]] as const).map(([v, l]) => (
+              {([["crm_lead", "Crear contacte i lead al CRM"], ["project", "Adjuntar a un projecte o client"], ["responses_only", "Només recollir respostes"]] as const).map(([v, l]) => (
                 <label key={v} style={{ gridTemplateColumns: "auto 1fr", alignItems: "center", gap: 10, color: "var(--ink)", fontSize: 13 }}>
                   <input type="radio" name="dest" checked={destination === v} onChange={() => setDestination(v)} style={{ width: 16 }} /><span>{l}</span>
                 </label>
               ))}
-              <label style={{ gridTemplateColumns: "auto 1fr", alignItems: "center", gap: 10, fontSize: 13 }}>
-                <input type="radio" disabled style={{ width: 16 }} /><span>Adjuntar a un projecte o client <em className="hint">(quan hi hagi el mòdul de projectes)</em></span>
-              </label>
+              {destination === "project" && (
+                <label>Adjunta les respostes a
+                  <select value={target} onChange={(e) => setTarget(e.target.value)}>
+                    <option value="">— tria —</option>
+                    <optgroup label="Projectes">{targets.projects.map((p) => <option key={p.id} value={`project:${p.id}`}>{p.name}</option>)}</optgroup>
+                    <optgroup label="Clients">{targets.clients.map((c) => <option key={c.id} value={`client:${c.id}`}>{c.name}</option>)}</optgroup>
+                  </select>
+                </label>
+              )}
             </fieldset>
 
             <div className="card"><h3>Text públic</h3><FieldForm fields={pick(["title", "confirmation", "consent"])} data={settings} onChange={setSettings} options={NO_MEDIA} /></div>

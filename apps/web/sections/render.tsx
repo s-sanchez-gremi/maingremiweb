@@ -5,6 +5,8 @@ import { RichText } from "@/lib/richtext";
 import { embedTarget } from "@/lib/embed";
 import { mediaSrcSet, mediaUrl } from "@/lib/media-url";
 import { ui, type Locale } from "@/lib/i18n";
+import { consentMsgs } from "@/lib/consent/messages";
+import { declarations, categories } from "@/lib/consent/registry";
 import type { PublicMedia } from "@/lib/content-queries";
 import { Embed } from "@/components/site/Embed";
 import { SmartLink } from "@/components/site/SmartLink";
@@ -72,7 +74,7 @@ function renderOne(s: Section, ctx: Ctx, opts: { h1: boolean; after?: ReactNode 
       if (!target) return null;
       return (
         <section className="block"><div className="wrap narrow">
-          <Embed src={target.src} title={target.title} original={str(d.url)} labels={{ load: t.loadEmbed, note: t.embedNote, open: t.openExternal }} />
+          <Embed src={target.src} title={target.title} original={str(d.url)} labels={{ load: t.loadEmbed, note: t.embedNote, open: t.openExternal, always: consentMsgs(ctx.locale).allowEmbeds }} />
         </div></section>
       );
     }
@@ -97,6 +99,26 @@ function renderOne(s: Section, ctx: Ctx, opts: { h1: boolean; after?: ReactNode 
         <div className="tiles">
           {tiles.map((x, i) => <div className="tile" key={i}><span className="eyebrow">{str(x.label)}</span>{str(x.text) && <span>{str(x.text)}</span>}</div>)}
         </div>
+      );
+    }
+    case "cookieList": {
+      const c = consentMsgs(ctx.locale);
+      return (
+        <section className="block"><div className="wrap">
+          <div className="sec-head"><h2>{str(d.heading) || c.cookieList}</h2><a href="#cookie-settings" className="btn">{c.change}</a></div>
+          <div className="table-wrap" tabIndex={0} role="region" aria-label={c.cookieList}>
+            <table className="cookie-table">
+              <thead><tr><th scope="col">{c.colName}</th><th scope="col">{c.colCategory}</th><th scope="col">{c.colPurpose}</th><th scope="col">{c.colDuration}</th><th scope="col">{c.colProvider}</th></tr></thead>
+              <tbody>{declarations.map((x) => (
+                <tr key={x.name}>
+                  <th scope="row"><code>{x.name}</code></th>
+                  <td>{categories.find((k) => k.id === x.category)!.name[ctx.locale]}</td>
+                  <td>{x.purpose[ctx.locale]}</td><td>{x.duration[ctx.locale]}</td><td>{x.provider}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </div></section>
       );
     }
     case "latestPosts":

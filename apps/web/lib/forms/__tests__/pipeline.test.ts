@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../../db";
-import { contacts, forms, leads, newsletterOptins, outbox, submissions, type FormItem } from "@/db/schema";
+import { clients, contacts, forms, leads, newsletterOptins, outbox, projects, submissions, type FormItem } from "@/db/schema";
 import { processSubmission, parseAddresses, type FormRow, type SubmitInput } from "../submit";
 import { processOutbox } from "../../outbox";
 import { deleteSubmission, eraseContact, formStats, purgeIpHashes, recordStart } from "../admin-data";
@@ -32,7 +32,7 @@ const base = (form: FormRow, answers: Record<string, unknown>, over: Partial<Sub
 const sent: { to: string; subject: string; text: string }[] = [];
 const transport = { sendMail: async (m: { from: string; to: string; subject: string; text: string }) => { sent.push(m); } };
 
-beforeEach(async () => { await db.delete(forms); await db.delete(contacts); await db.delete(newsletterOptins); await db.delete(outbox); sent.length = 0; });
+beforeEach(async () => { await db.delete(projects); await db.delete(clients); await db.delete(forms); await db.delete(contacts); await db.delete(newsletterOptins); await db.delete(outbox); sent.length = 0; });
 
 describe("happy path", () => {
   it("stores the submission, creates contact + lead with source tags and the exact consent, queues both emails", async () => {
@@ -237,5 +237,40 @@ describe("rate limit, retention, erasure, statistics", () => {
     expect(await formStats(f.id)).toEqual({ submissions: 1, starts: 4, completion: 0.25 });
     const [latest] = await db.select().from(submissions).orderBy(desc(submissions.createdAt));
     expect(latest).toBeTruthy();
+  });
+});
+
+describe("project / client destination", () => {
+  it("attaches the response to the chosen project, and creates no contact or lead", async () => {
+    const [cl] = await db.insert(clients).values({ name: "Rovellosa" }).returning();
+    const [pr] = await db.insert(projects).values({ name: "Web nova", clientId: cl.id }).returning();
+    const f = await makeForm({ destination: "project", targetProjectId: pr.id });
+    const r = await processSubmission(base(f, { [name.id]: "Ana", [email.id]: "ana@apex.test" }));
+    expect(r.ok).toBe(true);
+    const [sub] = await db.select().from(submissions);
+    expect(sub).toMatchObject({ projectId: pr.id, clientId: null, contactId: null });
+    expect(await db.select().from(contacts)).toHaveLength(0);
+    expect(await db.select().from(leads)).toHaveLength(0);
+    expect((await processOutbox({ transport })).sent).toBe(3); // staff + confirmation still work
+  });
+  it("can attach to a client instead", async () => {
+    const [cl] = await db.insert(clients).values({ name: "Rovellosa" }).returning();
+    const f = await makeForm({ destination: "project", targetClientId: cl.id });
+    await processSubmission(base(f, { [name.id]: "Ana", [email.id]: "ana@apex.test" }));
+    expect((await db.select().from(submissions))[0]).toMatchObject({ clientId: cl.id, projectId: null });
+  });
+  it("deleting the project keeps the response (unattached) instead of losing it", async () => {
+    const [pr] = await db.insert(projects).values({ name: "Temporal" }).returning();
+    const f = await makeForm({ destination: "project", targetProjectId: pr.id });
+    await processSubmission(base(f, { [name.id]: "Ana", [email.id]: "ana@apex.test" }));
+    await db.delete(projects).where(eq(projects.id, pr.id));
+    const [sub] = await db.select().from(submissions);
+    expect(sub.projectId).toBeNull();
+    expect((await db.select().from(forms).where(eq(forms.id, f.id)))[0].targetProjectId).toBeNull();
+  });
+  it("forms cannot point at both a project and a client", async () => {
+    const [cl] = await db.insert(clients).values({ name: "C" }).returning();
+    const [pr] = await db.insert(projects).values({ name: "P" }).returning();
+    await expect(makeForm({ destination: "project", targetProjectId: pr.id, targetClientId: cl.id })).rejects.toThrow();
   });
 });

@@ -11,6 +11,7 @@ import type { PublicForm } from "@/lib/content-queries";
 import type { Locale } from "@/db/schema";
 import { FieldInput } from "./Inputs";
 import { fetchSolution } from "./pow-client";
+import { storedUtm, useConsent } from "../consent/store";
 
 export type Source = { path: string; entryId?: string | null; theme: string };
 type Solution = Awaited<ReturnType<typeof fetchSolution>>;
@@ -19,6 +20,7 @@ const UTM = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_conten
 
 export function FormRenderer({ form, locale, source }: { form: PublicForm; locale: Locale; source: Source }) {
   const t = msgs(locale);
+  const consentState = useConsent();
   const items = form.items as Item[];
   const steps = useMemo(() => toSteps(items), [items]);
   const [values, setValues] = useState<Answers>({});
@@ -85,7 +87,8 @@ export function FormRenderer({ form, locale, source }: { form: PublicForm; local
     setStatus("sending");
     try {
       const solution = await pow.current!;
-      const utm: Record<string, string> = {};
+      // Campaign tags: what is in this page's address, plus what was remembered while browsing (only if the visitor allowed it).
+      const utm: Record<string, string> = consentState?.attribution ? { ...storedUtm() } : {};
       const params = new URLSearchParams(window.location.search);
       for (const k of UTM) { const v = params.get(k); if (v) utm[k] = v; }
       const body = new FormData();

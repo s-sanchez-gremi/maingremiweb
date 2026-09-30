@@ -29,7 +29,7 @@ It refuses to run if `CRON_SECRET` is unset or still `change-me`. (`/api/cron/pu
 ## Email, spam protection and proxy
 - Set `SMTP_URL`, `MAIL_FROM` and `STAFF_NOTIFY_EMAIL` (fallback recipient). Locally, Mailpit at http://localhost:8025 catches everything.
 - Set a real `BOT_SECRET` (random, 32+ chars). The app refuses to run forms in production with the placeholder.
-- The reverse proxy in front of the app **must set/overwrite `X-Forwarded-For`** with the real client address (rate limiting relies on it).
+- The reverse proxy in front of the app **must append the real client address to `X-Forwarded-For`** (Caddy, nginx and most load balancers do). Set `TRUSTED_PROXY_HOPS` to the number of proxies in front (default 1). Rate limiting relies on it. Reference config: `deploy/Caddyfile`.
 - Visitor uploads go to the **private** bucket `S3_PRIVATE_BUCKET`; never make that bucket public.
 
 ## Warm-up (keeps pages available during a database outage)

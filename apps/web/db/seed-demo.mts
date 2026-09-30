@@ -81,13 +81,23 @@ const home = await entry({ type: "page", tr: {
 } });
 await entry({ type: "page", tr: { ca: { title: "Formació", slug: "formacio", sections: [body("Oferta formativa contínua per als professionals del sector, des de tècniques de producció fins a gestió empresarial."), sec("form", { formId: contactForm.id })] } } });
 
+// Legal pages. The cookie list is generated from the site's own registry. The privacy policy and legal notice are
+// PLACEHOLDERS: the wording (entity name, tax id, address, purposes, retention) must come from the client's legal adviser.
+const pending = "**[TEXT LEGAL PENDENT]** Aquest text l'ha de redactar o validar l'assessor legal de l'entitat (nom, NIF, adreça, finalitats, conservació de dades i drets de les persones).";
+await entry({ type: "page", tr: { ca: { title: "Avís legal", slug: "avis-legal", sections: [body(pending)] } } });
+await entry({ type: "page", tr: { ca: { title: "Política de privacitat", slug: "privacitat", sections: [body(pending)] } } });
+await entry({ type: "page", tr: { ca: { title: "Política de cookies", slug: "cookies", sections: [
+  body("Aquest web només fa servir l'emmagatzematge imprescindible per funcionar. Amb el teu permís, també pot recordar la campanya d'origen i carregar contingut extern. Pots canviar la teva decisió en qualsevol moment amb la [configuració de cookies](#cookie-settings)."),
+  sec("cookieList", { heading: "" }),
+] } } });
+
 const L3 = (ca: string, es = ca, en = ca) => ({ ca, es, en });
 await db.update(settings).set({ data: {
   homepage: home, phone: "+34 93 000 00 00", email: "info@apex.example", portalUrl: "/ca", contactUrl: "/ca/formacio",
   nav: [{ label: L3("Formació", "Formación", "Training"), url: "/ca/formacio" }, { label: L3("Actualitat", "Actualidad", "News"), url: "/ca/blog" }],
   footerText: L3("Representant i donant suport als professionals de la indústria gràfica de Catalunya.", "Representando y apoyando a los profesionales de la industria gráfica de Cataluña.", "Representing and supporting professionals of Catalonia's graphic industry."),
   footerColumns: [{ title: L3("Recursos", "Recursos", "Resources"), links: [{ label: L3("Formació", "Formación", "Training"), url: "/ca/formacio" }, { label: L3("Actualitat", "Actualidad", "News"), url: "/ca/blog" }] }],
-  legalLinks: [], seoTitle: L3("Apex"), seoDescription: L3("Indústria gràfica de Catalunya"),
+  legalLinks: [{ label: L3("Avís legal", "Aviso legal", "Legal notice"), url: "/ca/avis-legal" }, { label: L3("Política de privacitat", "Política de privacidad", "Privacy policy"), url: "/ca/privacitat" }, { label: L3("Política de cookies", "Política de cookies", "Cookie policy"), url: "/ca/cookies" }], seoTitle: L3("Apex"), seoDescription: L3("Indústria gràfica de Catalunya"),
 } }).where(eq(settings.id, 1));
 console.log("demo content ready; homepage entry:", home);
 process.exit(0);
