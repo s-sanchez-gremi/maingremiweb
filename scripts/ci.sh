@@ -40,6 +40,8 @@ if [ "$FAST" = 0 ]; then
     ./scripts/deploy-drill.sh
     step "Staging stack drill (app + PostgreSQL in Docker: data survives a release, database is private)"
     ./scripts/staging-drill.sh
+    step "Caddy drill (staff-only paths closed to non-listed addresses, public pages open)"
+    ./scripts/caddy-drill.sh
     step "Backup drill (encrypted off-platform backup restores; a corrupt backup is caught)"
     ./scripts/backup-drill.sh
   fi

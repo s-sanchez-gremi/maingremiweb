@@ -82,6 +82,9 @@ Independent of IONOS's own database backups: `deploy/backup.sh` (daily) dumps, v
 `deploy/restore-drill.sh` (monthly) restores the newest backup into a throw-away Postgres and checks it. `scripts/backup-drill.sh` proves both,
 including that a corrupt backup is detected. Optional ping URLs (`BACKUP_PING_URL`, `DRILL_PING_URL`) alert you if a run is missing or fails (phase 8).
 
+## Staff-only admin (Caddy)
+`deploy/Caddyfile` answers **404** for `/admin/*` and `/api/media/*` to every address outside `ADMIN_ALLOWED_IPS` (space-separated, e.g. `203.0.113.7 198.51.100.0/24`; your office or VPN range). **Empty means nobody**, so set it before the first login. This one rule covers every staff screen now and later (CRM, projects, settings…). Public pages, form submission and the health check stay open; the login still applies on top. `scripts/caddy-drill.sh` proves the rule on the real file. To let someone in, add their address to `.env` and run `docker compose up -d caddy`. The future client portal will need its own open path.
+
 ## Monitoring (phase 8)
 - **Uptime:** any external monitor (UptimeRobot, Better Stack, Healthchecks… free tiers are enough) checking `https://DOMAIN/api/health?deep=1` every minute, alerting by e-mail/SMS. 503 = database down **or** the scheduler stopped (scheduled publishing and e-mails would silently stall).
 - **Errors:** unhandled server errors are stored in our own database (`error_log`; message, short stack, route path only, no query string/body/cookies), deduplicated with a counter, shown to admins in *Errors*, and e-mailed to `ALERT_EMAIL` the first time they appear (reminder after 24 h if still open; resolved ones are purged after 90 days). No third-party service, nothing personal leaves the platform. Unset `ALERT_EMAIL` = logged but not e-mailed.

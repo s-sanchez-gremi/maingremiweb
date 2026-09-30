@@ -62,6 +62,7 @@ jobs:
           ./scripts/docker-smoke.sh
           ./scripts/deploy-drill.sh
           ./scripts/staging-drill.sh
+          ./scripts/caddy-drill.sh
           ./scripts/backup-drill.sh
 
   audit:

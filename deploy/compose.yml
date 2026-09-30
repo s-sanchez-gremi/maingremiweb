@@ -22,6 +22,7 @@ services:
     ports: ["80:80", "443:443"]
     environment:
       SITE_DOMAIN: ${SITE_DOMAIN:?set SITE_DOMAIN in .env}
+      ADMIN_ALLOWED_IPS: ${ADMIN_ALLOWED_IPS:-}   # who may open /admin; empty = nobody
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data        # certificates: keep this volume, or Let's Encrypt rate limits bite on re-creation
