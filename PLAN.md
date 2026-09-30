@@ -88,7 +88,7 @@ Posts and landing pages share **one** `entries` table; the only difference is `t
 - **Media:** uploaded through the app (`POST /api/media`, logged-in users only), not presigned browser uploads, so every file is checked on the server: real type detected from bytes, images re-encoded by `sharp` to WebP at 3 fixed widths (480/960/1600, never upscaled, metadata stripped), PDFs stored as-is, SVG rejected, max 15 MB. **Alt text per language is required** on any image before its page can be published. A file in use can't be deleted.
 - **Public reads** go through one `getEntry(type, slug, locale)` returning only `published`; pages are ISR with tag revalidation.
 - **Migrations:** plain SQL files in git, applied by one script; run automatically in staging, by hand (reviewed) in production.
-- **Tests:** unit tests for section validation, `can()`, `publish()`, lead pipeline; one Playwright test: login → draft → publish → page live.
+- **Tests:** unit tests for section validation, `can()`, `publish()`, the public queries, media pipeline and the lead pipeline (throwaway DB); Playwright end-to-end suite (login throttle, draft → publish → live, hidden draft edits, unpublish, scheduled publish via cron, editor permissions) run in CI on every change.
 - **Size budget:** whole CMS (admin + API + registry) target under ~6,000 lines maximum; if it grows past that, stop and simplify.
 
 ### How to extend

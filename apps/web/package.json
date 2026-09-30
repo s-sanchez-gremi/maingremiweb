@@ -10,7 +10,8 @@
     "db:migrate": "node --env-file=../../.env --import tsx db/migrate.mts",
     "test": "vitest run --passWithNoTests",
     "user:create": "node --env-file=../../.env --import tsx db/create-user.mts",
-    "seed:demo": "node --env-file=../../.env --import tsx db/seed-demo.mts"
+    "seed:demo": "node --env-file=../../.env --import tsx db/seed-demo.mts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1143.0",
@@ -24,6 +25,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

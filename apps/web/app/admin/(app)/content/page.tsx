@@ -14,6 +14,7 @@ export default async function ContentList({ searchParams }: { searchParams: Prom
     ? await db.select().from(entryTranslations).where(inArray(entryTranslations.entryId, list.map((e) => e.id)))
     : [];
   const noun = type === "post" ? "article" : "pàgina";
+  const newLabel = type === "post" ? "Nou article" : "Nova pàgina"; // grammatical gender
 
   return (
     <>
@@ -24,7 +25,7 @@ export default async function ContentList({ searchParams }: { searchParams: Prom
         </div>
         <form action={createEntry}>
           <input type="hidden" name="type" value={type} />
-          <button className="btn primary" type="submit">Nou {noun}</button>
+          <button className="btn primary" type="submit">{newLabel}</button>
         </form>
       </div>
       <div className="body">
