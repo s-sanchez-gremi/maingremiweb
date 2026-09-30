@@ -8,9 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "db:migrate": "node --env-file=../../.env --import tsx db/migrate.mts",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "user:create": "node --env-file=../../.env --import tsx db/create-user.mts"
   },
   "dependencies": {
+    "@node-rs/argon2": "^2.2.1",
     "drizzle-orm": "^0.45.3",
     "next": "16.3.7",
     "postgres": "^3.4.9",
