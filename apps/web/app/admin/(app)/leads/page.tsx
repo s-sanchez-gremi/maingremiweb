@@ -3,6 +3,7 @@ import { asc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { users } from "@/db/schema";
+import { ListSearch } from "@/components/admin/ListSearch";
 import { LEAD_STATUSES, PAGE_SIZE, listLeads, listPeople, statusLabel } from "@/lib/leads";
 
 type SP = { erased?: string; status?: string; owner?: string; q?: string; page?: string; view?: string };
@@ -28,17 +29,10 @@ export default async function Leads({ searchParams }: { searchParams: Promise<SP
           <Link className="btn" href={href({})} aria-current={!people ? "page" : undefined}>Peticions</Link>
           <Link className="btn" href={href({ view: "people" })} aria-current={people ? "page" : undefined}>Persones</Link>
         </nav>
-        <form method="get" className="card" style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "end" }}>
-          {people && <input type="hidden" name="view" value="people" />}
-          <label>Cerca<input name="q" defaultValue={sp.q ?? ""} placeholder="Nom, correu, telèfon, empresa, respostes, notes" style={{ minWidth: 280 }} /></label>
-          <label>Estat
-            <select name="status" defaultValue={sp.status ?? ""}><option value="">Tots</option>{LEAD_STATUSES.map((s) => <option key={s} value={s}>{statusLabel[s]}</option>)}</select>
-          </label>
-          <label>Responsable
-            <select name="owner" defaultValue={sp.owner ?? ""}><option value="">Tots</option><option value="none">Sense assignar</option>{staff.map((u) => <option key={u.id} value={u.id}>{u.email}</option>)}</select>
-          </label>
-          <button className="btn primary" type="submit">Filtra</button>
-        </form>
+        <ListSearch label="Cerca contactes" placeholder="Nom, correu, telèfon, empresa, respostes, notes" q={sp.q} hidden={people ? { view: "people" } : undefined}>
+          <select name="status" aria-label="Estat" defaultValue={sp.status ?? ""}><option value="">Tots els estats</option>{LEAD_STATUSES.map((s) => <option key={s} value={s}>{statusLabel[s]}</option>)}</select>
+          <select name="owner" aria-label="Responsable" defaultValue={sp.owner ?? ""}><option value="">Tots els responsables</option><option value="none">Sense assignar</option>{staff.map((u) => <option key={u.id} value={u.id}>{u.email}</option>)}</select>
+        </ListSearch>
 
         {data.rows.length === 0 ? <p className="hint">No hi ha cap resultat amb aquests filtres.</p> : people ? (
           <table>

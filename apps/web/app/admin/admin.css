@@ -54,3 +54,6 @@
 .admin .side-search input{font:inherit;font-size:13px;padding:8px 10px;border-radius:6px;border:1px solid var(--ink2);background:var(--ink2);color:var(--bg);width:100%;min-width:0}
 .admin .side-search input::placeholder{color:var(--ink-text)}
 .admin .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.admin .listsearch{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.admin .listsearch input[type=search]{flex:1 1 280px;min-width:0}
+.admin .listsearch select{flex:0 0 auto}

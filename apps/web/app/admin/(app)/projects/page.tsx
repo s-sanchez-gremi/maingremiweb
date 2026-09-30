@@ -2,6 +2,7 @@ import Link from "next/link";
 import { asc, count, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { clients, projects, submissions } from "@/db/schema";
+import { ListSearch } from "@/components/admin/ListSearch";
 import { matchAll } from "@/lib/search";
 import { createProject } from "./actions";
 
@@ -20,7 +21,7 @@ export default async function Projects({ searchParams }: { searchParams: Promise
         {sp.deleted && <p role="status" className="msg ok">Projecte eliminat.</p>}
         <div className="cols">
           <div className="col-main">
-            <form method="get" className="row" role="search"><label className="sr-only" htmlFor="pq">Cerca projectes</label><input id="pq" name="q" type="search" defaultValue={sp.q ?? ""} placeholder="Cerca projectes" style={{ flex: 1 }} /><button className="btn" type="submit">Cerca</button></form>
+            <ListSearch label="Cerca projectes" placeholder="Nom, client o notes" q={sp.q} />
             {rows.length === 0 ? <p className="hint">{sp.q ? "Cap projecte coincideix." : "Encara no hi ha cap projecte."}</p> : (
               <table>
                 <thead><tr><th>Projecte</th><th>Client</th><th>Estat</th><th>Respostes</th></tr></thead>
