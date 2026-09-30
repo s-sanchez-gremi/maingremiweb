@@ -1,3 +1,4 @@
+import "@/styles/tokens.css";
 import "./admin.css";
 
 export const metadata = { title: "Apex — backend", robots: { index: false, follow: false } };

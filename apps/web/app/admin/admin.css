@@ -1,15 +1,14 @@
-.admin{--accent:#D50032;--accent-hover:#A9002A;--bg:#FAF9F5;--bg2:#F2F0E8;--ink:#141413;--ink2:#23221F;--text2:#5C5A54;--quiet:#8A8780;--line:#E5E2D9;
-  font-family:Inter,system-ui,sans-serif;color:var(--ink);background:var(--bg2);min-height:100vh;font-size:14px}
+.admin{font-family:var(--sans);color:var(--ink);background:var(--bg2);min-height:100vh;font-size:14px;line-height:1.5}
 .admin h1,.admin h2,.admin h3{font-family:Georgia,"Times New Roman",serif;margin:0}
 .admin a{color:inherit;text-decoration:none}
 .admin .shell{display:flex;min-height:100vh}
-.admin .side{width:220px;flex-shrink:0;background:var(--ink);color:#C9C6BE;display:flex;flex-direction:column;justify-content:space-between}
+.admin .side{width:220px;flex-shrink:0;background:var(--ink);color:var(--ink-text);display:flex;flex-direction:column;justify-content:space-between}
 .admin .logo{padding:24px 20px;font-family:Georgia,serif;font-size:20px;font-weight:700;color:var(--bg);letter-spacing:1px}
 .admin .nav{display:flex;flex-direction:column;gap:2px;padding:8px 12px}
 .admin .nav a{padding:10px 12px;border-radius:6px}
 .admin .nav a:hover{background:var(--ink2)}
 .admin .nav a[aria-current=page]{background:var(--ink2);color:var(--bg);font-weight:600;border-left:3px solid var(--accent)}
-.admin .who{padding:16px 20px;font-size:12px;color:var(--quiet);display:grid;gap:8px}
+.admin .who{padding:16px 20px;font-size:12px;color:var(--ink-text);display:grid;gap:8px}
 .admin .main{flex:1;min-width:0;display:flex;flex-direction:column}
 .admin .top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 32px;background:#fff;border-bottom:1px solid var(--line)}
 .admin .crumb{font-size:12px;color:var(--text2)}
@@ -20,7 +19,7 @@
 .admin .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px;display:grid;gap:10px}
 .admin .card h3{font-size:13px;font-family:Inter,system-ui,sans-serif;font-weight:700}
 .admin label{display:grid;gap:4px;font-size:12px;color:var(--text2)}
-.admin input,.admin select,.admin textarea{font:inherit;font-size:14px;color:var(--ink);padding:9px 11px;border:1px solid var(--line);border-radius:6px;background:#fff;width:100%;box-sizing:border-box}
+.admin input,.admin select,.admin textarea{font:inherit;font-size:14px;color:var(--ink);padding:9px 11px;border:1px solid var(--field-border);border-radius:6px;background:var(--surface);width:100%;box-sizing:border-box}
 .admin textarea{min-height:110px;line-height:1.5;resize:vertical}
 .admin input:focus,.admin select:focus,.admin textarea:focus,.admin button:focus-visible,.admin a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .admin .btn{font:inherit;font-weight:600;padding:10px 18px;border-radius:6px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;width:auto}
@@ -29,7 +28,7 @@
 .admin .btn.primary:hover{background:var(--accent-hover)}
 .admin .btn.link{border:none;background:none;padding:0;color:var(--accent)}
 .admin .chip{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:var(--bg2);color:var(--text2);padding:4px 8px;border-radius:4px}
-.admin .chip.ok{background:#E6F2EA;color:#1E6B3A}.admin .chip.sched{background:#FFF1D6;color:#8A5A00}
+.admin .chip.ok{background:var(--ok-bg);color:var(--ok)}.admin .chip.sched{background:#FFF1D6;color:#8A5A00}
 .admin .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .admin .tools{display:flex;gap:4px}
 .admin .tools button{width:32px;height:32px;border-radius:6px;border:none;background:none;color:var(--text2);cursor:pointer;font-size:14px}
@@ -44,9 +43,9 @@
 .admin th,.admin td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line)}
 .admin th{font-size:12px;color:var(--text2);font-weight:600}
 .admin .msg{padding:10px 14px;border-radius:6px;font-size:13px}
-.admin .msg.err{background:#FBE9ED;color:#8C0022}.admin .msg.ok{background:#E6F2EA;color:#1E6B3A}
+.admin .msg.err{background:var(--danger-bg);color:var(--danger)}.admin .msg.ok{background:var(--ok-bg);color:var(--ok)}
 .admin .langs{display:flex;gap:8px}
 .admin .langs a{font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid var(--line);color:var(--text2)}
 .admin .langs a[aria-current=page]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.admin .hint{font-size:12px;color:var(--quiet)}
+.admin .hint{font-size:12px;color:var(--text2)}
 @media (max-width:900px){.admin .shell{flex-direction:column}.admin .side{width:auto}.admin .cols{flex-direction:column}.admin .col-side{width:100%}.admin .body,.admin .top{padding:16px}}

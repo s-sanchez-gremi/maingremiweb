@@ -104,6 +104,7 @@ test("scheduled publishing goes live when the cron job runs", async ({ page }) =
 
   // Cron with the wrong secret does nothing; with the right one it publishes what is due.
   expect((await page.request.post("/api/cron/publish", { headers: { authorization: "Bearer nope" } })).status()).toBe(401);
+  expect((await page.request.post("/api/cron/revalidate", { headers: { authorization: "Bearer nope" } })).status()).toBe(401);
   const sql = postgres(E2E_DB, { max: 1 });
   await sql`update entry_translations set publish_at = now() - interval '1 minute' where status = 'scheduled'`;
   await sql.end();

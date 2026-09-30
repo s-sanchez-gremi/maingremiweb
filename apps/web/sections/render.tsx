@@ -8,6 +8,7 @@ import { ui, type Locale } from "@/lib/i18n";
 import type { PublicMedia } from "@/lib/content-queries";
 import { Embed } from "@/components/site/Embed";
 import { SmartLink } from "@/components/site/SmartLink";
+import { Card } from "@/components/ui/Card";
 import { LatestPosts } from "@/components/site/LatestPosts";
 import type { Section } from "./registry";
 
@@ -31,8 +32,15 @@ function Header({ d, ctx, h1, children }: { d: Data; ctx: Ctx; h1: boolean; chil
       )}
       <div className="shade" />
       <div className="wrap">
+        {str(d.eyebrow) && <span className="eyebrow">{str(d.eyebrow)}</span>}
         <Tag>{str(d.title)}</Tag>
         {str(d.subtitle) && <p>{str(d.subtitle)}</p>}
+        {(str(d.linkUrl) || str(d.link2Url)) && (
+          <div className="hero-actions">
+            {str(d.linkUrl) && <SmartLink href={str(d.linkUrl)} className="btn primary">{str(d.linkLabel) || str(d.linkUrl)}</SmartLink>}
+            {str(d.link2Url) && <SmartLink href={str(d.link2Url)} className="btn light">{str(d.link2Label) || str(d.link2Url)}</SmartLink>}
+          </div>
+        )}
         {children}
       </div>
     </section>
@@ -94,18 +102,16 @@ function renderOne(s: Section, ctx: Ctx, opts: { h1: boolean; after?: ReactNode 
       return (
         <section className="block alt"><div className="wrap">
           {str(d.heading) && <div className="sec-head"><h2>{str(d.heading)}</h2></div>}
-          <div className={`grid ${cols}`}>
+          <div className={`grid cards-tight ${cols}`}>
             {cards.map((c, i) => {
               const m = ctx.media[str(c.image)];
-              const inner = (
-                <>
-                  {m && <div className="img"><Img m={m} sizes="(min-width:900px) 25vw, 100vw" /></div>}
-                  <div className="body"><h3>{str(c.title)}</h3>{str(c.text) && <div className="meta">{str(c.text)}</div>}</div>
-                </>
+              return (
+                <Card key={i} image={m ? <Img m={m} sizes="(min-width:900px) 25vw, 100vw" /> : undefined}>
+                  {str(c.label) && <span className="eyebrow">{str(c.label)}</span>}
+                  <h3>{str(c.linkUrl) ? <SmartLink href={str(c.linkUrl)} className="stretch">{str(c.title)}</SmartLink> : str(c.title)}</h3>
+                  {str(c.text) && <div className="meta">{str(c.text)}</div>}
+                </Card>
               );
-              return str(c.linkUrl)
-                ? <SmartLink key={i} href={str(c.linkUrl)} className="card">{inner}</SmartLink>
-                : <div key={i} className="card">{inner}</div>;
             })}
           </div>
         </div></section>

@@ -50,7 +50,7 @@ await entry({ type: "post", category: tecnologia, cover: c3, on: "2026-09-22", t
 
 const home = await entry({ type: "page", tr: {
   ca: { title: "Inici", slug: "inici", seo: { title: "Apex — Indústria gràfica de Catalunya", description: "Formació, representació i comunitat per als professionals del sector gràfic." }, sections: [
-    sec("header", { title: "Donant forma al futur de la indústria gràfica", subtitle: "Formació, representació i comunitat per als professionals del sector gràfic a Catalunya.", image: hero }),
+    sec("header", { eyebrow: "Des del 1491", linkLabel: "Fes-te sòcia", linkUrl: "/ca/formacio", link2Label: "Més informació", link2Url: "/ca/blog", title: "Donant forma al futur de la indústria gràfica", subtitle: "Formació, representació i comunitat per als professionals del sector gràfic a Catalunya.", image: hero }),
     sec("tileRow", { tiles: [
       { label: "Innovació", text: "Les últimes tendències i tecnologies del sector." }, { label: "Comunitat", text: "El punt de trobada del talent del sector." },
       { label: "Tradició", text: "Representant els empresaris del sector des de 1491." }, { label: "Promoció", text: "Enfortint i visibilitzant el sector gràfic." } ] }),

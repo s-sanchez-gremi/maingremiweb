@@ -27,6 +27,12 @@ Call it **every minute** from the host's scheduler, e.g. a crontab line:
 ```
 The endpoint refuses to run if `CRON_SECRET` is unset or still `change-me`. Locally, call it by hand with the secret from `.env`.
 
+## Refreshing the cache after out-of-band changes
+Public pages are cached until content changes through the admin. After **restoring a backup**, running a **bulk import** or a **seed script** (anything that writes to the database directly), refresh the cache:
+```
+curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://YOUR-DOMAIN/api/cron/revalidate
+```
+
 ## Media storage
 Uploads go to the S3-compatible bucket in `.env` (`S3_*`). `S3_PUBLIC_URL` must be the public/CDN base URL of that bucket.
 

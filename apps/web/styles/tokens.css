@@ -1,0 +1,46 @@
+/* THE design tokens (approved mockups). Public site and admin both read these; nothing else defines a colour.
+   Contrast rules are enforced by lib/__tests__/contrast.test.ts, which parses this file. */
+:root {
+  /* colour */
+  --accent: #D50032;
+  --accent-hover: #A9002A;
+  --bg: #FAF9F5;            /* ivory */
+  --bg2: #F2F0E8;           /* secondary background */
+  --surface: #FFFFFF;
+  --ink: #141413;           /* near-black */
+  --ink2: #23221F;          /* secondary ink panel */
+  --text2: #5C5A54;         /* quiet text: the ONLY grey allowed for small text on light backgrounds */
+  --ink-text: #C9C6BE;      /* text on dark panels */
+  --line: #E5E2D9;          /* decorative dividers and card borders (never the only cue for a control) */
+  --field-border: #8A8780;  /* input/checkbox outlines: >= 3:1 on every light background (WCAG 1.4.11) */
+  --danger: #B00020;
+  --danger-bg: #FBE9ED;
+  --ok: #1E6B3A;
+  --ok-bg: #E6F2EA;
+
+  /* type */
+  --serif: Georgia, "Times New Roman", serif;
+  --sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fs-xs: 12px;
+  --fs-sm: 14px;
+  --fs-base: 16px;
+  --fs-lg: 18px;
+  --fs-h3: 17px;
+  --fs-h2: clamp(24px, 3vw, 30px);
+  --fs-h1: clamp(30px, 5vw, 48px);
+  --lh-tight: 1.2;
+  --lh-body: 1.6;
+
+  /* space, shape, motion */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px;
+  --r: 6px;                 /* buttons, inputs */
+  --r-lg: 10px;             /* cards */
+  --shadow-card: 0 8px 24px rgba(20, 20, 19, 0.08);
+  --container: 1312px;
+  --tap: 44px;              /* minimum touch target */
+  --focus: 2px solid var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

@@ -12,9 +12,14 @@ const link: Field[] = [
 
 export const sectionDefs = [
   { name: "header", label: "Capçalera", fields: [
+    { name: "eyebrow", label: "Etiqueta sobre el títol (p. ex. Des del 1491)", kind: "text" },
     { name: "title", label: "Títol", kind: "text", required: true },
     { name: "subtitle", label: "Subtítol", kind: "text" },
-    { name: "image", label: "Imatge", kind: "image" },
+    { name: "image", label: "Imatge de fons", kind: "image" },
+    { name: "linkLabel", label: "Botó principal: text", kind: "text" },
+    { name: "linkUrl", label: "Botó principal: enllaç", kind: "link" },
+    { name: "link2Label", label: "Botó secundari: text", kind: "text" },
+    { name: "link2Url", label: "Botó secundari: enllaç", kind: "link" },
   ] },
   { name: "text", label: "Text", fields: [
     // Body allows only: paragraphs, **bold**, *italic*, [link](url), "- " lists.
@@ -48,8 +53,9 @@ export const sectionDefs = [
   { name: "cardGrid", label: "Graella de targetes", fields: [
     { name: "heading", label: "Títol", kind: "text" },
     { name: "cards", label: "Targetes", kind: "list", max: 12, fields: [
+      { name: "label", label: "Etiqueta (p. ex. Curs, Jornada)", kind: "text" },
       { name: "title", label: "Títol", kind: "text", required: true },
-      { name: "text", label: "Text", kind: "text" },
+      { name: "text", label: "Text (p. ex. data)", kind: "text" },
       { name: "image", label: "Imatge", kind: "image" },
       { name: "linkUrl", label: "Enllaç", kind: "link" },
     ] },

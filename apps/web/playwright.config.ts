@@ -16,10 +16,10 @@ export default defineConfig({
   globalSetup: "./e2e/global-setup.ts",
   use: { baseURL: `http://localhost:${PORT}`, trace: "retain-on-failure" },
   webServer: {
-    command: `pnpm exec next build && pnpm exec next start -p ${PORT}`,
+    command: `rm -rf .next-e2e && pnpm exec next build && pnpm exec next start -p ${PORT}`,
     url: `http://localhost:${PORT}/robots.txt`,
     timeout: 300_000,
     reuseExistingServer: false,
-    env: { DATABASE_URL: E2E_DB, SITE_URL: `http://localhost:${PORT}`, CRON_SECRET, APP_ENV: "e2e" },
+    env: { NEXT_DIST_DIR: ".next-e2e", DATABASE_URL: E2E_DB, SITE_URL: `http://localhost:${PORT}`, CRON_SECRET, APP_ENV: "e2e" },
   },
 });
