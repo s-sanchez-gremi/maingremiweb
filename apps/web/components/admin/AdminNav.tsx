@@ -8,14 +8,16 @@ const items = [
   { href: "/admin/content?type=page", label: "Pàgines", match: (p: string, t: string | null) => p.startsWith("/admin/content") && t === "page" },
   { href: "/admin/media", label: "Fitxers", match: (p: string) => p.startsWith("/admin/media") },
   { href: "/admin/categories", label: "Categories", match: (p: string) => p.startsWith("/admin/categories") },
+  { href: "/admin/users", label: "Usuaris", adminOnly: true, match: (p: string) => p.startsWith("/admin/users") },
+  { href: "/admin/account", label: "El meu compte", match: (p: string) => p.startsWith("/admin/account") },
 ];
 
-export function AdminNav() {
+export function AdminNav({ isAdmin }: { isAdmin: boolean }) {
   const path = usePathname();
   const type = useSearchParams().get("type");
   return (
     <nav className="nav" aria-label="Principal">
-      {items.map((i) => (
+      {items.filter((i) => !("adminOnly" in i) || isAdmin).map((i) => (
         <Link key={i.href} href={i.href} aria-current={i.match(path, type) ? "page" : undefined}>{i.label}</Link>
       ))}
     </nav>

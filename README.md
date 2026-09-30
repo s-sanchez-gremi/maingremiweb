@@ -29,3 +29,9 @@ The endpoint refuses to run if `CRON_SECRET` is unset or still `change-me`. Loca
 
 ## Media storage
 Uploads go to the S3-compatible bucket in `.env` (`S3_*`). `S3_PUBLIC_URL` must be the public/CDN base URL of that bucket.
+
+## First admin
+The very first admin is created from the command line; after that admins manage users in the admin (Usuaris):
+```
+PASSWORD='a-long-password' pnpm --filter web user:create you@example.com admin "Your Name"
+```

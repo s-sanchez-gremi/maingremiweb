@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { destroySession, requireUser } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { AdminNav } from "@/components/admin/AdminNav";
 
 async function logout() {
@@ -15,7 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <aside className="side">
         <div>
           <div className="logo">APEX</div>
-          <AdminNav />
+          <AdminNav isAdmin={can(user, "users:manage")} />
         </div>
         <div className="who">
           <span>{user.email}</span>

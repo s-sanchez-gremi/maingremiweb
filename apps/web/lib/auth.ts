@@ -1,6 +1,5 @@
 // Email + password, argon2id, server-side sessions. CSRF: sessions use SameSite=Lax httpOnly cookies and
 // all mutations are Server Actions, which Next.js protects with an Origin check.
-import { hash, verify } from "@node-rs/argon2";
 import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -14,8 +13,7 @@ const TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
-export const hashPassword = (pw: string) => hash(pw); // argon2id by default
-export const verifyPassword = (hashed: string, pw: string) => verify(hashed, pw);
+export { hashPassword, verifyPassword } from "./password";
 
 export async function createSession(userId: string) {
   const token = randomBytes(32).toString("base64url");
