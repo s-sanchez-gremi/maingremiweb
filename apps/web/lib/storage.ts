@@ -1,5 +1,6 @@
 // S3-compatible object storage (MinIO-style locally, an EU S3 provider in production).
-import { DeleteObjectsCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectsCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const bucket = () => process.env.S3_BUCKET ?? "apex-media";
 
@@ -21,3 +22,28 @@ export async function deletePrefix(prefix: string) {
   const keys = (list.Contents ?? []).map((o) => ({ Key: o.Key! }));
   if (keys.length) await client().send(new DeleteObjectsCommand({ Bucket: bucket(), Delete: { Objects: keys } }));
 }
+
+// ---- PRIVATE bucket: files sent by visitors (never publicly readable; staff get short-lived signed links) ----
+const privateBucket = () => process.env.S3_PRIVATE_BUCKET ?? "apex-private";
+
+export async function putPrivate(key: string, body: Buffer, contentType: string) {
+  await client().send(new PutObjectCommand({ Bucket: privateBucket(), Key: key, Body: body, ContentType: contentType }));
+}
+
+export async function deletePrivatePrefix(prefix: string) {
+  const list = await client().send(new ListObjectsV2Command({ Bucket: privateBucket(), Prefix: prefix }));
+  const keys = (list.Contents ?? []).map((o) => ({ Key: o.Key! }));
+  if (keys.length) await client().send(new DeleteObjectsCommand({ Bucket: privateBucket(), Delete: { Objects: keys } }));
+}
+
+export async function getPrivateBytes(key: string): Promise<Buffer> {
+  const r = await client().send(new GetObjectCommand({ Bucket: privateBucket(), Key: key }));
+  return Buffer.from(await r.Body!.transformToByteArray());
+}
+
+/** A link valid for 60 seconds that forces a download (never rendered in the browser). */
+export const privateDownloadUrl = (key: string, filename: string) =>
+  getSignedUrl(client(), new GetObjectCommand({
+    Bucket: privateBucket(), Key: key,
+    ResponseContentDisposition: `attachment; filename="${filename.replace(/[^\w.\- ]+/g, "_")}"`,
+  }), { expiresIn: 60 });

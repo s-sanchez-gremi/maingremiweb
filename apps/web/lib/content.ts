@@ -15,3 +15,5 @@ export const getAlternates = cached("alternates", q.queryAlternates);
 export const getMedia = cached("media", q.queryMedia);
 export const getSettings = cached("settings", q.querySettings);
 export const getAllLive = cached("all-live", q.queryAllLive);
+export const getFormBySlug = cached("form-by-slug", q.queryFormBySlug);
+export const getFormById = cached("form-by-id", q.queryFormById);

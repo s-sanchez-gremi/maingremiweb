@@ -1,7 +1,7 @@
 import type { Locale } from "@/db/schema";
 
 // Slugs that would clash with fixed routes under /{locale}/.
-export const RESERVED_SLUGS = ["blog", "categoria", "admin", "api", "sitemap", "robots"];
+export const RESERVED_SLUGS = ["blog", "categoria", "form", "embed", "styleguide", "admin", "api", "sitemap", "robots"];
 
 export function entryPath(type: "post" | "page", locale: Locale, slug: string, isHome = false) {
   if (type === "post") return `/${locale}/blog/${slug}`;

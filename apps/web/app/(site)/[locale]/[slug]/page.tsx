@@ -40,7 +40,7 @@ export default async function LandingPage({ params }: Props) {
   return (
     <Shell locale={r.locale} alternates={r.page.shellAlts}>
       {!hasHeader && <div className="wrap narrow"><div className="page-title"><h1>{r.entry.title || ui(r.locale).untitled}</h1></div></div>}
-      <SectionRenderer sections={r.page.sections} media={r.page.media} locale={r.locale} />
+      <SectionRenderer sections={r.page.sections} media={r.page.media} locale={r.locale} source={{ path: entryPath("page", r.locale, r.entry.slug, r.page.isHome), entryId: r.entry.entryId, theme: r.entry.theme }} />
     </Shell>
   );
 }

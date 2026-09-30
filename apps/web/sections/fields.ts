@@ -2,7 +2,7 @@
 import { z } from "zod";
 
 export type Field =
-  | { name: string; label: string; kind: "text" | "textarea" | "image" | "link" | "form" | "entry" | "ltext"; required?: boolean }
+  | { name: string; label: string; kind: "text" | "textarea" | "image" | "link" | "form" | "entry" | "ltext" | "ltextarea" | "fieldref"; required?: boolean }
   | { name: string; label: string; kind: "select"; options: { value: string; label: string }[]; required?: boolean }
   | { name: string; label: string; kind: "embed"; required?: boolean }
   | { name: string; label: string; kind: "list"; fields: Field[]; max?: number };
@@ -29,6 +29,12 @@ export function schemaFor(field: Field): z.ZodType {
       const one = z.string().trim().max(500).default("");
       return z.object({ ca: field.required ? one.pipe(z.string().min(1)) : one, es: one, en: one }).default({ ca: "", es: "", en: "" });
     }
+    case "ltextarea": {
+      const one = z.string().trim().max(2000).default("");
+      return z.object({ ca: field.required ? one.pipe(z.string().min(1)) : one, es: one, en: one }).default({ ca: "", es: "", en: "" });
+    }
+    case "fieldref": // id of an earlier form field ("" = none)
+      return z.string().default("");
     case "image":   // media id
     case "form":    // form id
     case "entry": { // entry id

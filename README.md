@@ -19,28 +19,18 @@ local / staging / production each have their own database and secrets (see `.env
 ## Backups
 `pnpm db:backup` (daily on staging/production via cron) · `pnpm db:restore` — restore must be tested into a scratch DB.
 
-## Scheduled publishing
-`POST /api/cron/publish` with header `Authorization: Bearer $CRON_SECRET` publishes every due scheduled item (idempotent).
-Call it **every minute** from the host's scheduler, e.g. a crontab line:
+## Background jobs (one scheduler line)
+`POST /api/cron/tick` with `Authorization: Bearer $CRON_SECRET` publishes due scheduled content, sends and retries queued emails (form notifications) and purges old address hashes. It is idempotent: call it **every minute**.
 ```
-* * * * * curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://YOUR-DOMAIN/api/cron/publish
+* * * * * curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://YOUR-DOMAIN/api/cron/tick
 ```
-The endpoint refuses to run if `CRON_SECRET` is unset or still `change-me`. Locally, call it by hand with the secret from `.env`.
+It refuses to run if `CRON_SECRET` is unset or still `change-me`. (`/api/cron/publish` still exists for publishing only.)
 
-## Refreshing the cache after out-of-band changes
-Public pages are cached until content changes through the admin. After **restoring a backup**, running a **bulk import** or a **seed script** (anything that writes to the database directly), refresh the cache:
-```
-curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://YOUR-DOMAIN/api/cron/revalidate
-```
-
-## Media storage
-Uploads go to the S3-compatible bucket in `.env` (`S3_*`). `S3_PUBLIC_URL` must be the public/CDN base URL of that bucket.
-
-## First admin
-The very first admin is created from the command line; after that admins manage users in the admin (Usuaris):
-```
-PASSWORD='a-long-password' pnpm --filter web user:create you@example.com admin "Your Name"
-```
+## Email, spam protection and proxy
+- Set `SMTP_URL`, `MAIL_FROM` and `STAFF_NOTIFY_EMAIL` (fallback recipient). Locally, Mailpit at http://localhost:8025 catches everything.
+- Set a real `BOT_SECRET` (random, 32+ chars). The app refuses to run forms in production with the placeholder.
+- The reverse proxy in front of the app **must set/overwrite `X-Forwarded-For`** with the real client address (rate limiting relies on it).
+- Visitor uploads go to the **private** bucket `S3_PRIVATE_BUCKET`; never make that bucket public.
 
 ## Warm-up (keeps pages available during a database outage)
 ```

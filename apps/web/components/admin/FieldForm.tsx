@@ -4,10 +4,10 @@ import type { Field } from "@/sections/fields";
 import { ListEditor } from "./ListEditor";
 
 type Data = Record<string, unknown>;
-export type Options = { media: { id: string; label: string; url?: string }[]; forms: { id: string; label: string }[]; pages?: { id: string; label: string }[] };
+export type Options = { media: { id: string; label: string; url?: string }[]; forms: { id: string; label: string }[]; pages?: { id: string; label: string }[]; earlier?: { id: string; label: string }[] };
 
 export function emptyData(fields: Field[]): Data {
-  return Object.fromEntries(fields.map((f) => [f.name, f.kind === "list" ? [] : f.kind === "ltext" ? { ca: "", es: "", en: "" } : f.kind === "select" ? f.options[0].value : ""]));
+  return Object.fromEntries(fields.map((f) => [f.name, f.kind === "list" ? [] : f.kind === "ltext" || f.kind === "ltextarea" ? { ca: "", es: "", en: "" } : f.kind === "select" ? f.options[0].value : ""]));
 }
 
 export function FieldForm({ fields, data, onChange, options }: {
@@ -22,7 +22,19 @@ export function FieldForm({ fields, data, onChange, options }: {
         switch (f.kind) {
           case "textarea":
             return <label key={f.name}>{f.label}{req}<textarea value={String(v ?? "")} onChange={(e) => set(f.name, e.target.value)} /></label>;
-          case "ltext": {
+          case "fieldref": {
+            const list = options.earlier ?? [];
+            return (
+              <label key={f.name}>{f.label}
+                <select value={String(v ?? "")} onChange={(e) => set(f.name, e.target.value)}>
+                  <option value="">— sempre visible —</option>
+                  {list.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                </select>
+              </label>
+            );
+          }
+          case "ltext":
+          case "ltextarea": {
             const val = (v ?? {}) as Record<string, string>;
             return (
               <fieldset key={f.name} style={{ border: "none", padding: 0, margin: 0, display: "grid", gap: 6 }}>
@@ -30,7 +42,9 @@ export function FieldForm({ fields, data, onChange, options }: {
                 {(["ca", "es", "en"] as const).map((l) => (
                   <label key={l} style={{ gridTemplateColumns: "34px 1fr", alignItems: "center" }}>
                     <span>{l.toUpperCase()}</span>
-                    <input value={val[l] ?? ""} onChange={(e) => set(f.name, { ...val, [l]: e.target.value })} />
+                    {f.kind === "ltextarea"
+                      ? <textarea style={{ minHeight: 70 }} value={val[l] ?? ""} onChange={(e) => set(f.name, { ...val, [l]: e.target.value })} />
+                      : <input value={val[l] ?? ""} onChange={(e) => set(f.name, { ...val, [l]: e.target.value })} />}
                   </label>
                 ))}
               </fieldset>

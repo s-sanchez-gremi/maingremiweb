@@ -10,9 +10,11 @@ import { Embed } from "@/components/site/Embed";
 import { SmartLink } from "@/components/site/SmartLink";
 import { Card } from "@/components/ui/Card";
 import { LatestPosts } from "@/components/site/LatestPosts";
+import { PublicForm } from "@/components/site/form/PublicForm";
+import type { Source } from "@/components/site/form/FormRenderer";
 import type { Section } from "./registry";
 
-type Ctx = { media: Record<string, PublicMedia>; locale: Locale };
+type Ctx = { media: Record<string, PublicMedia>; locale: Locale; source: Source };
 type Data = Record<string, unknown>;
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 
@@ -75,7 +77,11 @@ function renderOne(s: Section, ctx: Ctx, opts: { h1: boolean; after?: ReactNode 
       );
     }
     case "form":
-      return null; // forms arrive with the form builder (phase 5)
+      return (
+        <section className="block"><div className="wrap narrow">
+          <PublicForm id={str(d.formId)} locale={ctx.locale} source={ctx.source} />
+        </div></section>
+      );
     case "cta":
       return (
         <section className="cta"><div className="wrap">
@@ -121,12 +127,12 @@ function renderOne(s: Section, ctx: Ctx, opts: { h1: boolean; after?: ReactNode 
 }
 
 /** Renders a page's sections. The first "header" section becomes the page <h1>; `afterHeader` (post meta) is placed inside it. */
-export function SectionRenderer({ sections, media, locale, afterHeader }: { sections: Section[]; media: Record<string, PublicMedia>; locale: Locale; afterHeader?: ReactNode }) {
+export function SectionRenderer({ sections, media, locale, afterHeader, source }: { sections: Section[]; media: Record<string, PublicMedia>; locale: Locale; afterHeader?: ReactNode; source?: Source }) {
   const firstHeader = sections.findIndex((s) => s.type === "header");
   return (
     <>
       {sections.map((s, i) => (
-        <div key={s.id}>{renderOne(s, { media, locale }, { h1: i === firstHeader, after: i === firstHeader ? afterHeader : undefined })}</div>
+        <div key={s.id}>{renderOne(s, { media, locale, source: source ?? { path: "", theme: "" } }, { h1: i === firstHeader, after: i === firstHeader ? afterHeader : undefined })}</div>
       ))}
     </>
   );

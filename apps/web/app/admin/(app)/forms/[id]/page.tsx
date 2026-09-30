@@ -1,0 +1,34 @@
+import { notFound } from "next/navigation";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { forms } from "@/db/schema";
+import { formStats } from "@/lib/forms/admin-data";
+import type { FormSettings } from "@/lib/forms/settings-fields";
+import { siteUrl } from "@/lib/urls";
+import { FormEditor } from "./FormEditor";
+
+const E = { ca: "", es: "", en: "" };
+const lt3 = (v: Partial<Record<"ca" | "es" | "en", string>> | undefined) => ({ ...E, ...(v ?? {}) });
+
+export default async function EditForm({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string; saved?: string }> }) {
+  const { id } = await params;
+  const sp = await searchParams;
+  if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
+  const [f] = await db.select().from(forms).where(eq(forms.id, id));
+  if (!f) notFound();
+  const stats = await formStats(id);
+  const n = f.notifications ?? {};
+  const settings: FormSettings = {
+    title: lt3(f.title), confirmation: lt3(f.confirmation), consent: lt3(f.consent),
+    newsletterEnabled: f.newsletter?.enabled ? "yes" : "no", newsletterText: lt3(f.newsletter?.text),
+    staffEmail: n.staffEmail ? "yes" : "no", staffAddresses: n.staffAddresses ?? "", confirmToSender: n.confirmToSender ? "yes" : "no",
+    confirmSubject: lt3(n.confirmSubject), confirmBody: lt3(n.confirmBody),
+  };
+  return (
+    <FormEditor
+      initial={{ id, name: f.name, slug: f.slug, active: f.active, destination: f.destination === "project" ? "responses_only" : f.destination, fields: f.fields as never, settings }}
+      stats={stats} site={siteUrl()}
+      message={sp.error ? { kind: "err", text: sp.error } : sp.saved ? { kind: "ok", text: "Desat." } : null}
+    />
+  );
+}

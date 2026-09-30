@@ -52,3 +52,8 @@ export function RichText({ body }: { body: string }) {
     </div>
   );
 }
+
+/** Inline-only variant for labels (e.g. the consent sentence with a link to the privacy policy). */
+export function InlineText({ text }: { text: string }) {
+  return <>{inline(parseInline(text))}</>;
+}

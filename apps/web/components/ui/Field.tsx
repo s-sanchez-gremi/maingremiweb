@@ -47,12 +47,12 @@ export function SelectField({ label, hint, error, options, placeholder, ...rest 
 }
 
 /** A single checkbox with its own label (consent, newsletter opt-in). */
-export function CheckboxField({ label, hint, error, ...rest }: Common & Omit<InputHTMLAttributes<HTMLInputElement>, "type">) {
+export function CheckboxField({ label, hint, error, ...rest }: Omit<Common, "label"> & { label: ReactNode } & Omit<InputHTMLAttributes<HTMLInputElement>, "type">) {
   const id = useId();
   return (
     <div className="field">
       <div className="choice">
-        <input id={id} type="checkbox" aria-invalid={error ? true : undefined} aria-describedby={describe(id, { label, hint, error })} {...rest} />
+        <input id={id} type="checkbox" aria-invalid={error ? true : undefined} aria-describedby={describe(id, { label: "", hint, error })} {...rest} />
         <label htmlFor={id}>{label}{rest.required && <span className="req" aria-hidden="true"> *</span>}</label>
       </div>
       {hint && <span className="hint" id={`${id}-hint`}>{hint}</span>}

@@ -173,3 +173,15 @@
   .site .footer{padding-top:56px}
   .site .footer-grid{grid-template-columns:1.4fr 1fr 1fr 1fr}
 }
+
+/* ---------- public forms ---------- */
+.site form.apex-form{display:grid;gap:var(--sp-5);max-width:640px}
+.site .step-title{font-size:var(--fs-h2);margin-top:var(--sp-2)}
+.site .step-title:focus{outline:none}
+.site .form-actions{display:flex;justify-content:space-between;gap:var(--sp-3);flex-wrap:wrap}
+.site .form-banner{padding:var(--sp-3) var(--sp-4);border-radius:var(--r);font-size:var(--fs-sm);font-weight:600}
+.site .form-banner.err{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger)}
+.site .form-done{padding:var(--sp-5);background:var(--ok-bg);color:var(--ok);border-radius:var(--r-lg);font-weight:600;max-width:640px}
+.site .form-done:focus{outline:var(--focus)}
+.site .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.site .choice a,.site .field a{text-decoration:underline;text-underline-offset:3px;color:var(--accent)}

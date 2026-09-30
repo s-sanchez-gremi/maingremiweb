@@ -3,13 +3,13 @@
 import sharp from "sharp";
 import { eq } from "drizzle-orm";
 import { db } from "../lib/db";
-import { categories, entries, entryTranslations, media, settings } from "./schema";
+import { categories, entries, entryTranslations, forms, media, settings } from "./schema";
 import { saveUpload } from "../lib/media";
 import { publish } from "../lib/publish";
 
 if (process.env.APP_ENV && process.env.APP_ENV !== "local") throw new Error("seed:demo is for local development only");
 if ((await db.select().from(entries).limit(1)).length && !process.env.RESET) throw new Error("Content exists. Re-run with RESET=1 to replace it.");
-await db.delete(entries); await db.delete(categories); await db.delete(media);
+await db.delete(entries); await db.delete(categories); await db.delete(media); await db.delete(forms);
 
 const art = (w: number, h: number, c1: string, c2: string) =>
   sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/></svg>`)).png().toBuffer();
@@ -36,6 +36,23 @@ async function entry(o: { type: "post" | "page"; category?: string; cover?: stri
   return e.id;
 }
 const body = (t: string) => sec("text", { body: t });
+const lt3 = (ca: string, es = ca, en = ca) => ({ ca, es, en });
+const fld = (type: string, data: Record<string, unknown>) => ({ id: crypto.randomUUID(), type, data: { required: "no", help: lt3(""), ...data } });
+const [contactForm] = await db.insert(forms).values({
+  name: "Contacte", slug: "contacte", active: true, destination: "crm_lead",
+  title: lt3("Contacta amb nosaltres", "Contacta con nosotros", "Contact us"),
+  confirmation: lt3("Gràcies! Hem rebut el teu missatge i et respondrem aviat.", "¡Gracias! Hemos recibido tu mensaje y te responderemos pronto.", "Thank you! We received your message and will reply soon."),
+  consent: lt3("Accepto la [política de privacitat](/ca/formacio).", "Acepto la [política de privacidad](/es).", "I accept the [privacy policy](/en)."),
+  newsletter: { enabled: true, text: lt3("Vull rebre el butlletí del sector", "Quiero recibir el boletín del sector", "I want to receive the industry newsletter") },
+  notifications: { staffEmail: true, staffAddresses: "info@apex.example", confirmToSender: true, confirmSubject: lt3("Hem rebut el teu missatge", "Hemos recibido tu mensaje", "We received your message"), confirmBody: lt3("Gràcies per contactar amb Apex.", "Gracias por contactar con Apex.", "Thanks for contacting Apex.") },
+  fields: [
+    fld("text", { label: lt3("Nom i cognoms", "Nombre y apellidos", "Full name"), required: "yes", map: "name" }),
+    fld("email", { label: lt3("Correu electrònic", "Correo electrónico", "Email"), required: "yes", map: "email" }),
+    fld("phone", { label: lt3("Telèfon", "Teléfono", "Phone"), map: "phone" }),
+    fld("dropdown", { label: lt3("Motiu de la consulta", "Motivo de la consulta", "Reason"), required: "yes", options: [{ label: lt3("Formació", "Formación", "Training") }, { label: lt3("Fer-me sòcia", "Hacerme socia", "Become a member") }, { label: lt3("Altres", "Otros", "Other") }] }),
+    fld("textarea", { label: lt3("Missatge", "Mensaje", "Message"), required: "yes" }),
+  ],
+}).returning();
 
 await entry({ type: "post", category: empresa, cover: c1, on: "2026-09-28", tr: {
   ca: { title: "El sector visita una nova planta de packaging", slug: "visita-planta-packaging", seo: { description: "El sector visita una nova planta de packaging." }, sections: [
@@ -62,7 +79,7 @@ const home = await entry({ type: "page", tr: {
   ] },
   es: { title: "Inicio", slug: "inicio", sections: [sec("header", { title: "Dando forma al futuro de la industria gráfica", subtitle: "Formación, representación y comunidad.", image: hero }), sec("latestPosts", { heading: "", count: "3" })] },
 } });
-await entry({ type: "page", tr: { ca: { title: "Formació", slug: "formacio", sections: [body("Oferta formativa contínua per als professionals del sector, des de tècniques de producció fins a gestió empresarial.")] } } });
+await entry({ type: "page", tr: { ca: { title: "Formació", slug: "formacio", sections: [body("Oferta formativa contínua per als professionals del sector, des de tècniques de producció fins a gestió empresarial."), sec("form", { formId: contactForm.id })] } } });
 
 const L3 = (ca: string, es = ca, en = ca) => ({ ca, es, en });
 await db.update(settings).set({ data: {

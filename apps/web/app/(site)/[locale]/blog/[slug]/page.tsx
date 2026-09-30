@@ -62,7 +62,7 @@ export default async function Post({ params }: Props) {
             )}
           </div>
         )}
-        <SectionRenderer sections={page.sections} media={page.media} locale={r.locale} afterHeader={hasHeader ? meta : undefined} />
+        <SectionRenderer sections={page.sections} media={page.media} locale={r.locale} afterHeader={hasHeader ? meta : undefined} source={{ path: entryPath("post", r.locale, entry.slug), entryId: entry.entryId, theme: entry.theme }} />
       </article>
     </Shell>
   );

@@ -11,7 +11,7 @@ export function ListEditor<T>({ items, onChange, title, render, add }: {
   items: T[];
   onChange: (items: T[]) => void;
   title: (item: T, index: number) => string;
-  render: (item: T, update: (next: T) => void) => ReactNode;
+  render: (item: T, update: (next: T) => void, index: number) => ReactNode;
   add: Add<T>;
 }) {
   const move = (i: number, d: -1 | 1) => {
@@ -31,7 +31,7 @@ export function ListEditor<T>({ items, onChange, title, render, add }: {
               <button type="button" aria-label="Elimina" onClick={() => onChange(items.filter((_, j) => j !== i))}>✕</button>
             </div>
           </div>
-          {render(item, (next) => onChange(items.map((x, j) => (j === i ? next : x))))}
+          {render(item, (next) => onChange(items.map((x, j) => (j === i ? next : x))), i)}
         </div>
       ))}
       <div className="add">

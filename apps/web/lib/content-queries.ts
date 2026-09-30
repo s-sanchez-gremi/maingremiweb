@@ -2,13 +2,13 @@
 // Kept free of Next.js imports so they are testable; lib/content.ts wraps them in the tagged cache.
 import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "./db";
-import { categories, entries, entryTranslations, media, settings, users, type LiveContent, type Locale } from "@/db/schema";
+import { categories, entries, entryTranslations, forms, media, settings, users, type FormItem, type LiveContent, type Locale } from "@/db/schema";
 import { defaultSettings, settingsSchema, type Settings } from "./settings-schema";
 
 export type PublicEntry = {
   entryId: string; type: "post" | "page"; locale: Locale; title: string; slug: string; sections: unknown[];
   seo: { title?: string; description?: string }; publishedAt: string; publishedOn: string | null;
-  category: { slug: string; name: string } | null; author: string | null; coverMediaId: string | null; tags: string[];
+  category: { slug: string; name: string } | null; author: string | null; coverMediaId: string | null; tags: string[]; theme: string;
 };
 export type PostCard = Pick<PublicEntry, "entryId" | "title" | "slug" | "publishedOn" | "category" | "author" | "coverMediaId">;
 export type PublicMedia = { id: string; key: string; mime: string; width: number | null; height: number | null; alt: string; credit: string };
@@ -16,7 +16,7 @@ export type PublicMedia = { id: string; key: string; mime: string; width: number
 const CAP = 60; // list pages show the latest 60; pagination is a later, explicit decision
 
 const cols = {
-  entryId: entries.id, type: entries.type, locale: entryTranslations.locale, live: entryTranslations.live,
+  entryId: entries.id, type: entries.type, theme: entries.theme, locale: entryTranslations.locale, live: entryTranslations.live,
   publishedOn: entries.publishedOn, coverMediaId: entries.coverMediaId, tags: entries.tags,
   catSlug: categories.slug, catNames: categories.names, authorName: users.name, authorEmail: users.email,
 };
@@ -29,7 +29,7 @@ const shape = (r: Row, locale: Locale): PublicEntry => {
     entryId: r.entryId as string, type: r.type as "post" | "page", locale, title: live.title, slug: live.slug, sections: live.sections,
     seo: live.seo ?? {}, publishedAt: live.publishedAt, publishedOn: (r.publishedOn as string | null) ?? null,
     category: r.catSlug ? { slug: r.catSlug as string, name: names?.[locale] || names?.ca || (r.catSlug as string) } : null,
-    author: ((r.authorName as string) || null) ?? null, coverMediaId: (r.coverMediaId as string | null) ?? null, tags: (r.tags as string[]) ?? [],
+    author: ((r.authorName as string) || null) ?? null, coverMediaId: (r.coverMediaId as string | null) ?? null, tags: (r.tags as string[]) ?? [], theme: (r.theme as string) ?? "",
   };
 };
 
@@ -99,4 +99,22 @@ export async function queryAllLive() {
   const rows = await db.select({ entryId: entryTranslations.entryId, locale: entryTranslations.locale, live: entryTranslations.live, type: entries.type })
     .from(entryTranslations).innerJoin(entries, eq(entries.id, entryTranslations.entryId)).where(isNotNull(entryTranslations.live));
   return rows.map((r) => ({ entryId: r.entryId, locale: r.locale, type: r.type, slug: (r.live as LiveContent).slug, publishedAt: (r.live as LiveContent).publishedAt }));
+}
+
+export type PublicForm = {
+  id: string; slug: string; name: string; title: Partial<Record<Locale, string>>; active: boolean; items: FormItem[];
+  consent: Partial<Record<Locale, string>>; confirmation: Partial<Record<Locale, string>>; newsletter: { enabled: boolean; text: Partial<Record<Locale, string>> };
+};
+const publicForm = (f: typeof forms.$inferSelect): PublicForm => ({
+  id: f.id, slug: f.slug, name: f.name, title: f.title, active: f.active, items: f.fields, consent: f.consent, confirmation: f.confirmation,
+  newsletter: { enabled: !!f.newsletter?.enabled, text: f.newsletter?.text ?? {} },   // notifications (staff addresses) are deliberately left out
+});
+export async function queryFormBySlug(slug: string): Promise<PublicForm | null> {
+  const [f] = await db.select().from(forms).where(eq(forms.slug, slug));
+  return f ? publicForm(f) : null;
+}
+export async function queryFormById(id: string): Promise<PublicForm | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const [f] = await db.select().from(forms).where(eq(forms.id, id));
+  return f ? publicForm(f) : null;
 }

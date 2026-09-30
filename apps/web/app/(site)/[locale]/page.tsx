@@ -51,7 +51,7 @@ export default async function Home({ params }: Props) {
   return (
     <Shell locale={locale} alternates={page.shellAlts}>
       {!hasHeader && <div className="wrap"><div className="page-title"><h1>{entry.title || ui(locale).untitled}</h1></div></div>}
-      <SectionRenderer sections={page.sections} media={page.media} locale={locale} />
+      <SectionRenderer sections={page.sections} media={page.media} locale={locale} source={{ path: `/${locale}`, entryId: entry.entryId, theme: entry.theme }} />
     </Shell>
   );
 }
