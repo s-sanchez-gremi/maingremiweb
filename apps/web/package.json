@@ -9,7 +9,8 @@
     "lint": "eslint",
     "db:migrate": "node --env-file=../../.env --import tsx db/migrate.mts",
     "test": "vitest run --passWithNoTests",
-    "user:create": "node --env-file=../../.env --import tsx db/create-user.mts"
+    "user:create": "node --env-file=../../.env --import tsx db/create-user.mts",
+    "seed:demo": "node --env-file=../../.env --import tsx db/seed-demo.mts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1143.0",

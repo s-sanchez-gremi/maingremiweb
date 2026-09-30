@@ -35,3 +35,9 @@ The very first admin is created from the command line; after that admins manage 
 ```
 PASSWORD='a-long-password' pnpm --filter web user:create you@example.com admin "Your Name"
 ```
+
+## Warm-up (keeps pages available during a database outage)
+```
+*/5 * * * * SITE_URL=https://YOUR-DOMAIN /path/to/scripts/warm.sh
+```
+Run it once after every deploy as well. `pnpm --filter web seed:demo` (local only, `RESET=1` to replace) loads demo content for design checks.

@@ -21,6 +21,3 @@ export async function deletePrefix(prefix: string) {
   const keys = (list.Contents ?? []).map((o) => ({ Key: o.Key! }));
   if (keys.length) await client().send(new DeleteObjectsCommand({ Bucket: bucket(), Delete: { Objects: keys } }));
 }
-
-/** Public URL for a stored object. Set S3_PUBLIC_URL to the bucket's public/CDN base (no trailing slash). */
-export const publicUrl = (key: string) => `${process.env.S3_PUBLIC_URL}/${key}`;

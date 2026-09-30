@@ -1,6 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
-import { revalidateTag } from "next/cache";
+import { revalidateContent } from "@/lib/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -23,6 +23,7 @@ export async function deleteEntry(formData: FormData) {
   await requireUser("content:write");
   const id = z.string().uuid().parse(formData.get("id"));
   const [e] = await db.delete(entries).where(eq(entries.id, id)).returning();
+  revalidateContent();
   redirect(`/admin/content?type=${e?.type ?? "post"}`);
 }
 
@@ -70,11 +71,12 @@ export async function saveEntry(formData: FormData) {
   if (intent === "publish" || intent === "schedule" || intent === "unpublish") {
     if (!can(user, "content:publish")) return back("error=" + encodeURIComponent("No tens permís per publicar."));
     try {
-      if (intent === "unpublish") revalidateTag(await unpublish(id, locale), "max");
+      if (intent === "unpublish") { await unpublish(id, locale); revalidateContent(); }
       else {
         const at = intent === "schedule" ? new Date(str(formData, "publishAt")) : undefined;
         if (intent === "schedule" && (!at || isNaN(at.getTime()))) return back("error=" + encodeURIComponent("Indica una data i hora vàlides."));
-        revalidateTag((await publish(id, locale, at)).tag, "max");
+        await publish(id, locale, at);
+        revalidateContent();
       }
     } catch (e) {
       if (e instanceof PublishError) return back("error=" + encodeURIComponent(e.message));

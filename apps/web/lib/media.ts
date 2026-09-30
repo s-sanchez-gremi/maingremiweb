@@ -4,10 +4,11 @@ import sharp from "sharp";
 import { eq, sql } from "drizzle-orm";
 import { db } from "./db";
 import { media } from "@/db/schema";
-import { deletePrefix, publicUrl, putObject } from "./storage";
+import { deletePrefix, putObject } from "./storage";
+import { WIDTHS } from "./media-url";
+export { mediaUrl } from "./media-url";
 
 export const MAX_BYTES = 15 * 1024 * 1024;
-export const WIDTHS = [480, 960, 1600] as const;
 
 export class MediaError extends Error {}
 
@@ -77,11 +78,4 @@ export async function deleteMedia(id: string) {
   if (!m) return;
   await deletePrefix(`${m.key}/`);
   await db.delete(media).where(eq(media.id, id));
-}
-
-/** URL for display: pick the smallest stored width >= wanted. PDFs return the file itself. */
-export function mediaUrl(m: { key: string; mime: string; width: number | null }, wanted = 960) {
-  if (m.mime === "application/pdf") return publicUrl(`${m.key}/file.pdf`);
-  const stored = [...new Set(WIDTHS.map((w) => Math.min(w, m.width ?? w)))].sort((a, b) => a - b);
-  return publicUrl(`${m.key}/${stored.find((w) => w >= wanted) ?? stored[stored.length - 1]}.webp`);
 }

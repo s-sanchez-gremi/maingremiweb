@@ -164,3 +164,10 @@ Rough estimate: 6–8 weeks for one full-time developer, before the form builder
 - **FormBuilder mockup** (field-list form builder + destination panel).
 
 Ask the person running this guide for the mockup artifact link(s) if they weren't provided alongside this file.
+
+## Public site (phase 3)
+- **URLs:** `/{ca|es|en}/…` — home `/{l}`, landing pages `/{l}/{slug}`, blog `/{l}/blog`, post `/{l}/blog/{slug}`, category `/{l}/blog/categoria/{slug}`. Paths without a language go to `/ca` (`proxy.ts`). Reserved slugs (`blog`, `categoria`, `admin`, `api`, `sitemap`, `robots`) can't be published.
+- **Homepage** is a landing page chosen in *Configuració*; nav, footer, contact, legal links and default SEO also live there (same field language as sections). A language without a live homepage redirects to `/ca`.
+- **Caching = the outage rule.** Pages are generated on first visit and cached (ISR). All public reads use one cache tag, `content`; publish, unpublish, delete, scheduled publish, settings, categories and media edits expire it. Result: an edit is live in well under a second, and cached pages keep being served if the database is down. A page nobody has opened since the last change is not cached yet, so `scripts/warm.sh` (fetches every sitemap URL) runs after each deploy and every few minutes from cron. A build never needs the database.
+- **Lists** show the latest 60 posts (no pagination yet, deliberate). **Embeds** load only after a click (no third-party request before consent). **Forms** sections render nothing until phase 5. `latestPosts` is an automatic news grid section.
+- **SEO:** per-page title/description, canonical, hreflang (+ x-default), Open Graph/Twitter, `sitemap.xml` with alternates, `robots.txt`, localized 404/error pages.

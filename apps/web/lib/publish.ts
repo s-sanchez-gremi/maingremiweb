@@ -4,6 +4,7 @@ import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
 import { db } from "./db";
 import { entries, entryTranslations, entryVersions, media, type Locale } from "@/db/schema";
 import { collectMediaIds, sectionsSchema } from "@/sections/registry";
+import { RESERVED_SLUGS } from "./urls";
 
 const KEEP_VERSIONS = 10;
 export const entryTag = (entryId: string, locale: string) => `entry:${entryId}:${locale}`;
@@ -28,6 +29,7 @@ async function run(entryId: string, locale: Locale, at?: Date): Promise<{ status
     if (!t) throw new PublishError("Translation not found");
     if (!t.title.trim()) throw new PublishError("Title is required");
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(t.slug)) throw new PublishError("Invalid slug");
+    if (RESERVED_SLUGS.includes(t.slug)) throw new PublishError(`Slug reserved: "${t.slug}"`);
     const parsed = sectionsSchema.safeParse(t.sections);
     if (!parsed.success) throw new PublishError("Sections are invalid: " + parsed.error.issues[0]?.message);
 

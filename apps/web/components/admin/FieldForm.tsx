@@ -4,10 +4,10 @@ import type { Field } from "@/sections/fields";
 import { ListEditor } from "./ListEditor";
 
 type Data = Record<string, unknown>;
-export type Options = { media: { id: string; label: string; url?: string }[]; forms: { id: string; label: string }[] };
+export type Options = { media: { id: string; label: string; url?: string }[]; forms: { id: string; label: string }[]; pages?: { id: string; label: string }[] };
 
 export function emptyData(fields: Field[]): Data {
-  return Object.fromEntries(fields.map((f) => [f.name, f.kind === "list" ? [] : ""]));
+  return Object.fromEntries(fields.map((f) => [f.name, f.kind === "list" ? [] : f.kind === "ltext" ? { ca: "", es: "", en: "" } : f.kind === "select" ? f.options[0].value : ""]));
 }
 
 export function FieldForm({ fields, data, onChange, options }: {
@@ -22,9 +22,24 @@ export function FieldForm({ fields, data, onChange, options }: {
         switch (f.kind) {
           case "textarea":
             return <label key={f.name}>{f.label}{req}<textarea value={String(v ?? "")} onChange={(e) => set(f.name, e.target.value)} /></label>;
+          case "ltext": {
+            const val = (v ?? {}) as Record<string, string>;
+            return (
+              <fieldset key={f.name} style={{ border: "none", padding: 0, margin: 0, display: "grid", gap: 6 }}>
+                <legend style={{ fontSize: 12, color: "var(--text2)", padding: 0, marginBottom: 4 }}>{f.label}{req}</legend>
+                {(["ca", "es", "en"] as const).map((l) => (
+                  <label key={l} style={{ gridTemplateColumns: "34px 1fr", alignItems: "center" }}>
+                    <span>{l.toUpperCase()}</span>
+                    <input value={val[l] ?? ""} onChange={(e) => set(f.name, { ...val, [l]: e.target.value })} />
+                  </label>
+                ))}
+              </fieldset>
+            );
+          }
           case "image":
-          case "form": {
-            const list = f.kind === "image" ? options.media : options.forms;
+          case "form":
+          case "entry": {
+            const list = f.kind === "image" ? options.media : f.kind === "entry" ? (options.pages ?? []) : options.forms;
             return (
               <label key={f.name}>{f.label}{req}
                 <select value={String(v ?? "")} onChange={(e) => set(f.name, e.target.value)}>
@@ -35,7 +50,7 @@ export function FieldForm({ fields, data, onChange, options }: {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={options.media.find((m) => m.id === v)?.url} alt="" style={{ maxHeight: 90, objectFit: "contain", alignSelf: "start", borderRadius: 4 }} />
                 ) : null}
-                {list.length === 0 && <span className="hint">{f.kind === "image" ? "Encara no hi ha imatges pujades." : "Encara no hi ha formularis."}</span>}
+                {list.length === 0 && <span className="hint">{f.kind === "image" ? "Encara no hi ha imatges pujades." : f.kind === "entry" ? "Encara no hi ha pàgines." : "Encara no hi ha formularis."}</span>}
               </label>
             );
           }
@@ -63,7 +78,7 @@ export function FieldForm({ fields, data, onChange, options }: {
           default: // text, link, embed
             return (
               <label key={f.name}>{f.label}{req}
-                <input value={String(v ?? "")} onChange={(e) => set(f.name, e.target.value)} type={f.kind === "text" ? "text" : "url"} inputMode={f.kind === "text" ? undefined : "url"} />
+                <input value={String(v ?? "")} onChange={(e) => set(f.name, e.target.value)} type={f.kind === "embed" ? "url" : "text"} inputMode={f.kind === "text" ? undefined : "url"} placeholder={f.kind === "link" ? "/ca/pagina  o  https://…" : undefined} />
               </label>
             );
         }

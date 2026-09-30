@@ -1,4 +1,5 @@
 import { revalidatePath } from "next/cache";
+import { revalidateContent } from "@/lib/cache";
 import { asc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -13,6 +14,7 @@ async function addCategory(formData: FormData) {
   if (!slug) return;
   await db.insert(categories).values({ slug, names }).onConflictDoNothing();
   revalidatePath("/admin/categories");
+  revalidateContent();
 }
 
 export default async function Categories() {

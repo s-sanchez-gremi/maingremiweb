@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { revalidateContent } from "@/lib/cache";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -14,6 +15,7 @@ export async function updateMedia(formData: FormData) {
   const s = (k: string) => String(formData.get(k) ?? "").trim();
   await db.update(media).set({ alt: { ca: s("alt_ca"), es: s("alt_es"), en: s("alt_en") }, credit: s("credit") }).where(eq(media.id, id));
   revalidatePath("/admin/media");
+  revalidateContent(); // alt text / credit show on public pages
 }
 
 export async function removeMedia(formData: FormData) {

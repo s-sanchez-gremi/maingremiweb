@@ -1,6 +1,13 @@
 import "./admin.css";
 
-export const metadata = { title: "Apex — backend" };
+export const metadata = { title: "Apex — backend", robots: { index: false, follow: false } };
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return <div className="admin">{children}</div>;
+  return (
+    <html lang="ca">
+      <body style={{ margin: 0 }}>
+        <div className="admin">{children}</div>
+      </body>
+    </html>
+  );
 }

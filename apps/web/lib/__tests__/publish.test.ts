@@ -109,3 +109,10 @@ describe("alt text rule", () => {
     expect((await publish(id, "ca")).status).toBe("published");
   });
 });
+
+describe("reserved slugs", () => {
+  it("refuses slugs that would clash with fixed routes", async () => {
+    const id = await makeEntry({ slug: "blog" });
+    await expect(publish(id, "ca")).rejects.toThrow(/reserved/i);
+  });
+});

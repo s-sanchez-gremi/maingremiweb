@@ -41,6 +41,10 @@ export const sectionDefs = [
       { name: "text", label: "Text", kind: "text" },
     ] },
   ] },
+  { name: "latestPosts", label: "Últimes notícies (automàtic)", fields: [
+    { name: "heading", label: "Títol", kind: "text" },
+    { name: "count", label: "Quantes", kind: "select", options: [{ value: "3", label: "3" }, { value: "6", label: "6" }, { value: "9", label: "9" }] },
+  ] },
   { name: "cardGrid", label: "Graella de targetes", fields: [
     { name: "heading", label: "Títol", kind: "text" },
     { name: "cards", label: "Targetes", kind: "list", max: 12, fields: [
