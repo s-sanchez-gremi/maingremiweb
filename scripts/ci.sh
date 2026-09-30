@@ -36,6 +36,10 @@ if [ "$FAST" = 0 ]; then
   if [ "$DOCKER" = 1 ]; then
     step "Docker image smoke test"
     ./scripts/docker-smoke.sh
+    step "Deploy drill (release, automatic rollback of a broken release, failed migration)"
+    ./scripts/deploy-drill.sh
+    step "Backup drill (encrypted off-platform backup restores; a corrupt backup is caught)"
+    ./scripts/backup-drill.sh
   fi
 fi
 printf '\n\033[1;32mALL CHECKS PASSED\033[0m\n'

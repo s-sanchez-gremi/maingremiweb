@@ -9,7 +9,7 @@ const client = () =>
   (g.__s3 ??= new S3Client({
     endpoint: process.env.S3_ENDPOINT,
     region: process.env.S3_REGION ?? "eu-west-1",
-    forcePathStyle: true,
+    forcePathStyle: process.env.S3_FORCE_PATH_STYLE !== "0", // set to 0 if the provider requires bucket-name hosts
     credentials: { accessKeyId: process.env.S3_ACCESS_KEY ?? "", secretAccessKey: process.env.S3_SECRET_KEY ?? "" },
   }));
 

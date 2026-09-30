@@ -25,7 +25,7 @@ ADMIN_PW="pw-$(openssl rand -hex 10)"
 rnd() { openssl rand -hex "$(( ($1 + 1) / 2 ))" | cut -c1-"$1"; }
 ENVS=(-e NODE_ENV=production -e APP_ENV=staging -e AUTO_MIGRATE=1
   -e DATABASE_URL="postgres://smoke:Sm0ke-Pw-7421@db:5432/$DB"
-  -e SITE_URL="http://localhost:$PORT" -e S3_ENDPOINT=http://s3:9090 -e S3_BUCKET=apex-media -e S3_PRIVATE_BUCKET=apex-private
+  -e SITE_URL="http://localhost:$PORT" -e S3_ENDPOINT=http://s3:9090 -e S3_REGION=eu-west-1 -e S3_BUCKET=apex-media -e S3_PRIVATE_BUCKET=apex-private
   -e S3_PUBLIC_URL=http://localhost:9090/apex-media -e S3_ACCESS_KEY=smoke -e S3_SECRET_KEY="$(rnd 24)"
   -e SMTP_URL=smtp://mail:1025 -e MAIL_FROM="Apex <no-reply@apex.example>" -e CRON_SECRET="$(rnd 32)" -e BOT_SECRET="$(rnd 40)"
   -e INITIAL_ADMIN_EMAIL=first-admin@smoke.test -e INITIAL_ADMIN_PASSWORD="$ADMIN_PW")

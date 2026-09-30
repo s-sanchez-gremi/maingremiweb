@@ -1,0 +1,35 @@
+# One ENVIRONMENT per server directory (e.g. /srv/apex/production). The database is IONOS Managed PostgreSQL and the files
+# are IONOS S3, so this stack only has the app and the web server. Configuration lives in ./.env (never in git).
+name: ${APEX_ENV:-apex}
+services:
+  app:
+    image: ${APEX_IMAGE:-ghcr.io/OWNER/apex}:${APEX_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: "3000"
+    expose: ["3000"]
+    # The image has its own HEALTHCHECK (GET /api/health); Caddy waits for it.
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      app: { condition: service_healthy }
+    ports: ["80:80", "443:443"]
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?set SITE_DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data        # certificates: keep this volume, or Let's Encrypt rate limits bite on re-creation
+      - caddy_config:/config
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+volumes:
+  caddy_data:
+  caddy_config:

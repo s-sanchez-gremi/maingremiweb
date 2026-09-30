@@ -1,16 +1,14 @@
-# Reference reverse-proxy config (Caddy 2). NOT yet exercised by the test suite: verify on the real server.
-# Caddy adds the real client address to X-Forwarded-For and discards any value the visitor sent, which is exactly what
-# TRUSTED_PROXY_HOPS=1 (the app default) expects. If you put another proxy/CDN in front of this one, raise the number.
-#
-#   SITE_DOMAIN=apex.example  caddy run --config deploy/Caddyfile
+# HTTPS certificates are obtained and renewed automatically (the domain's DNS must already point at this server).
 {$SITE_DOMAIN} {
 	encode zstd gzip
-
-	# The app itself (Next.js) listens on localhost only.
-	reverse_proxy 127.0.0.1:3000
-
+	# Caddy appends the real client address to X-Forwarded-For and drops anything a visitor sent: matches TRUSTED_PROXY_HOPS=1.
+	reverse_proxy app:3000
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		-Server
 	}
+}
+# "www" goes to the canonical address.
+www.{$SITE_DOMAIN} {
+	redir https://{$SITE_DOMAIN}{uri} permanent
 }

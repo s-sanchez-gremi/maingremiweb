@@ -1,0 +1,90 @@
+# Builds the tested commit into an image, deploys it to STAGING automatically, and deploys to PRODUCTION only when a person
+# starts it and approves it (configure "Required reviewers" on the GitHub environment named "production").
+# NOTE: written from GitHub's documented behaviour; it has not been run yet (there is no repository/server to run it against).
+# The scripts it calls (deploy/deploy.sh: rollback, migrations, health wait) ARE tested locally by scripts/deploy-drill.sh.
+name: Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Production: image tag to deploy (for example sha-1a2b3c4, one already running on staging)"
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  build:
+    name: Build and publish the image
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}   # exactly the commit CI just tested
+      - id: meta
+        run: echo "tag=sha-${GITHUB_EVENT_WORKFLOW_RUN_HEAD_SHA::7}" >> "$GITHUB_OUTPUT"
+        env:
+          GITHUB_EVENT_WORKFLOW_RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE }}:${{ steps.meta.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  staging:
+    name: Deploy to staging
+    needs: build
+    runs-on: ubuntu-24.04
+    environment: staging
+    concurrency: deploy-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: ./.github/actions/deploy
+        with:
+          tag: ${{ needs.build.outputs.tag }}
+          host: ${{ secrets.DEPLOY_HOST }}
+          user: ${{ secrets.DEPLOY_USER }}
+          dir: ${{ secrets.DEPLOY_DIR }}
+          ssh-key: ${{ secrets.DEPLOY_SSH_KEY }}
+          known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          image: ${{ env.IMAGE }}
+
+  production:
+    name: Deploy to production (manual + approval)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    environment: production          # add required reviewers to this environment in GitHub
+    concurrency: deploy-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/deploy
+        with:
+          tag: ${{ inputs.tag }}
+          host: ${{ secrets.DEPLOY_HOST }}
+          user: ${{ secrets.DEPLOY_USER }}
+          dir: ${{ secrets.DEPLOY_DIR }}
+          ssh-key: ${{ secrets.DEPLOY_SSH_KEY }}
+          known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          image: ${{ env.IMAGE }}

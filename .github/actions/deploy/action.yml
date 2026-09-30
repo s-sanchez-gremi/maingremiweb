@@ -1,0 +1,45 @@
+name: Deploy to a server
+description: Copies the deployment files and runs deploy/deploy.sh over SSH (migrate, start, wait for health, roll back on failure).
+inputs:
+  tag: { description: Image tag, required: true }
+  host: { required: true }
+  user: { required: true }
+  dir: { description: Environment directory on the server, required: true }
+  ssh-key: { required: true }
+  known-hosts: { description: Output of ssh-keyscan for the host (pins the server identity), required: true }
+  image: { description: Image name without tag, required: true }
+runs:
+  using: composite
+  steps:
+    # Inputs reach the shell ONLY as environment variables (never pasted into the script text), and the tag is validated:
+    # a person types it into "Run workflow", so it must not be able to inject commands.
+    - name: Validate
+      shell: bash
+      env:
+        TAG: ${{ inputs.tag }}
+        DIR: ${{ inputs.dir }}
+        IMAGE: ${{ inputs.image }}
+      run: |
+        [[ "$TAG" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || { echo "::error::invalid image tag"; exit 1; }
+        [[ "$DIR" =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo "::error::invalid deployment directory"; exit 1; }
+        [[ "$IMAGE" =~ ^[a-z0-9./_-]+$ ]] || { echo "::error::invalid image name"; exit 1; }
+    - name: "Prepare SSH (the server identity is pinned, no blind trust on first connect)"
+      shell: bash
+      env:
+        KEY: ${{ inputs.ssh-key }}
+        KNOWN_HOSTS: ${{ inputs.known-hosts }}
+      run: |
+        install -d -m 700 ~/.ssh
+        (umask 077; printf '%s\n' "$KEY" > ~/.ssh/deploy_key)
+        printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+    - name: Send the deployment files and deploy
+      shell: bash
+      env:
+        TAG: ${{ inputs.tag }}
+        DIR: ${{ inputs.dir }}
+        IMAGE: ${{ inputs.image }}
+        TARGET: ${{ inputs.user }}@${{ inputs.host }}
+      run: |
+        OPTS=(-i "$HOME/.ssh/deploy_key" -o StrictHostKeyChecking=yes)
+        scp "${OPTS[@]}" deploy/compose.yml deploy/Caddyfile deploy/deploy.sh deploy/warm.sh deploy/backup.sh deploy/restore-drill.sh "$TARGET:$DIR/"
+        ssh "${OPTS[@]}" "$TARGET" "cd '$DIR' && chmod +x deploy.sh warm.sh backup.sh restore-drill.sh && APEX_IMAGE='$IMAGE' ./deploy.sh '$TAG'"

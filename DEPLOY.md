@@ -3,6 +3,9 @@
 One Docker image runs everywhere (staging and production); only the environment differs. The image contains the website,
 the admin and the API. Everything else (database, file storage, mail, reverse proxy, scheduler) is provided by the host.
 
+**Hosting: IONOS Cloud** (server + Managed PostgreSQL + S3 Object Storage). The step-by-step setup is `deploy/ionos/README.md`;
+the environment template is `deploy/ionos/production.env.example`.
+
 **Every change is checked by CI** (`.github/workflows/ci.yml`, locally: `pnpm verify`): lint, types, 129+ unit/database tests,
 a build with no configuration, 33 end-to-end tests in a real browser (including accessibility), the Docker image smoke test,
 and a dependency vulnerability audit.
@@ -22,7 +25,7 @@ The container **refuses to start** (exit code 1, clear message) on staging/produ
 | Variable | Example / rule |
 |---|---|
 | `APP_ENV` | `staging` or `production` (turns the startup check on; production also requires an `https://` `SITE_URL`) |
-| `DATABASE_URL` | `postgres://user:password@host:5432/apex` (not the local `apex:apex`) |
+| `DATABASE_URL` | `postgres://user:password@host:5432/apex?sslmode=require` (not the local `apex:apex`; production requires `sslmode=require`) |
 | `SITE_URL` | `https://www.example.com` (canonical URLs, sitemap, e-mail links) |
 | `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` | provider credentials |
 | `S3_BUCKET`, `S3_PUBLIC_URL` | public media bucket and its public/CDN base URL |
@@ -68,6 +71,17 @@ Health endpoint for load balancers/uptime checks: `GET /api/health` (200 = up an
 Keep the previous image tag. Migrations are forward-only and additive: to roll back a release, start the previous image
 (it ignores columns/tables it does not know). A migration that must be undone is fixed with a new migration, never by editing an old one.
 
-## Not included yet (needs a hosting decision)
-Automatic deploy to staging on every merge and approval-gated deploy to production (the CI already produces and tests the image;
-the last step is "push image + tell the host to run it"), error tracking, uptime alerts and backup alerts (phase 8).
+## How releases flow (IONOS)
+`main` → **CI** (lint, types, tests, browser tests, image, deploy drill, backup drill) → **Release** workflow builds the tested commit into
+`ghcr.io/OWNER/REPO:sha-XXXXXXX` → **staging deploys automatically** → a person runs *Release → Run workflow* with that tag and **approves**
+the production deployment. On the server `deploy.sh` pulls the image, applies migrations, starts it, waits for health and **rolls back
+automatically** if the new version does not become healthy (`scripts/deploy-drill.sh` proves this, including a failing migration).
+
+## Backups
+Independent of IONOS's own database backups: `deploy/backup.sh` (daily) dumps, verifies, **encrypts** and uploads to a private bucket;
+`deploy/restore-drill.sh` (monthly) restores the newest backup into a throw-away Postgres and checks it. `scripts/backup-drill.sh` proves both,
+including that a corrupt backup is detected. Optional ping URLs (`BACKUP_PING_URL`, `DRILL_PING_URL`) alert you if a run is missing or fails (phase 8).
+
+## Not included yet
+Error tracking and uptime alerts (phase 8); the GitHub release workflow and the IONOS console steps are documented but have not been
+run on a real repository/account yet (see the verification notes in `deploy/ionos/README.md`).

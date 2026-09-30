@@ -39,7 +39,7 @@ It refuses to run if `CRON_SECRET` is unset or still `change-me`. (`/api/cron/pu
 Run it once after every deploy as well. `pnpm --filter web seed:demo` (local only, `RESET=1` to replace) loads demo content for design checks.
 
 ## Checks before you push
-`pnpm verify:fast` (≈1 min: lint, types, unit tests, build) or `pnpm verify` (everything CI runs, ≈8 min, needs Docker). Deployment: see `DEPLOY.md`.
+`pnpm verify:fast` (≈1 min: lint, types, unit tests, build) or `pnpm verify` (everything CI runs, ≈8 min, needs Docker). Deployment (IONOS): see `DEPLOY.md` and `deploy/ionos/README.md`. Drills: `scripts/deploy-drill.sh`, `scripts/backup-drill.sh`.
 
 ## Tests
 - `pnpm test` — unit + database tests (throwaway DB `apex_test`; needs `docker compose up -d`).
