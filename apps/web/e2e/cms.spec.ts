@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import postgres from "postgres";
 import { CRON_SECRET, E2E_DB } from "../playwright.config";
-import { slugify } from "../lib/slug";
+import { slugify } from "@apex/core/slug";
 
 async function login(page: Page, who: "admin" | "editor") {
   const password = who === "admin" ? process.env.E2E_ADMIN_PASSWORD! : process.env.E2E_EDITOR_PASSWORD!;

@@ -1,7 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth";
+import { requireUser } from "@apex/core/auth";
 import { eraseContact } from "@/lib/forms/admin-data";
 import { addNote, convertToClient, isStatus, setOwner, setStatus } from "@/lib/leads";
 

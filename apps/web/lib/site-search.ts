@@ -1,18 +1,11 @@
-// Site search: plain Postgres over the LIVE snapshot only (drafts never appear). No extension, no index, no service:
-// the site has hundreds of pages, not millions. Accent- and case-insensitive ("formacio" finds "Formació",
-// "collegi" finds "col·legi"); every word must match; title matches rank first.
+// The public site search: plain Postgres over the LIVE snapshot only (drafts never appear). The site has hundreds of pages,
+// not millions, so no extension, no index, no service. Accent- and case-insensitive; every word must match; title matches rank first.
 import { sql } from "drizzle-orm";
 import { db } from "@apex/db";
-import type { Locale } from "./i18n";
+import type { Locale } from "@apex/db/schema";
+import { flat, like, terms } from "@apex/core/search";
 
 export type SearchHit = { entryId: string; type: "post" | "page"; title: string; slug: string; publishedOn: string | null; isHome: boolean };
-
-const FROM = "àáâäèéêëìíîïòóôöùúûüçñ·", TO = "aaaaeeeeiiiioooouuuucn"; // "·" has no counterpart, so translate() deletes it
-export const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/·/g, "");
-export const like = (w: string) => `%${w.replace(/[\\%_]/g, "\\$&")}%`;
-export const terms = (q: string) => [...new Set(norm(q).split(/\s+/).filter((w) => w.length >= 2))].slice(0, 5);
-
-export const flat = (x: ReturnType<typeof sql>) => sql`translate(lower(${x}), ${FROM}, ${TO})`;
 
 export async function searchEntries(locale: Locale, q: string, limit = 20): Promise<SearchHit[]> {
   const words = terms(q.slice(0, 100));
@@ -31,10 +24,3 @@ export async function searchEntries(locale: Locale, q: string, limit = 20): Prom
   return (rows as unknown as Omit<SearchHit, "isHome">[]).map((r) => ({ ...r, isHome: r.entryId === home }));
 }
 
-/** SQL condition: every word of `q` occurs in `haystack` (accent/case-insensitive). undefined when `q` has no usable words. */
-export function matchAll(haystack: ReturnType<typeof sql>, q: string | undefined) {
-  const words = terms((q ?? "").slice(0, 100));
-  if (!words.length) return undefined;
-  const h = flat(haystack);
-  return sql`(${sql.join(words.map((w) => sql`${h} like ${like(w)}`), sql` and `)})`;
-}

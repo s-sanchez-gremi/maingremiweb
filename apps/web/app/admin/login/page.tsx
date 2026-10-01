@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@apex/db";
 import { users } from "@apex/db/schema";
-import { createSession, loginBlocked, loginFailed, loginSucceeded, verifyPassword } from "@/lib/auth";
+import { createSession, loginBlocked, loginFailed, loginSucceeded, verifyPassword } from "@apex/core/auth";
 
 async function login(formData: FormData) {
   "use server";

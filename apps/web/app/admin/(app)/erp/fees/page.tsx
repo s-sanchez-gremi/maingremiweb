@@ -1,6 +1,6 @@
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { ErpError, feePreview } from "@/lib/erp";
-import { formatEuros } from "@/lib/money";
+import { formatEuros } from "@apex/core/money";
 import { generateFeesAction } from "../actions";
 
 export default async function Fees({ searchParams }: { searchParams: Promise<{ period?: string; created?: string; error?: string }> }) {

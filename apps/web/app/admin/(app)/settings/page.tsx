@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@apex/db";
-import { requireUser } from "@/lib/auth";
-import { can } from "@/lib/permissions";
+import { requireUser } from "@apex/core/auth";
+import { can } from "@apex/core/permissions";
 import { defaultSettings, settingsSchema } from "@/lib/settings-schema";
 import { entries, entryTranslations, settings } from "@apex/db/schema";
 import { SettingsEditor } from "./SettingsEditor";

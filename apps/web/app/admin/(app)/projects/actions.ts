@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@apex/db";
-import { requireUser } from "@/lib/auth";
+import { requireUser } from "@apex/core/auth";
 import { projects, tasks } from "@apex/db/schema";
 import { setDocumentShared } from "@/lib/portal";
 import { ProjectError, addFile, addLink, addTask, deleteDocument, deleteProject, deleteTask, setTaskDone } from "@/lib/projects";

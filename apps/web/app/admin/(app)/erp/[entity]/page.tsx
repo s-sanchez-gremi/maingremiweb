@@ -4,8 +4,8 @@ import { db } from "@apex/db";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { ListSearch } from "@/components/admin/ListSearch";
 import { ENTITIES, loadOptions, type FieldSpec, type Options } from "@/lib/erp-entities";
-import { plainEuros } from "@/lib/money";
-import { matchAll } from "@/lib/search";
+import { plainEuros } from "@apex/core/money";
+import { matchAll } from "@apex/core/search";
 import { deleteRow, renewSubscriptionAction, saveRow } from "../actions";
 
 type Row = Record<string, unknown> & { id: string };

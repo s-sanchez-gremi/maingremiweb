@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { loginBlocked, loginFailed } from "@/lib/auth";
+import { loginBlocked, loginFailed } from "@apex/core/auth";
 import { requestReset } from "@/lib/portal";
 
 async function forgot(fd: FormData) {

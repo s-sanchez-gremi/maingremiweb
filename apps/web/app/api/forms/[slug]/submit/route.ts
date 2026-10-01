@@ -5,8 +5,8 @@ import { clientHash, cleanLocale, cleanPath, cleanUtm, loadForm } from "@/lib/fo
 import { verifySolution } from "@/lib/forms/pow";
 import { processSubmission } from "@/lib/forms/submit";
 import { msgs } from "@/lib/forms/messages";
-import { processOutbox } from "@/lib/outbox";
-import type { Upload } from "@/lib/forms/files";
+import { processOutbox } from "@apex/core/outbox";
+import type { Upload } from "@apex/core/files";
 
 export const dynamic = "force-dynamic";
 const MAX_REQUEST = 30 * 1024 * 1024; // a few 10 MB files plus the answers

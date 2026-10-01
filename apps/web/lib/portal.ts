@@ -4,8 +4,8 @@ import { createHash, randomBytes } from "node:crypto";
 import { and, asc, desc, eq, gt, isNull } from "drizzle-orm";
 import { db } from "@apex/db";
 import { clients, portalSessions, portalTokens, portalUsers, projectDocuments, projects } from "@apex/db/schema";
-import { enqueueEmail } from "./outbox";
-import { MIN_PASSWORD, hashPassword, verifyPassword } from "./password";
+import { enqueueEmail } from "@apex/core/outbox";
+import { MIN_PASSWORD, hashPassword, verifyPassword } from "@apex/core/password";
 
 export class PortalError extends Error {}
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

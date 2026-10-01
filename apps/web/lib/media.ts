@@ -4,7 +4,7 @@ import sharp from "sharp";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@apex/db";
 import { media } from "@apex/db/schema";
-import { deletePrefix, putObject } from "./storage";
+import { deletePrefix, putObject } from "@apex/core/storage";
 import { WIDTHS } from "./media-url";
 export { mediaUrl } from "./media-url";
 

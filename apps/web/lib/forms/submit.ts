@@ -2,11 +2,11 @@
 // validate → consent → files → (one transaction: submission, contact upsert, lead, newsletter opt-in, email outbox).
 import { db } from "@apex/db";
 import { forms, leads, newsletterOptins, submissions, type Answer, type Locale } from "@apex/db/schema";
-import { deletePrivatePrefix, putPrivate } from "../storage";
-import { enqueueEmail } from "../outbox";
+import { deletePrivatePrefix, putPrivate } from "@apex/core/storage";
+import { enqueueEmail } from "@apex/core/outbox";
 import { siteUrl } from "../urls";
 import { lt, type Item } from "./fieldTypes";
-import { classifyUpload, safeName, type Upload } from "./files";
+import { classifyUpload, safeName, type Upload } from "@apex/core/files";
 import { upsertContact } from "./contacts";
 import { msgs } from "./messages";
 import { MAX_FILE_BYTES, validateAnswers, type Answers, type Cleaned } from "./validate";

@@ -1,6 +1,6 @@
 // Everything about a form except its field list, in the same field language as sections (form + validation are generated).
 import { z } from "zod";
-import { shape, type Field } from "@/sections/fields";
+import { shape, type Field } from "@apex/core/fields";
 
 const yesNo = [{ value: "no", label: "No" }, { value: "yes", label: "Sí" }];
 

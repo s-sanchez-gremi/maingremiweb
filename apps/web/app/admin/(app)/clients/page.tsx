@@ -3,7 +3,7 @@ import { asc, count, eq, sql } from "drizzle-orm";
 import { db } from "@apex/db";
 import { clients, projects } from "@apex/db/schema";
 import { ListSearch } from "@/components/admin/ListSearch";
-import { matchAll } from "@/lib/search";
+import { matchAll } from "@apex/core/search";
 import { createClient } from "./actions";
 
 export default async function Clients({ searchParams }: { searchParams: Promise<{ error?: string; deleted?: string; q?: string }> }) {

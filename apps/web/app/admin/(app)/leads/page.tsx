@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { asc } from "drizzle-orm";
 import { db } from "@apex/db";
-import { requireUser } from "@/lib/auth";
+import { requireUser } from "@apex/core/auth";
 import { users } from "@apex/db/schema";
 import { ListSearch } from "@/components/admin/ListSearch";
 import { LEAD_STATUSES, PAGE_SIZE, listLeads, listPeople, statusLabel } from "@/lib/leads";

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ListSearch } from "@/components/admin/ListSearch";
 import { PAGE_SIZE, listEntries } from "@/lib/erp";
 import { loadOptions } from "@/lib/erp-entities";
-import { formatEuros } from "@/lib/money";
+import { formatEuros } from "@apex/core/money";
 
 type SP = { kind?: string; q?: string; from?: string; to?: string; costCenter?: string; category?: string; status?: string; page?: string; saved?: string };
 

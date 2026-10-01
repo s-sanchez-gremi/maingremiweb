@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@apex/db";
-import { requireUser } from "@/lib/auth";
+import { requireUser } from "@apex/core/auth";
 import { MediaError, deleteMedia } from "@/lib/media";
 import { media } from "@apex/db/schema";
 

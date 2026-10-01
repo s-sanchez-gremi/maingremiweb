@@ -2,7 +2,7 @@
 import { eq, sql } from "drizzle-orm";
 import { db } from "@apex/db";
 import { clients, contacts, formStarts, forms, newsletterOptins, submissions } from "@apex/db/schema";
-import { deletePrivatePrefix } from "../storage";
+import { deletePrivatePrefix } from "@apex/core/storage";
 
 export async function deleteSubmission(id: string) {
   await deletePrivatePrefix(`submissions/${id}/`);

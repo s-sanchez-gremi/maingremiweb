@@ -1,5 +1,5 @@
-import { getUser } from "@/lib/auth";
-import { can } from "@/lib/permissions";
+import { getUser } from "@apex/core/auth";
+import { can } from "@apex/core/permissions";
 import { MAX_BYTES, MediaError, saveUpload } from "@/lib/media";
 
 export async function POST(req: Request) {

@@ -4,10 +4,10 @@ import { revalidateContent } from "@/lib/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@apex/db";
-import { requireUser } from "@/lib/auth";
-import { can } from "@/lib/permissions";
+import { requireUser } from "@apex/core/auth";
+import { can } from "@apex/core/permissions";
 import { PublishError, publish, restoreVersion, unpublish } from "@/lib/publish";
-import { slugify } from "@/lib/slug";
+import { slugify } from "@apex/core/slug";
 import { entries, entryTranslations, locales, type Locale } from "@apex/db/schema";
 import { sectionDefs } from "@/sections/registry";
 

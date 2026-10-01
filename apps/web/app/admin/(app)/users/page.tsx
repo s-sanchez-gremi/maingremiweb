@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { asc } from "drizzle-orm";
 import { db } from "@apex/db";
-import { requireUser } from "@/lib/auth";
-import { can } from "@/lib/permissions";
-import { MIN_PASSWORD } from "@/lib/password";
+import { requireUser } from "@apex/core/auth";
+import { can } from "@apex/core/permissions";
+import { MIN_PASSWORD } from "@apex/core/password";
 import { users } from "@apex/db/schema";
 import { addUser, adminResetPassword, changeRole, removeUser } from "./actions";
 

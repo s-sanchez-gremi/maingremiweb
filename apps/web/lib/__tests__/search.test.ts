@@ -3,7 +3,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@apex/db";
 import { entries, entryTranslations, entryVersions } from "@apex/db/schema";
 import { publish, restoreVersion } from "../publish";
-import { norm, searchEntries, terms } from "../search";
+import { norm, terms } from "@apex/core/search";
+import { searchEntries } from "@/lib/site-search";
 
 async function make(title: string, body: string, opts: { locale?: "ca" | "es"; live?: boolean; type?: "post" | "page" } = {}) {
   const [e] = await db.insert(entries).values({ type: opts.type ?? "post" }).returning();

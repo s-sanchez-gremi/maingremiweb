@@ -1,6 +1,6 @@
 "use client";
 // Renders a form from a Field[] description (sections/fields.ts). Adding a section type needs no code here.
-import type { Field } from "@/sections/fields";
+import type { Field } from "@apex/core/fields";
 import { ListEditor } from "./ListEditor";
 
 type Data = Record<string, unknown>;

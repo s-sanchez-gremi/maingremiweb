@@ -1,6 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth";
+import { requireUser } from "@apex/core/auth";
 import { revalidateContent } from "@/lib/cache";
 import { db } from "@apex/db";
 import { settingsSchema } from "@/lib/settings-schema";

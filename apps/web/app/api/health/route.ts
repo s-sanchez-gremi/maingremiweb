@@ -4,7 +4,7 @@
 //                        catches "site is up but scheduled publishing and emails have silently stopped")
 import { sql } from "drizzle-orm";
 import { db } from "@apex/db";
-import { isFresh, lastBeat } from "@/lib/heartbeat";
+import { isFresh, lastBeat } from "@apex/core/heartbeat";
 
 export const dynamic = "force-dynamic";
 

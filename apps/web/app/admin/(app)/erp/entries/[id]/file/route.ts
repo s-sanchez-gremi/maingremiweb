@@ -1,10 +1,10 @@
 // Staff-only download of the document attached to an entry: session + ERP permission check, then a 60-second signed link.
 import { eq } from "drizzle-orm";
 import { db } from "@apex/db";
-import { getUser } from "@/lib/auth";
-import { can } from "@/lib/permissions";
+import { getUser } from "@apex/core/auth";
+import { can } from "@apex/core/permissions";
 import { erpEntries } from "@apex/db/schema";
-import { privateDownloadUrl } from "@/lib/storage";
+import { privateDownloadUrl } from "@apex/core/storage";
 
 export const dynamic = "force-dynamic";
 

@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import { db } from "@apex/db";
 import { errorLog, outbox } from "@apex/db/schema";
-import { fingerprint, recordError } from "../errors";
-import { beat, isFresh, lastBeat } from "../heartbeat";
+import { fingerprint, recordError } from "@apex/core/errors";
+import { beat, isFresh, lastBeat } from "@apex/core/heartbeat";
 import { GET as health } from "@/app/api/health/route";
 
 beforeEach(async () => { await db.execute(sql`truncate error_log, heartbeats, outbox`); process.env.ALERT_EMAIL = "ops@example.com"; });

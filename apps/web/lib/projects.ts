@@ -3,8 +3,8 @@ import { randomUUID } from "node:crypto";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@apex/db";
 import { projectDocuments, projects, tasks, users } from "@apex/db/schema";
-import { classifyUpload, safeName } from "./forms/files";
-import { deletePrivatePrefix, putPrivate } from "./storage";
+import { classifyUpload, safeName } from "@apex/core/files";
+import { deletePrivatePrefix, putPrivate } from "@apex/core/storage";
 
 export const MAX_DOC_BYTES = 10 * 1024 * 1024;
 export class ProjectError extends Error {}

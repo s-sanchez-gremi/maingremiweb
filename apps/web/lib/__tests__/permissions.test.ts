@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { can } from "../permissions";
+import { can } from "@apex/core/permissions";
 
 describe("can()", () => {
   it("denies anonymous", () => expect(can(null, "content:write")).toBe(false));

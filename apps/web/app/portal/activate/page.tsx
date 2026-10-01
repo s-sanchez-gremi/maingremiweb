@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { MIN_PASSWORD } from "@/lib/password";
+import { MIN_PASSWORD } from "@apex/core/password";
 import { PortalError, setPasswordWithToken, tokenValid } from "@/lib/portal";
 
 async function activate(fd: FormData) {

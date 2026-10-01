@@ -2,9 +2,9 @@ import { revalidatePath } from "next/cache";
 import { revalidateContent } from "@/lib/cache";
 import { asc } from "drizzle-orm";
 import { db } from "@apex/db";
-import { requireUser } from "@/lib/auth";
+import { requireUser } from "@apex/core/auth";
 import { categories } from "@apex/db/schema";
-import { slugify } from "@/lib/slug";
+import { slugify } from "@apex/core/slug";
 
 async function addCategory(formData: FormData) {
   "use server";

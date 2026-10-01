@@ -3,7 +3,7 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@apex/db";
 import { clients, contacts, forms, leadNotes, leads, submissions, users } from "@apex/db/schema";
-import { matchAll } from "./search";
+import { matchAll } from "@apex/core/search";
 
 export const LEAD_STATUSES = ["new", "contacted", "qualified", "won", "lost"] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];

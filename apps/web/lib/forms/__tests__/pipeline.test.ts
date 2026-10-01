@@ -3,10 +3,10 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "@apex/db";
 import { clients, contacts, forms, leads, newsletterOptins, outbox, projects, submissions, type FormItem } from "@apex/db/schema";
 import { processSubmission, parseAddresses, type FormRow, type SubmitInput } from "../submit";
-import { processOutbox } from "../../outbox";
+import { processOutbox } from "@apex/core/outbox";
 import { deleteSubmission, eraseContact, formStats, purgeIpHashes, recordStart } from "../admin-data";
 import { isRateLimited } from "../limits";
-import { getPrivateBytes } from "../../storage";
+import { getPrivateBytes } from "@apex/core/storage";
 
 const L = (ca: string, es = "", en = "") => ({ ca, es, en });
 let n = 0;

@@ -3,7 +3,7 @@ import { asc, count, eq, sql } from "drizzle-orm";
 import { db } from "@apex/db";
 import { clients, projects, submissions, tasks } from "@apex/db/schema";
 import { ListSearch } from "@/components/admin/ListSearch";
-import { matchAll } from "@/lib/search";
+import { matchAll } from "@apex/core/search";
 import { createProject } from "./actions";
 
 const label = { active: "Actiu", paused: "En pausa", done: "Acabat" } as const;

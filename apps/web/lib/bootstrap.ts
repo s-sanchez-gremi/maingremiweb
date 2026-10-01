@@ -3,7 +3,7 @@
 import { count } from "drizzle-orm";
 import { db } from "@apex/db";
 import { users } from "@apex/db/schema";
-import { UserError, createUser } from "./users";
+import { UserError, createUser } from "@apex/core/users";
 
 type Env = Record<string, string | undefined>;
 

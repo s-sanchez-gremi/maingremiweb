@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@apex/db";
 import { getPortalUser } from "@/lib/portal-auth";
 import { projectDocuments, projects } from "@apex/db/schema";
-import { privateDownloadUrl } from "@/lib/storage";
+import { privateDownloadUrl } from "@apex/core/storage";
 
 export const dynamic = "force-dynamic";
 
