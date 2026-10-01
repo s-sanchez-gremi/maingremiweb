@@ -1,9 +1,9 @@
-// Areas whose Notion pages have no fixed structure we know of (labour cases, funded training, job seekers, sponsors):
+// Areas whose Notion pages have no fixed structure we know of (job seekers):
 // the page title becomes the record's name and every other filled property is kept as readable text lines in its notes,
 // so nothing is lost and a person can tidy the record afterwards. Re-running never duplicates (external_ref).
 import { eq } from "drizzle-orm";
 import type { AnyPgTable } from "drizzle-orm/pg-core";
-import { jobSeekers, labourCases, trainingCourses } from "@apex/db/schema";
+import { jobSeekers } from "@apex/db/schema";
 import type { Ctx } from "./companies";
 import { newReport } from "./report";
 import { isoDate, mask, str, type Row } from "./notion";
@@ -14,8 +14,6 @@ const emailOf = (r: Row) => Object.entries(r.props).find(([k, v]) => /mail|corre
 const phoneOf = (r: Row) => Object.entries(r.props).find(([k, v]) => /tel|phone|mòbil|movil/i.test(k) && str(v))?.[1];
 
 export const TARGETS: Record<string, Target> = {
-  labour: { label: "Laboral", table: labourCases, name: "title", notes: "summary" },
-  training: { label: "Formació bonificada", table: trainingCourses, name: "name", notes: "notes" },
   jobseekers: {
     label: "Borsa de treball", table: jobSeekers, name: "name", notes: "notes",
     // consent and retention are NOT known from Notion: they stay empty on purpose, and the note says so

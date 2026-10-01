@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@apex/db";
-import { clients, eventAttendance, events, feeTiers, jobSeekers, members, people, sponsors, visits, users } from "@apex/db/schema";
+import { clients, eventAttendance, events, feeTiers, jobSeekers, members, people, sponsors, trainingCourses, visits, users } from "@apex/db/schema";
 import { mergeCompanies } from "../notion-import/companies";
 import { queryDatabase, toRow, flattenProp, mask, type Row } from "../notion-import/notion";
 import { runImport } from "../notion-import";
@@ -27,7 +27,7 @@ const run = (sources: Parameters<typeof runImport>[0]["sources"], data: Record<s
   runImport({ db, read: async (id) => data[id] ?? [], sources, dryRun: false, ...extra });
 
 beforeEach(async () => {
-  for (const x of [eventAttendance, events, visits, sponsors, jobSeekers, people, members, feeTiers, clients, users]) await db.delete(x);
+  for (const x of [eventAttendance, events, visits, sponsors, trainingCourses, jobSeekers, people, members, feeTiers, clients, users]) await db.delete(x);
 });
 
 describe("reading Notion", () => {
@@ -224,5 +224,44 @@ describe("sponsors (Patrocinadors)", () => {
     expect(altra.notes).toContain("Pressupost: a negociar");
     await run({ sponsors: ["s"] }, { s });
     expect(await db.select().from(sponsors)).toHaveLength(2); // repeatable
+  });
+});
+
+describe("Laboral contact lists and Bonificada courses", () => {
+  it("each list becomes an event; both row shapes work; people keep their own e-mail even on a shared company mailbox; repeatable", async () => {
+    const co = company({ name: "Cartonajes Ribas, S.A.", cif: "A1" });
+    const a = page({ Nombre: title("CARTONAJES RIBAS SA"), Persona: t("Pere Ribas"), "Persona > Email addresses": email("info@ribas.example"), "Persona > Phone numbers": num(600111222), event: sel("laboral") });
+    const a2 = page({ Nombre: title("CARTONAJES RIBAS SA"), Persona: t("Laia Ribas"), "Persona > Email addresses": email("info@ribas.example"), "Persona > Phone numbers": num(null), event: sel("laboral") });
+    const b = page({ Nombre: title(""), Empresa: t("Empresa Desconeguda SL"), "Nom i cognom contacte": t("Marc Soler"), email: email("marc@x.example"), telefon: phone("933111222") });
+    const empty = page({ Nombre: title(""), Empresa: t(""), "Nom i cognom contacte": t(""), email: email(""), telefon: phone("") });
+    const A = rows(a, a2), B = rows(b, empty);
+    const data = { c: rows(co), A, B };
+    const r = await run({ companies: ["c"], labour: ["A:Laboral 04/03", "B:Laboral 28/9"] }, data);
+    expect((await db.select().from(events)).map((x) => x.name).sort()).toEqual(["Laboral 04/03", "Laboral 28/9"]);
+    expect((await db.select().from(people)).map((x) => x.name).sort()).toEqual(["Laia Ribas", "Marc Soler", "Pere Ribas"]);
+    const marc = (await db.select().from(eventAttendance)).find((x) => x.notes.includes("Empresa Desconeguda"));
+    expect(marc).toBeTruthy(); // unmatched company name is kept
+    expect(r.reports.find((x) => x.source.includes("28/9"))!.extra["skipped: row has neither a person nor a company"]).toBe(1);
+    expect((await db.select().from(eventAttendance)).filter((x) => x.companyId)).toHaveLength(2);
+    await run({ labour: ["A:Laboral 04/03", "B:Laboral 28/9"] }, data);
+    expect(await db.select().from(eventAttendance)).toHaveLength(3);
+    expect(await db.select().from(events)).toHaveLength(2);
+  });
+  it("Bonificada: status, hours, end date, company from the member or external relation (also from a previous run), details in notes", async () => {
+    const co = company({ name: "Vila SL", cif: "B1" });
+    const course = (name: string, o: Record<string, unknown> = {}) => page({ Nombre: title(name), "Situació": status("En curs"), Agremiats: rel(), Externes: rel(), Preu: num(1250.5), Formadors: rel("f1", "f2"), Pressupost: { type: "files", files: [{ name: "pressupost.pdf" }] }, Responsable: { type: "people", people: [{ name: "Sam" }] }, Hores: num(40), "Data final": date("2026-06-30"), "Codi - Grup": t("AF-12"), ...o });
+    const c1 = course("Plegat i engomat", { Agremiats: rel(co.id), "Situació": status("Bonificat") });
+    const c2 = course("Hot stamping", { "Situació": status("Acabat"), Hores: num(null), "Data final": date(null) });
+    await run({ companies: ["c"], training: ["t"] }, { c: rows(co), t: rows(c1, c2) });
+    const all = await db.select().from(trainingCourses);
+    const plegat = all.find((x) => x.name === "Plegat i engomat")!;
+    expect(plegat).toMatchObject({ status: "done", hours: 40, endsOn: "2026-06-30" });
+    expect(plegat.companyId).toBeTruthy();
+    expect(plegat.notes).toContain("Codi - Grup: AF-12"); expect(plegat.notes).toContain("Preu: 1.250,50 €"); expect(plegat.notes).toContain("Formadors (Notion): 2"); expect(plegat.notes).toContain("pressupost.pdf");
+    expect(all.find((x) => x.name === "Hot stamping")).toMatchObject({ status: "done", hours: null, endsOn: null, companyId: null });
+    // a later run on its own still finds the company through its stored Notion page id
+    await db.delete(trainingCourses);
+    await run({ training: ["t"] }, { t: rows(c1) });
+    expect((await db.select().from(trainingCourses))[0].companyId).toBeTruthy();
   });
 });
