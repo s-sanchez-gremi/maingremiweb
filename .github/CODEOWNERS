@@ -1,7 +1,7 @@
 # Who reviews what. GitHub asks the owner of the changed files to review a pull request (the LAST matching line wins).
 # Two areas, one app and one database. Anything not listed (or listed as shared) needs BOTH people.
-#   @jmarcadell4-maker   = website: public site + the website's admin (content, media, forms builder, settings, users)
-#   @s-sanchez-gremi     = business tools: CRM, project manager, ERP, client portal
+#   @jmarcadell4-maker   = website: public site + the website's admin (content, media, categories, settings, users)
+#   @s-sanchez-gremi     = business tools: CRM, forms (builder, responses, public submission), project manager, ERP, client portal
 
 # ---- shared / infrastructure: both review ----
 *                                   @s-sanchez-gremi @jmarcadell4-maker
@@ -29,7 +29,7 @@
 # ---- website: Joan Marc ----
 /apps/web/app/(site)/               @jmarcadell4-maker
 /apps/web/app/embed/                @jmarcadell4-maker
-/apps/web/app/api/forms/            @jmarcadell4-maker
+/apps/web/app/api/forms/            @s-sanchez-gremi
 /apps/web/app/api/media/            @jmarcadell4-maker
 /apps/web/app/sitemap.ts            @jmarcadell4-maker
 /apps/web/app/robots.ts             @jmarcadell4-maker
@@ -39,17 +39,18 @@
 /apps/web/app/admin/(app)/categories/ @jmarcadell4-maker
 /apps/web/app/admin/(app)/settings/ @jmarcadell4-maker
 /apps/web/app/admin/(app)/users/    @jmarcadell4-maker
-/apps/web/app/admin/(app)/forms/    @jmarcadell4-maker
+/apps/web/app/admin/(app)/forms/    @s-sanchez-gremi
 /apps/web/app/admin/(app)/errors/   @jmarcadell4-maker
 /apps/web/app/admin/(app)/account/  @jmarcadell4-maker
 /apps/web/sections/                 @jmarcadell4-maker
 /apps/web/components/site/          @jmarcadell4-maker
 /apps/web/components/ui/            @jmarcadell4-maker
+/apps/web/components/site/form/      @s-sanchez-gremi @jmarcadell4-maker   # form renderer: forms logic is Sam's, the look must match the site (Joan Marc)
 /apps/web/components/admin/FieldForm.tsx   @jmarcadell4-maker
 /apps/web/components/admin/ListEditor.tsx  @jmarcadell4-maker
 /apps/web/styles/                   @jmarcadell4-maker
 /apps/web/lib/consent/              @jmarcadell4-maker
-/apps/web/lib/forms/                @jmarcadell4-maker
+/apps/web/lib/forms/                @s-sanchez-gremi
 /apps/web/lib/content*.ts           @jmarcadell4-maker
 /apps/web/lib/publish.ts            @jmarcadell4-maker
 /apps/web/lib/page-data.ts          @jmarcadell4-maker
@@ -77,4 +78,5 @@
 /apps/web/lib/portal.ts             @s-sanchez-gremi
 /apps/web/lib/portal-auth.ts        @s-sanchez-gremi
 /apps/web/e2e/projects.spec.ts      @s-sanchez-gremi
+/apps/web/e2e/forms.spec.ts         @s-sanchez-gremi
 /apps/web/e2e/portal.spec.ts        @s-sanchez-gremi
