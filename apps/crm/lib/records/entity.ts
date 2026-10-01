@@ -12,6 +12,8 @@ export type Entity = {
   crumb: string;
   perm: "erp:write" | "leads:write" | "projects:write";
   search?: string[];         // text columns searched by the list box
+  sortDir?: "asc" | "desc"; // default direction of `sort` (dates: newest first)
+  noHistory?: boolean;        // plain link rows (e.g. attendance): no change history
   sort?: string;             // default sort column (default "name")
   label?: string;            // column used when another record points here (default "name")
   summary: (r: Record<string, unknown>) => string;

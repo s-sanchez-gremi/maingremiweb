@@ -38,7 +38,8 @@ function where(e: Entity, q: ListQuery): SQL | undefined {
 function order(e: Entity, q: ListQuery) {
   const t = cols(e);
   const col = sortFields(e).find((f) => f.name === q.sort)?.name ?? e.sort ?? "name";
-  return [q.dir === "desc" ? desc(t[col]) : asc(t[col]), asc(t.id)];
+  const dir = q.dir ?? (col === (e.sort ?? "name") ? e.sortDir : undefined) ?? "asc";
+  return [dir === "desc" ? desc(t[col]) : asc(t[col]), asc(t.id)];
 }
 
 export async function listRecords(e: Entity, q: ListQuery, opts: { all?: boolean } = {}) {
@@ -113,6 +114,7 @@ async function nameOf(f: Field, id: string) {
 }
 
 async function logHistory(e: Entity, id: string, action: "create" | "update" | "archive" | "restore", changes: Change[], actor?: Actor) {
+  if (e.noHistory) return;
   await db.insert(recordHistory).values({ entity: e.key, recordId: id, action, changes, userId: actor?.id ?? null, userName: actor?.email ?? "" });
 }
 

@@ -14,7 +14,7 @@ export type RecordParams = { saved?: string; error?: string; q?: string; sort?: 
 export function queryOf(e: Entity, sp: RecordParams): ListQuery {
   const filters: Record<string, string> = {};
   for (const f of filterFields(e)) { const v = sp[`f_${f.name}`]; if (v) filters[f.name] = v; }
-  return { archived: sp.archived === "1", q: sp.q, filters, sort: sp.sort, dir: sp.dir === "desc" ? "desc" : "asc", page: Number(sp.page) || 1 };
+  return { archived: sp.archived === "1", q: sp.q, filters, sort: sp.sort, dir: sp.dir === "desc" ? "desc" : sp.dir === "asc" ? "asc" : undefined, page: Number(sp.page) || 1 };
 }
 const href = (e: Entity, sp: RecordParams, extra: Record<string, string | undefined>, path = e.basePath) => {
   const p = new URLSearchParams();
@@ -59,7 +59,7 @@ export async function RecordScreen({ entity: e, sp, rowActions }: { entity: Enti
               return <label key={f.name}>{f.label}<select name={`f_${f.name}`} defaultValue={sp[`f_${f.name}`] ?? ""}><option value="">Tots</option>{opts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></label>;
             })}
             <label>Ordena per<select name="sort" defaultValue={q.sort ?? e.sort ?? "name"}>{sortFields(e).map((f) => <option key={f.name} value={f.name}>{f.label}</option>)}</select></label>
-            <label>Ordre<select name="dir" defaultValue={q.dir}><option value="asc">A → Z</option><option value="desc">Z → A</option></select></label>
+            <label>Ordre<select name="dir" defaultValue={q.dir ?? e.sortDir ?? "asc"}><option value="asc">A → Z</option><option value="desc">Z → A</option></select></label>
             <button className="btn" type="submit">Aplica</button>
           </form>
         )}

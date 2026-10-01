@@ -21,6 +21,7 @@ export const clients = pgTable("clients", {
   address: text().notNull().default(""),
   postalCode: text("postal_code").notNull().default(""),
   city: text().notNull().default(""),
+  province: text().notNull().default(""),
   website: text().notNull().default(""),
   activity: text().notNull().default(""),
   services: text().notNull().default(""),

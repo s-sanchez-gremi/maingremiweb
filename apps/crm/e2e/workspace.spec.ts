@@ -84,3 +84,46 @@ test("workspace: companies (one per tax id), people linked to a company", async 
   await page.getByRole("link", { name: "Obre Gràfiques Vila SL · B99887766" }).click();
   await expect(page.getByRole("region", { name: "Registres enllaçats" })).toContainText("Anna Puig");
 });
+
+test("workspace: an event, who attends it, a sponsor and a visit", async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 800 });
+  await login(page);
+  const panel = page.getByRole("complementary", { name: "Fitxa" });
+
+  await page.goto("/workspace/events?new=1");
+  await panel.getByLabel("Nom", { exact: true }).fill("Gala e2e 2026");
+  await panel.getByLabel("Data", { exact: true }).fill("2026-11-20");
+  await panel.getByLabel("Tipus").selectOption("gala");
+  await panel.getByRole("button", { name: "Crea" }).click();
+  await expect(page.getByRole("heading", { name: "Gala e2e 2026" })).toBeVisible();
+
+  await page.goto("/workspace/people?new=1");
+  await panel.getByLabel("Nom", { exact: true }).fill("Convidada e2e");
+  await panel.getByRole("button", { name: "Crea" }).click();
+  await expect(page.getByRole("heading", { name: "Convidada e2e" })).toBeVisible();
+
+  await page.goto("/workspace/attendance?new=1");
+  await panel.getByLabel("Esdeveniment").selectOption({ label: "Gala e2e 2026" });
+  await panel.getByLabel("Persona").selectOption({ label: "Convidada e2e" });
+  await panel.getByLabel("Estat").selectOption("confirmed");
+  await panel.getByRole("button", { name: "Crea" }).click();
+  await expect(page).toHaveURL(/\/workspace\/attendance/);
+
+  await page.goto("/workspace/events");
+  await page.getByRole("link", { name: /^Obre Gala e2e 2026/ }).click();
+  await expect(page.getByRole("region", { name: "Registres enllaçats" })).toContainText("Convidada e2e");
+  await expect(page.getByRole("region", { name: "Registres enllaçats" })).toContainText("Confirmat");
+
+  await page.goto("/workspace/sponsors?new=1");
+  await panel.getByLabel("Nom", { exact: true }).fill("Patrocini e2e");
+  await panel.getByLabel("Nivell").selectOption("gold");
+  await panel.getByLabel("Import (€)").fill("5.000,50");
+  await panel.getByRole("button", { name: "Crea" }).click();
+  await expect(page.getByRole("heading", { name: "Patrocini e2e" })).toBeVisible();
+  await expect(page.getByLabel(/^Import \(€\) · Patrocini e2e/)).toHaveValue("5000,50");
+
+  await page.goto("/workspace/visits?new=1");
+  await panel.getByLabel("Assumpte").fill("Visita e2e");
+  await panel.getByRole("button", { name: "Crea" }).click();
+  await expect(page.getByRole("heading", { name: "Visita e2e" })).toBeVisible();
+});
