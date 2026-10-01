@@ -19,6 +19,10 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
     <div className="ws-shell">
       <aside className="ws-side">
         <div className="ws-brand">Espai de treball</div>
+        <form role="search" action="/workspace/search" method="get" className="ws-search">
+          <label className="sr-only" htmlFor="ws-q">Cerca a tot l&apos;espai de treball</label>
+          <input id="ws-q" name="q" type="search" placeholder="Cerca…" maxLength={100} autoComplete="off" />
+        </form>
         <WorkspaceNav groups={groups} />
         <div className="ws-foot">
           <Link href="/admin">← Administració</Link>
