@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cell, toCsv } from "../export";
+import { cell, toCsv } from "@apex/forms/export";
 import { can } from "@apex/core/permissions";
 
 const row = (answers: { id: string; type: string; label: string; value: unknown }[], over = {}) => ({

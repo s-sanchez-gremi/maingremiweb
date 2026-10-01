@@ -7,9 +7,9 @@ import { requireUser } from "@apex/core/auth";
 import { revalidateContent } from "@/lib/cache";
 import { slugify } from "@apex/core/slug";
 import { clients, forms, projects } from "@apex/db/schema";
-import { checkDefinition, formItemsSchema } from "@/lib/forms/fieldTypes";
-import { formSettingsSchema } from "@/lib/forms/settings-fields";
-import { deleteForm, deleteSubmission } from "@/lib/forms/admin-data";
+import { checkDefinition, formItemsSchema } from "@apex/forms/fieldTypes";
+import { formSettingsSchema } from "@apex/forms/settings-fields";
+import { deleteForm, deleteSubmission } from "@apex/forms/admin-data";
 
 export async function createForm() {
   await requireUser("forms:write");

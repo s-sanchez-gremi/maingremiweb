@@ -1,4 +1,4 @@
-import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import { ConfirmButton } from "@apex/ui/components/ConfirmButton";
 import { ErpError, feePreview } from "@/lib/erp";
 import { formatEuros } from "@apex/core/money";
 import { generateFeesAction } from "../actions";

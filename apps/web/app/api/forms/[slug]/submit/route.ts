@@ -1,10 +1,10 @@
 // The ONLY way a submission enters the system: the browser posts here, never to the database.
 import { after } from "next/server";
-import { isRateLimited } from "@/lib/forms/limits";
-import { clientHash, cleanLocale, cleanPath, cleanUtm, loadForm } from "@/lib/forms/http";
-import { verifySolution } from "@/lib/forms/pow";
-import { processSubmission } from "@/lib/forms/submit";
-import { msgs } from "@/lib/forms/messages";
+import { isRateLimited } from "@apex/forms/limits";
+import { clientHash, cleanLocale, cleanPath, cleanUtm, loadForm } from "@apex/forms/http";
+import { verifySolution } from "@apex/forms/pow";
+import { processSubmission } from "@apex/forms/submit";
+import { msgs } from "@apex/forms/messages";
 import { processOutbox } from "@apex/core/outbox";
 import type { Upload } from "@apex/core/files";
 

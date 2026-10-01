@@ -16,6 +16,12 @@ importers:
       '@apex/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@apex/forms':
+        specifier: workspace:*
+        version: link:../../packages/forms
+      '@apex/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@aws-sdk/client-s3':
         specifier: ^3.1143.0
         version: 3.1143.0
@@ -129,6 +135,53 @@ importers:
       postgres:
         specifier: ^3.4.9
         version: 3.4.9
+
+  packages/forms:
+    dependencies:
+      '@apex/core':
+        specifier: workspace:*
+        version: link:../core
+      '@apex/db':
+        specifier: workspace:*
+        version: link:../db
+      '@apex/ui':
+        specifier: workspace:*
+        version: link:../ui
+      drizzle-orm:
+        specifier: ^0.45.3
+        version: 0.45.3(postgres@3.4.9)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@types/react':
+        specifier: ^19
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.3.0(@types/react@19.3.0)
+
+  packages/ui:
+    dependencies:
+      '@apex/core':
+        specifier: workspace:*
+        version: link:../core
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/react':
+        specifier: ^19
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.3.0(@types/react@19.3.0)
 
 packages:
 

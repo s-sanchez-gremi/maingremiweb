@@ -4,7 +4,7 @@ import { revalidateContent } from "@/lib/cache";
 import { purgeOldErrors } from "@apex/core/errors";
 import { beat } from "@apex/core/heartbeat";
 import { cronAuthorized } from "@apex/core/cron-auth";
-import { purgeIpHashes } from "@/lib/forms/admin-data";
+import { purgeIpHashes } from "@apex/forms/admin-data";
 import { processOutbox } from "@apex/core/outbox";
 import { publishDue } from "@/lib/publish";
 

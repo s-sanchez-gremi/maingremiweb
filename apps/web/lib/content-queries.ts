@@ -2,7 +2,8 @@
 // Kept free of Next.js imports so they are testable; lib/content.ts wraps them in the tagged cache.
 import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@apex/db";
-import { categories, entries, entryTranslations, forms, media, settings, users, type FormItem, type LiveContent, type Locale } from "@apex/db/schema";
+import { categories, entries, entryTranslations, forms, media, settings, users, type LiveContent, type Locale } from "@apex/db/schema";
+import type { PublicForm } from "@apex/forms/public-form";
 import { defaultSettings, settingsSchema, type Settings } from "./settings-schema";
 
 export type PublicEntry = {
@@ -101,10 +102,7 @@ export async function queryAllLive() {
   return rows.map((r) => ({ entryId: r.entryId, locale: r.locale, type: r.type, slug: (r.live as LiveContent).slug, publishedAt: (r.live as LiveContent).publishedAt }));
 }
 
-export type PublicForm = {
-  id: string; slug: string; name: string; title: Partial<Record<Locale, string>>; active: boolean; items: FormItem[];
-  consent: Partial<Record<Locale, string>>; confirmation: Partial<Record<Locale, string>>; newsletter: { enabled: boolean; text: Partial<Record<Locale, string>> };
-};
+export type { PublicForm };
 const publicForm = (f: typeof forms.$inferSelect): PublicForm => ({
   id: f.id, slug: f.slug, name: f.name, title: f.title, active: f.active, items: f.fields, consent: f.consent, confirmation: f.confirmation,
   newsletter: { enabled: !!f.newsletter?.enabled, text: f.newsletter?.text ?? {} },   // notifications (staff addresses) are deliberately left out

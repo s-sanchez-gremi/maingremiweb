@@ -4,7 +4,7 @@ import { db } from "@apex/db";
 import { forms, leads, newsletterOptins, submissions, type Answer, type Locale } from "@apex/db/schema";
 import { deletePrivatePrefix, putPrivate } from "@apex/core/storage";
 import { enqueueEmail } from "@apex/core/outbox";
-import { siteUrl } from "../urls";
+import { siteUrl } from "@apex/core/site-url";
 import { lt, type Item } from "./fieldTypes";
 import { classifyUpload, safeName, type Upload } from "@apex/core/files";
 import { upsertContact } from "./contacts";

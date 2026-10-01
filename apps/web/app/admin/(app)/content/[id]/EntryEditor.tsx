@@ -1,8 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { ListEditor } from "@/components/admin/ListEditor";
-import { FieldForm, emptyData, type Options } from "@/components/admin/FieldForm";
+import { ListEditor } from "@apex/ui/components/ListEditor";
+import { FieldForm, emptyData, type Options } from "@apex/ui/components/FieldForm";
 import { sectionByName, sectionDefs } from "@/sections/registry";
 import type { Field } from "@apex/core/fields";
 import { deleteEntry, restoreEntryVersion, saveEntry } from "../actions";

@@ -1,4 +1,4 @@
-import "@/styles/tokens.css";
+import "@apex/ui/tokens.css";
 import "./portal.css";
 
 export const metadata = { title: "Portal de clients", robots: { index: false, follow: false } };

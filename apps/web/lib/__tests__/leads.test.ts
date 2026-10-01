@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@apex/db";
 import { clients, contacts, forms, leadNotes, leads, submissions, users } from "@apex/db/schema";
 import { addNote, convertToClient, isStatus, listLeads, listPeople, setOwner, setStatus } from "../leads";
-import { eraseContact } from "../forms/admin-data";
+import { eraseContact } from "@apex/forms/admin-data";
 
 let uid: string, formId: string;
 async function lead(email: string, extra: Partial<typeof contacts.$inferInsert> = {}) {

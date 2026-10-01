@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { asc, desc, eq, inArray, or } from "drizzle-orm";
 import { db } from "@apex/db";
-import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import { ConfirmButton } from "@apex/ui/components/ConfirmButton";
 import { AttachedResponses } from "@/components/admin/AttachedResponses";
 import { clients, forms, projects, submissions } from "@apex/db/schema";
 import { portalUsersOf } from "@/lib/portal";

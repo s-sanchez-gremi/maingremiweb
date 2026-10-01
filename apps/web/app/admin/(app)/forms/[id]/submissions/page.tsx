@@ -4,7 +4,7 @@ import { desc, eq, count } from "drizzle-orm";
 import { db } from "@apex/db";
 import { requireUser } from "@apex/core/auth";
 import { contacts, forms, submissions } from "@apex/db/schema";
-import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import { ConfirmButton } from "@apex/ui/components/ConfirmButton";
 import { removeSubmission } from "../../actions";
 
 const PAGE = 25;

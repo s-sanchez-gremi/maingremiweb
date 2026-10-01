@@ -1,10 +1,10 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { FieldForm, emptyData } from "@/components/admin/FieldForm";
-import { ListEditor } from "@/components/admin/ListEditor";
-import { formTypeByName, formTypeDefs, lt, type Item } from "@/lib/forms/fieldTypes";
-import { formSettingsFields, type FormSettings } from "@/lib/forms/settings-fields";
+import { FieldForm, emptyData } from "@apex/ui/components/FieldForm";
+import { ListEditor } from "@apex/ui/components/ListEditor";
+import { formTypeByName, formTypeDefs, lt, type Item } from "@apex/forms/fieldTypes";
+import { formSettingsFields, type FormSettings } from "@apex/forms/settings-fields";
 import type { Field } from "@apex/core/fields";
 import { removeForm, saveForm } from "../actions";
 

@@ -1,5 +1,5 @@
-import "@/styles/tokens.css";
-import "./admin.css";
+import "@apex/ui/tokens.css";
+import "@apex/ui/admin.css";
 
 export const metadata = { title: "Apex — backend", robots: { index: false, follow: false } };
 

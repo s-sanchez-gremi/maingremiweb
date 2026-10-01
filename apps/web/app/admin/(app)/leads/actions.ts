@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@apex/core/auth";
-import { eraseContact } from "@/lib/forms/admin-data";
+import { eraseContact } from "@apex/forms/admin-data";
 import { addNote, convertToClient, isStatus, setOwner, setStatus } from "@/lib/leads";
 
 const id = (fd: FormData) => z.string().uuid().parse(fd.get("id"));

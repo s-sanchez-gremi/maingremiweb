@@ -10,4 +10,4 @@ export function entryPath(type: "post" | "page", locale: Locale, slug: string, i
 export const blogPath = (locale: Locale) => `/${locale}/blog`;
 export const categoryPath = (locale: Locale, slug: string) => `/${locale}/blog/categoria/${slug}`;
 
-export const siteUrl = () => (process.env.SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+export { siteUrl } from "@apex/core/site-url";

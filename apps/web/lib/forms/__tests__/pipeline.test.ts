@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@apex/db";
 import { clients, contacts, forms, leads, newsletterOptins, outbox, projects, submissions, type FormItem } from "@apex/db/schema";
-import { processSubmission, parseAddresses, type FormRow, type SubmitInput } from "../submit";
+import { processSubmission, parseAddresses, type FormRow, type SubmitInput } from "@apex/forms/submit";
 import { processOutbox } from "@apex/core/outbox";
-import { deleteSubmission, eraseContact, formStats, purgeIpHashes, recordStart } from "../admin-data";
-import { isRateLimited } from "../limits";
+import { deleteSubmission, eraseContact, formStats, purgeIpHashes, recordStart } from "@apex/forms/admin-data";
+import { isRateLimited } from "@apex/forms/limits";
 import { getPrivateBytes } from "@apex/core/storage";
 
 const L = (ca: string, es = "", en = "") => ({ ca, es, en });

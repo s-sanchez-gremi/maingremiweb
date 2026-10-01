@@ -4,7 +4,7 @@ import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@apex/db";
 import { requireUser } from "@apex/core/auth";
 import { can } from "@apex/core/permissions";
-import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import { ConfirmButton } from "@apex/ui/components/ConfirmButton";
 import { clients, contacts, forms, leadNotes, leads, submissions, users, type Answer } from "@apex/db/schema";
 import { LEAD_STATUSES, statusLabel } from "@/lib/leads";
 import { addLeadNote, convertLead, eraseContactAction, saveLead } from "../actions";

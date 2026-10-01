@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { asc, sql } from "drizzle-orm";
 import { db } from "@apex/db";
-import { ConfirmButton } from "@/components/admin/ConfirmButton";
-import { ListSearch } from "@/components/admin/ListSearch";
+import { ConfirmButton } from "@apex/ui/components/ConfirmButton";
+import { ListSearch } from "@apex/ui/components/ListSearch";
 import { ENTITIES, loadOptions, type FieldSpec, type Options } from "@/lib/erp-entities";
 import { plainEuros } from "@apex/core/money";
 import { matchAll } from "@apex/core/search";
