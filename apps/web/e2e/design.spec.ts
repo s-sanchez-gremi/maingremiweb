@@ -38,6 +38,17 @@ test.beforeAll(async ({ request }) => {
   ];
   const home = await addEntry("page", live("Inici", "inici", showcase));
   await addEntry("page", live("Formació", "formacio", showcase.slice(3)));
+  // Visual builder: columns with every block type, in each brand background.
+  const blk = (type: string, data: Record<string, unknown>) => ({ id: crypto.randomUUID(), type, data });
+  const colsSec = (bg: string, layout: string, align = "left") => ({ ...sec("columns", { heading: `Fons ${bg}`, layout,
+    c1: [blk("heading", { text: "Un títol gran", size: "l" }), blk("text", { body: "Text amb **negreta** i un [enllaç](/ca/blog).\n\n- Un\n- Dos" }), blk("button", { label: "Inscriu-t'hi", url: "/ca/blog", variant: "primary" })],
+    c2: [blk("heading", { text: "Un títol petit", size: "s" }), blk("button", { label: "Més informació", url: "/ca/blog", variant: "outline" }), blk("card", { label: "Curs", title: "Plegat i engomat", text: "16 setembre", image: "", linkUrl: "/ca/blog" })],
+    c3: [blk("embed", { url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" })],
+    c4: [blk("text", { body: "Quarta columna." })] }), style: { bg, space: "m", align } });
+  await addEntry("page", live("Constructor", "constructor", [
+    colsSec("auto", "2-1"), colsSec("beige", "1-1-1"), colsSec("dark", "1-1-1-1", "center"), colsSec("red", "1-2"), colsSec("white", "1"),
+    { ...sec("cta", { heading: "Fes-te sòcia", text: "Uneix-te al gremi.", linkLabel: "Més informació", linkUrl: "/ca/blog" }), style: { bg: "red", space: "l", align: "left" } },
+  ]));
   const L3 = (ca: string) => ({ ca, es: ca, en: ca });
   const settings = {
     homepage: home, phone: "+34 93 000 00 00", email: "info@apex.example",
@@ -57,7 +68,7 @@ test.beforeAll(async ({ request }) => {
   // The rows above were written straight to the database, so tell the app to drop anything it cached earlier.
   const r = await request.post("/api/cron/revalidate", { headers: { authorization: `Bearer ${CRON_SECRET}` } });
   expect(r.status()).toBe(200);
-  PAGES = ["/ca", "/es", "/ca/blog", "/ca/blog/categoria/empresa", "/ca/blog/article-1", "/ca/formacio", "/ca/no-existeix", "/ca/search?q=conveni", "/ca/search?q=zzqqxx", "/ca/search", "/styleguide"];
+  PAGES = ["/ca", "/es", "/ca/blog", "/ca/blog/categoria/empresa", "/ca/blog/article-1", "/ca/formacio", "/ca/constructor", "/ca/no-existeix", "/ca/search?q=conveni", "/ca/search?q=zzqqxx", "/ca/search", "/styleguide"];
 });
 
 const fmt = (v: { id: string; help: string; nodes: { target: unknown[]; failureSummary?: string }[] }[]) =>

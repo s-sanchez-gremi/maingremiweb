@@ -12,6 +12,9 @@ export function NavDesktop({ items, label }: { items: NavEntry[]; label: string 
   const root = useRef<HTMLElement>(null);
   const base = useId();
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
+  // A mouse click arrives right after the hover that already opened the menu: that click must keep it open, not toggle
+  // it shut (otherwise "hover, then click" closes the menu, depending on render timing).
+  const hovered = useRef<number | null>(null);
 
   useEffect(() => {
     const away = (e: MouseEvent) => { if (!root.current?.contains(e.target as Node)) setOpen(null); };
@@ -27,9 +30,9 @@ export function NavDesktop({ items, label }: { items: NavEntry[]; label: string 
         {items.map((it, i) => it.children.length === 0 ? (
           <li key={i}><SmartLink href={it.url}>{it.label}</SmartLink></li>
         ) : (
-          <li key={i} className="has-sub" onMouseEnter={() => setOpen(i)} onMouseLeave={() => setOpen((o) => (o === i ? null : o))}>
+          <li key={i} className="has-sub" onMouseEnter={() => { hovered.current = i; setOpen(i); }} onMouseLeave={() => { hovered.current = null; setOpen((o) => (o === i ? null : o)); }}>
             <button type="button" ref={(el) => { buttons.current[i] = el; }} aria-expanded={open === i} aria-controls={`${base}-${i}`}
-              onClick={() => setOpen(open === i ? null : i)}>
+              onClick={() => { if (hovered.current === i) { hovered.current = null; setOpen(i); } else setOpen((o) => (o === i ? null : i)); }}>
               {it.label}
               <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </button>

@@ -11,7 +11,7 @@ const KNOWN = ["admin", "api", "embed", "styleguide"];
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const first = pathname.split("/")[1];
+  const [, first, second] = pathname.split("/");
   if (process.env.CRM_INTERNAL_URL && pathname.startsWith("/api/forms/")) return NextResponse.rewrite(new URL(pathname + req.nextUrl.search, process.env.CRM_INTERNAL_URL));
   if (!LOCALES.includes(first) && !KNOWN.includes(first)) {
     const url = req.nextUrl.clone();
@@ -21,10 +21,11 @@ export function proxy(req: NextRequest) {
   const res = NextResponse.next();
   let s3Origin: string | undefined;
   try { s3Origin = process.env.S3_PUBLIC_URL ? new URL(process.env.S3_PUBLIC_URL).origin : undefined; } catch { /* misconfigured: images from S3 will be blocked visibly */ }
-  res.headers.set("Content-Security-Policy", buildCsp(kindOf(first), {
+  res.headers.set("Content-Security-Policy", buildCsp(kindOf(first, second), {
     s3Origin, dev: process.env.NODE_ENV !== "production", https: (process.env.SITE_URL ?? "").startsWith("https://"),
   }));
-  if (first === "admin" || first === "api") res.headers.set("X-Frame-Options", "DENY");
+  if (first === "admin" && second === "preview") res.headers.set("X-Frame-Options", "SAMEORIGIN"); // framed by the editor only
+  else if (first === "admin" || first === "api") res.headers.set("X-Frame-Options", "DENY");
   return res;
 }
 

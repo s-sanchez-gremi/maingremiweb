@@ -5,9 +5,10 @@ import { ListEditor } from "@apex/ui/components/ListEditor";
 import { FieldForm, emptyData, type Options } from "@apex/ui/components/FieldForm";
 import { sectionByName, sectionDefs } from "@/sections/registry";
 import type { Field } from "@apex/core/fields";
-import { deleteEntry, restoreEntryVersion, saveEntry } from "../actions";
+import { VisualEditor } from "@/components/admin/builder/VisualEditor";
+import type { SectionItem } from "@/lib/builder-ops";
+import { deleteEntry, restoreEntryVersion, saveDraftSections, saveEntry } from "../actions";
 
-type SectionItem = { id: string; type: string; data: Record<string, unknown> };
 type Opt = { id: string; label: string };
 type Status = "draft" | "scheduled" | "published";
 const statusLabel = { published: "Publicat", scheduled: "Programat", draft: "Esborrany" } as const;
@@ -24,6 +25,7 @@ export function EntryEditor(p: {
   const [sections, setSections] = useState<SectionItem[]>(p.translation.sections);
   const t = p.translation;
   const isPost = p.entry.type === "post";
+  const [mode, setMode] = useState<"visual" | "list">(isPost ? "list" : "visual"); // pages are built visually; articles are mostly text
 
   return (
     <form action={saveEntry}>
@@ -37,6 +39,10 @@ export function EntryEditor(p: {
           <h1>{t.title || "(sense títol)"}</h1>
         </div>
         <div className="row">
+          <div className="b-devices" role="group" aria-label="Mode d'edició">
+            <button type="button" className="btn" aria-pressed={mode === "visual"} onClick={() => setMode("visual")}>Editor visual</button>
+            <button type="button" className="btn" aria-pressed={mode === "list"} onClick={() => setMode("list")}>Llista</button>
+          </div>
           <span className={t.status === "published" ? "chip ok" : t.status === "scheduled" ? "chip sched" : "chip"}>{statusLabel[t.status]}</span>
           {t.hasLive && t.dirty && <span className="chip sched">Canvis sense publicar</span>}
           <button className="btn" type="submit" name="intent" value="save">Desa</button>
@@ -46,6 +52,9 @@ export function EntryEditor(p: {
 
       <div className="body">
         {p.message && <p role="status" className={`msg ${p.message.kind}`} style={{ marginTop: 0 }}>{p.message.text}</p>}
+        {mode === "visual" && (
+          <VisualEditor entryId={p.entry.id} locale={p.locale} sections={sections} onChange={setSections} options={p.options} save={saveDraftSections} />
+        )}
         <div className="cols">
           <div className="col-main">
             <div className="card">
@@ -53,7 +62,7 @@ export function EntryEditor(p: {
               <label>Slug (URL)<input name="slug" defaultValue={t.slug} /></label>
             </div>
 
-            <ListEditor
+            {mode === "list" && <ListEditor
               items={sections}
               onChange={setSections}
               title={(s) => sectionByName[s.type]?.label ?? s.type}
@@ -64,7 +73,7 @@ export function EntryEditor(p: {
                 options: sectionDefs.map((d) => ({ value: d.name, label: d.label })),
                 make: (type) => ({ id: crypto.randomUUID(), type, data: emptyData(sectionByName[type].fields as Field[]) }),
               }}
-            />
+            />}
           </div>
 
           <aside className="col-side">

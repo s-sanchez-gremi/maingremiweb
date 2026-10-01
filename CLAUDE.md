@@ -22,7 +22,7 @@ Three parts, one shared backend:
 
 1. **Simplicity and robustness over new, interactive or complex features.** When two approaches solve the same problem, pick the plainer, more battle-tested one, even if it's less flashy.
 2. **One database, one API, no separate systems.** Content, leads and form submissions all live in the same Postgres database and are served through the same API. Never wire the public site to a separate CMS/lead tool.
-3. **No freeform canvas editors anywhere in the backend.** Pages, posts and forms are all built from a fixed, ordered list of typed sections/fields — add, reorder (up/down), remove. Never drag-and-drop-anywhere positioning, never per-item custom CSS.
+3. **No freeform canvas editors anywhere in the backend.** Pages, posts and forms are all built from a fixed, ordered list of typed sections/fields — add, reorder (up/down), remove. Never pixel/absolute positioning, never per-item custom CSS. *Client decision (phase 13):* pages also get a visual, Elementor-style builder with drag and drop, but it only moves sections and blocks within that same ordered list and columns, and styles are a fixed set of brand choices (see "Visual page builder").
 4. **Public pages are pre-rendered** (SSR/SSG) for speed, SEO, and so the site survives a backend outage.
 5. **Consistent look by construction.** Every section/field renders with the site's fixed design tokens (below). Editors fill in content; they never choose fonts, colors or layout.
 
@@ -73,7 +73,7 @@ Posts and landing pages share **one** `entries` table; the only difference is `t
 | New content type later (CRM, projects) | new table + config for the generic screens |
 
 #### Non-goals
-Plugin system, GraphQL, real-time collaboration, comments, drag-and-drop, custom-fields UI, theme editor, rich-text canvas (text sections allow only paragraph, bold, italic, link, list).
+Plugin system, GraphQL, real-time collaboration, comments, freeform (pixel) positioning, custom-fields UI, theme editor, rich-text canvas (text sections allow only paragraph, bold, italic, link, list).
 
 Full detail and phase plan: `PLAN.md`.
 
@@ -108,7 +108,7 @@ Status is draft / scheduled / published, per language independently, so a page c
 
 - Each page/post is an ordered list of sections.
 - Staff add a section from a fixed picker, fill its fields (heading, body text, image, link), reorder with up/down controls, remove with an ✕.
-- No freeform positioning, resizing, or per-section style overrides — see the "Editor" mockup artboard.
+- No freeform positioning, resizing, or free style overrides — only the brand style choices of the visual builder (phase 13).
 - Embeds are restricted to **YouTube and Adobe (Express/Acrobat/Creative Cloud)** only, via pasted link — no generic embed-code field.
 - Author, category, date, per-language publish status and SEO fields live in a side panel (see mockup).
 
@@ -286,3 +286,11 @@ Ask the person running this guide for the mockup artifact link(s) if they weren'
 - **Menus link to each other** (`CRM_URL` in the website, `WEB_ADMIN_URL` in the CRM app).
 - **Tests:** unit tests live with each app (`apps/web`: 122, `apps/crm`: 75; separate throwaway databases `apex_test` / `apex_test_crm`). End-to-end specs live in `apps/*/e2e` and run through the shared runner `e2e/` (both production builds, ports 3100 and 3101, one database `apex_e2e`): `pnpm --filter @apex/e2e test`. `pnpm verify` runs everything.
 - **Dev:** `pnpm dev` starts both (website on :3000, CRM app on :3001). The Docker image and deploy still build only the website until step S3 (second image, Caddy hosts, database users).
+
+## Visual page builder (phase 13, client decision: "Elementor-style", brand styles only)
+- **What:** pages open in a visual editor (block library | live preview | inspector); posts open in the list editor, and every entry can switch between the two (*Visual* / *Llista*): same data, same validation.
+- **Data:** still the ordered `sections` list. New `columns` section (layouts 1, 1-1, 2-1, 1-2, 1-1-1, 1-1-1-1) holds **blocks** in `c1..c4`; blocks live in `sections/blocks.ts` (heading, text, image, button, embed, spacer, …) and use the same field language (`kind: "blocks"` in `@apex/core/fields`; the app passes its block list on the field, so the package never imports the app). Every section has an optional `style` from a fixed list (`bg` auto/ivory/beige/white/dark/red, `space` none/s/m/l, `align` left/center), rendered as `sx-*` classes from tokens: no colour picker, no fonts, no CSS.
+- **Preview:** `/admin/preview/[id]?locale=` renders the saved DRAFT through the real renderer (`lib/preview.ts` `lenientSections` keeps half-filled blocks visible). It is staff-only, `noindex`, framable by our own origin only (CSP `frame-ancestors 'self'`, `X-Frame-Options: SAMEORIGIN`); everything else in /admin stays `DENY`. `/admin` has two root layouts via route groups: `(staff)` (the admin) and `(preview)` (the site look).
+- **Editing:** `components/admin/builder/VisualEditor.tsx` (parent) + `PreviewBridge.tsx` (inside the iframe, same-origin `postMessage` only: select, drop). Pure edit operations in `lib/builder-ops.ts` (unit-tested). Every change autosaves the draft (`saveDraftSections`) and reloads the preview; nothing goes live until **Publica** (same `publish()`). Keyboard route: click-to-add, ↑ ↓, Duplica, Elimina.
+- **Tests:** `lib/__tests__/builder-ops.test.ts`, `e2e/builder.spec.ts` (preview framing/access, add + drag + edit + style + publish), `/ca/constructor` showcase in `e2e/design.spec.ts`.
+- **Size:** app code ≈ 7,100 lines with the builder (soft guideline exceeded by client decision; review before adding more).

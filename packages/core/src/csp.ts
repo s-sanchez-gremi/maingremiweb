@@ -2,7 +2,9 @@
 // "nothing non-essential loads before consent" is enforced by the browser, not just by our own code.
 // Known trade-off: script/style allow 'unsafe-inline' because pages are cached and pre-rendered (a per-request nonce
 // would make every page dynamic). Third-party origins are still blocked.
-export type Kind = "public" | "embed" | "admin";
+// "editor" = the admin content editor, which frames its own live preview; "preview" = that preview page (staff only,
+// renders the draft like the public site and may be framed by our own origin only).
+export type Kind = "public" | "embed" | "admin" | "editor" | "preview";
 
 export function buildCsp(kind: Kind, o: { s3Origin?: string; dev?: boolean; https?: boolean }): string {
   const s3 = o.s3Origin ? ` ${o.s3Origin}` : "";
@@ -14,14 +16,17 @@ export function buildCsp(kind: Kind, o: { s3Origin?: string; dev?: boolean; http
     `media-src 'self'${s3}`,
     "font-src 'self'",
     `connect-src 'self'${o.dev ? " ws: wss:" : ""}`,
-    kind === "admin" ? "frame-src 'none'" : "frame-src https://www.youtube-nocookie.com https://adobe.com https://*.adobe.com",
+    kind === "admin" ? "frame-src 'none'" : kind === "editor" ? "frame-src 'self'" : "frame-src https://www.youtube-nocookie.com https://adobe.com https://*.adobe.com",
     "form-action 'self'",
     "base-uri 'self'",
     "object-src 'none'",
   ];
-  if (kind !== "embed") d.push(kind === "admin" ? "frame-ancestors 'none'" : "frame-ancestors 'self'"); // /embed is meant to be framed
+  if (kind !== "embed") d.push(kind === "admin" || kind === "editor" ? "frame-ancestors 'none'" : "frame-ancestors 'self'"); // /embed is meant to be framed
   if (o.https) d.push("upgrade-insecure-requests");
   return d.join("; ");
 }
 
-export const kindOf = (firstSegment: string): Kind => (firstSegment === "admin" || firstSegment === "api" || firstSegment === "portal" ? "admin" : firstSegment === "embed" ? "embed" : "public");
+export const kindOf = (firstSegment: string, secondSegment = ""): Kind =>
+  firstSegment === "admin" && secondSegment === "preview" ? "preview"
+  : firstSegment === "admin" && secondSegment === "content" ? "editor"
+  : firstSegment === "admin" || firstSegment === "api" || firstSegment === "portal" ? "admin" : firstSegment === "embed" ? "embed" : "public";

@@ -1,4 +1,4 @@
-// User management rules. Pure DB logic (no Next imports); actions in app/admin/(app)/users call these.
+// User management rules. Pure DB logic (no Next imports); actions in app/admin/(staff)/(app)/users call these.
 import { and, count, eq } from "drizzle-orm";
 import { db } from "@apex/db";
 import { sessions, users } from "@apex/db/schema";
