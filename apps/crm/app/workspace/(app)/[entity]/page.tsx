@@ -28,6 +28,7 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
     return s ? `${here}?${s}` : here;
   };
   const sortKey = q.sort ?? e.sort ?? "name";
+  const BIG = 60; // a relation with more choices than this is edited in the side panel, not in a table cell
   const optsOf = (f: Field) => (f.type === "relation" ? choices[choiceKey(f)] ?? [] : (f.choices ?? []).map(([value, label]) => ({ value, label })));
   const raw = (f: Field, v: unknown) => (f.type === "checkbox" ? (v ? "on" : "") : f.type === "relation" || f.type === "select" ? String(v ?? "") : FIELD_TYPES[f.type].show(v, f));
   const filters = filterFields(e);
@@ -80,7 +81,7 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
                 <tr key={r.id} aria-selected={opening === r.id || undefined}>
                   <td className="ws-open-col">{e.detail ? <Link className="ws-open" href={href({ open: r.id, new: undefined })} aria-label={`Obre ${e.summary(r)}`}>↗</Link> : null}</td>
                   {e.fields.map((f) => (
-                    <td key={f.name}><Cell entity={e.key} id={r.id} name={f.name} type={f.type} value={raw(f, r[f.name])} options={optsOf(f)} required={f.required} label={`${f.label} · ${e.summary(r)}`} /></td>
+                    <td key={f.name}><Cell entity={e.key} id={r.id} name={f.name} type={f.type} value={raw(f, r[f.name])} options={f.type === "relation" && optsOf(f).length > BIG ? undefined : optsOf(f)} display={f.type === "relation" ? optsOf(f).find((o) => o.value === raw(f, r[f.name]))?.label : undefined} required={f.required} label={`${f.label} · ${e.summary(r)}`} /></td>
                   ))}
                 </tr>
               ))}

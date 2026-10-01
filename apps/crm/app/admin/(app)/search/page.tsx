@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@apex/db";
 import { requireUser } from "@apex/core/auth";
 import { clients, projects } from "@apex/db/schema";
@@ -14,7 +14,7 @@ export default async function AdminSearch({ searchParams }: { searchParams: Prom
   const q = ((await searchParams).q ?? "").slice(0, 100).trim();
   const [leadRes, cl, pr] = q ? await Promise.all([
     listLeads({ q }),
-    db.select().from(clients).where(matchAll(sql`${clients.name} || ' ' || ${clients.email} || ' ' || ${clients.phone} || ' ' || ${clients.notes}`, q)).orderBy(asc(clients.name)).limit(LIMIT),
+    db.select().from(clients).where(and(isNull(clients.archivedAt), matchAll(sql`${clients.name} || ' ' || ${clients.email} || ' ' || ${clients.phone} || ' ' || ${clients.notes}`, q))).orderBy(asc(clients.name)).limit(LIMIT),
     db.select({ p: projects, client: clients.name }).from(projects).leftJoin(clients, eq(clients.id, projects.clientId))
       .where(matchAll(sql`${projects.name} || ' ' || ${projects.notes} || ' ' || coalesce(${clients.name}, '')`, q)).orderBy(asc(projects.name)).limit(LIMIT),
   ]) : [{ rows: [], total: 0 }, [], []];

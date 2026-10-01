@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { asc, count, eq, sql } from "drizzle-orm";
+import { and, asc, count, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@apex/db";
 import { clients, projects } from "@apex/db/schema";
 import { ListSearch } from "@apex/ui/components/ListSearch";
@@ -8,11 +8,12 @@ import { createClient } from "./actions";
 
 export default async function Clients({ searchParams }: { searchParams: Promise<{ error?: string; deleted?: string; q?: string }> }) {
   const sp = await searchParams;
-  const rows = await db.select({ c: clients, n: count(projects.id) }).from(clients).leftJoin(projects, eq(projects.clientId, clients.id)).where(matchAll(sql`${clients.name} || ' ' || ${clients.email} || ' ' || ${clients.phone} || ' ' || ${clients.notes}`, sp.q)).groupBy(clients.id).orderBy(asc(clients.name));
+  const rows = await db.select({ c: clients, n: count(projects.id) }).from(clients).leftJoin(projects, eq(projects.clientId, clients.id)).where(and(isNull(clients.archivedAt), matchAll(sql`${clients.name} || ' ' || ${clients.email} || ' ' || ${clients.phone} || ' ' || ${clients.notes}`, sp.q))).groupBy(clients.id).orderBy(asc(clients.name));
   return (
     <>
       <div className="top"><div><div className="crumb">Projectes</div><h1>Clients</h1></div></div>
       <div className="body">
+        <p className="hint">Les empreses (socis i no socis, amb tots els seus camps, persones i notes) es gestionen a l&apos;<Link href="/workspace/companies">espai de treball</Link>. Aquí queden els projectes i l&apos;accés al portal.</p>
         {sp.error && <p role="alert" className="msg err">{sp.error}</p>}
         {sp.deleted && <p role="status" className="msg ok">Client eliminat.</p>}
         <div className="cols">

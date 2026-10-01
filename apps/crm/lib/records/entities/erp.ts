@@ -46,6 +46,7 @@ export const erpEntities: Entity[] = [
     fields: [
       f("name", "Empresa / nom", "text", { required: true }), f("taxId", "NIF/CIF", "text"), f("email", "Correu", "email"), f("phone", "Telèfon", "phone"),
       f("status", "Estat", "select", { filter: true, choices: [["active", "Actiu"], ["left", "Baixa"]] }),
+      f("companyId", "Empresa", "relation", { to: "companies" }),
       f("tierId", "Tram de quota", "relation", { to: "fee-tiers", filter: true }),
       f("billingPeriod", "Facturació", "select", { filter: true, choices: [["annual", "Anual"], ["quarterly", "Trimestral"]] }),
       f("joinedOn", "Alta", "date"), f("leftOn", "Baixa", "date"), f("notes", "Notes", "textarea", { wide: true }),

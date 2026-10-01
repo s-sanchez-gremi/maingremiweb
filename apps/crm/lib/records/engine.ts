@@ -140,7 +140,7 @@ export async function relationChoices(e: Entity): Promise<Choices> {
     const t = cols(target);
     const label = target.label ?? "name";
     const conds = Object.entries(f.where ?? {}).map(([k, v]) => eq(t[k], v));
-    const rows = await db.select({ id: t.id, label: t[label] }).from(target.table).where(conds.length ? and(...conds) : undefined).orderBy(asc(t[label])).limit(500);
+    const rows = await db.select({ id: t.id, label: t[label] }).from(target.table).where(conds.length ? and(...conds) : undefined).orderBy(asc(t[label])).limit(3000);
     out[key] = rows.map((r) => ({ value: String((r as { id: string }).id), label: String((r as { label: unknown }).label) }));
   }
   return out;
