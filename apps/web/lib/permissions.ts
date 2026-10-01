@@ -2,7 +2,7 @@
 export type Role = "admin" | "editor";
 export type Action =
   | "content:write" | "content:publish" | "media:write"
-  | "forms:write" | "categories:write" | "projects:write" | "leads:write"
+  | "forms:write" | "categories:write" | "projects:write" | "leads:write" | "erp:write"
   | "users:manage" | "settings:write" | "data:erase";
 
 const editorActions: Action[] = ["content:write", "content:publish", "media:write", "forms:write", "categories:write", "projects:write", "leads:write"];

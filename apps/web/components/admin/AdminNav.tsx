@@ -13,6 +13,7 @@ const items = [
   { href: "/admin/clients", label: "Clients", match: (p: string) => p.startsWith("/admin/clients") },
   { href: "/admin/media", label: "Fitxers", match: (p: string) => p.startsWith("/admin/media") },
   { href: "/admin/categories", label: "Categories", match: (p: string) => p.startsWith("/admin/categories") },
+  { href: "/admin/erp", label: "Gestió", adminOnly: true, match: (p: string) => p.startsWith("/admin/erp") },
   { href: "/admin/users", label: "Usuaris", adminOnly: true, match: (p: string) => p.startsWith("/admin/users") },
   { href: "/admin/settings", label: "Configuració", adminOnly: true, match: (p: string) => p.startsWith("/admin/settings") },
   { href: "/admin/errors", label: "Errors", adminOnly: true, match: (p: string) => p.startsWith("/admin/errors") },
