@@ -3,9 +3,9 @@
 // never the query string, headers or request body, so no personal data ends up here.
 import { createHash } from "node:crypto";
 import { eq, lt, and, sql } from "drizzle-orm";
-import { db } from "./db";
+import { db } from "@apex/db";
 import { enqueueEmail } from "./outbox";
-import { errorLog } from "@/db/schema";
+import { errorLog } from "@apex/db/schema";
 
 const REMIND_MS = 24 * 3600_000;
 

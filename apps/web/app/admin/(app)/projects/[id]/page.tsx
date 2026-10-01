@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { asc, desc, eq } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import { db } from "@apex/db";
+import { ConfirmButton } from "@apex/ui/components/ConfirmButton";
 import { AttachedResponses } from "@/components/admin/AttachedResponses";
-import { clients, forms, projectDocuments, projects, submissions, users } from "@/db/schema";
+import { clients, forms, projectDocuments, projects, submissions, users } from "@apex/db/schema";
 import { TaskRow } from "@/components/admin/TaskRow";
 import { listTasks } from "@/lib/projects";
 import { createDocument, createTask, removeDocument, removeProject, saveProject, toggleDocumentShared } from "../actions";

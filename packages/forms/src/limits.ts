@@ -1,6 +1,6 @@
 import { and, count, eq, gt } from "drizzle-orm";
-import { db } from "../db";
-import { submissions } from "@/db/schema";
+import { db } from "@apex/db";
+import { submissions } from "@apex/db/schema";
 
 const TEN_MIN = 10 * 60 * 1000, HOUR = 60 * 60 * 1000;
 export const LIMIT_PER_FORM_10MIN = 5;

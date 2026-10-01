@@ -10,6 +10,18 @@ importers:
 
   apps/web:
     dependencies:
+      '@apex/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@apex/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@apex/forms':
+        specifier: workspace:*
+        version: link:../../packages/forms
+      '@apex/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@aws-sdk/client-s3':
         specifier: ^3.1143.0
         version: 3.1143.0
@@ -83,6 +95,93 @@ importers:
       vitest:
         specifier: ^5.0.2
         version: 5.0.2(@types/node@20.19.43)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.2)(tsx@4.23.15))
+
+  packages/core:
+    dependencies:
+      '@apex/db':
+        specifier: workspace:*
+        version: link:../db
+      '@aws-sdk/client-s3':
+        specifier: ^3.1143.0
+        version: 3.1143.0
+      '@aws-sdk/s3-request-presigner':
+        specifier: ^3.1143.0
+        version: 3.1143.0
+      '@node-rs/argon2':
+        specifier: ^2.2.1
+        version: 2.2.1
+      drizzle-orm:
+        specifier: ^0.45.3
+        version: 0.45.3(postgres@3.4.9)
+      next:
+        specifier: 16.3.7
+        version: 16.3.7(@babel/core@7.29.7)(@playwright/test@1.63.0)(@types/node@20.19.43)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      nodemailer:
+        specifier: ^10.0.13
+        version: 10.0.13
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@types/nodemailer':
+        specifier: ^8.0.2
+        version: 8.0.2
+
+  packages/db:
+    dependencies:
+      drizzle-orm:
+        specifier: ^0.45.3
+        version: 0.45.3(postgres@3.4.9)
+      postgres:
+        specifier: ^3.4.9
+        version: 3.4.9
+
+  packages/forms:
+    dependencies:
+      '@apex/core':
+        specifier: workspace:*
+        version: link:../core
+      '@apex/db':
+        specifier: workspace:*
+        version: link:../db
+      '@apex/ui':
+        specifier: workspace:*
+        version: link:../ui
+      drizzle-orm:
+        specifier: ^0.45.3
+        version: 0.45.3(postgres@3.4.9)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@types/react':
+        specifier: ^19
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.3.0(@types/react@19.3.0)
+
+  packages/ui:
+    dependencies:
+      '@apex/core':
+        specifier: workspace:*
+        version: link:../core
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/react':
+        specifier: ^19
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.3.0(@types/react@19.3.0)
 
 packages:
 

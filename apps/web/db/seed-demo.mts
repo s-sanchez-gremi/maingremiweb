@@ -2,8 +2,8 @@
 // Usage: RESET=1 pnpm --filter web seed:demo   (deletes existing content first)
 import sharp from "sharp";
 import { eq } from "drizzle-orm";
-import { db } from "../lib/db";
-import { categories, entries, entryTranslations, forms, media, settings } from "./schema";
+import { db } from "@apex/db";
+import { categories, entries, entryTranslations, forms, media, settings } from "@apex/db/schema";
 import { saveUpload } from "../lib/media";
 import { publish } from "../lib/publish";
 

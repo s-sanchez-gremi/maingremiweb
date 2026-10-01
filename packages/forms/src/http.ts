@@ -1,7 +1,9 @@
 import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { forms } from "@/db/schema";
-import { isLocale, defaultLocale, type Locale } from "../i18n";
+import { db } from "@apex/db";
+import { forms } from "@apex/db/schema";
+import { locales, defaultLocale, type Locale } from "@apex/db/schema";
+
+const isLocale = (v: string): v is Locale => (locales as readonly string[]).includes(v);
 import { ipHash } from "./pow";
 
 export async function loadForm(slug: string) {

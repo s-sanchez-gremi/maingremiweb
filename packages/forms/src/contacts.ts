@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
-import type { db } from "../db";
-import { contacts } from "@/db/schema";
+import type { db } from "@apex/db";
+import { contacts } from "@apex/db/schema";
 
 type Tx = Pick<typeof db, "insert">;
 

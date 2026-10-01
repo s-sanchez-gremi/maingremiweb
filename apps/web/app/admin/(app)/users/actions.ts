@@ -1,8 +1,8 @@
 "use server";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth";
-import { UserError, createUser, deleteUser, resetPassword, setRole } from "@/lib/users";
+import { requireUser } from "@apex/core/auth";
+import { UserError, createUser, deleteUser, resetPassword, setRole } from "@apex/core/users";
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "");
 const role = z.enum(["admin", "editor"]);

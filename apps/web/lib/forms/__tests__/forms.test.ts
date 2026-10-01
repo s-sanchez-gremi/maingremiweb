@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { checkDefinition, formItemsSchema, type Item } from "../fieldTypes";
-import { isVisible, toSteps, validateAnswers } from "../validate";
+import { checkDefinition, formItemsSchema, type Item } from "@apex/forms/fieldTypes";
+import { isVisible, toSteps, validateAnswers } from "@apex/forms/validate";
 
 const L = (ca: string, es = "", en = "") => ({ ca, es, en });
 let n = 0;

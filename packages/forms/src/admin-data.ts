@@ -1,8 +1,8 @@
 // Data-protection and reporting helpers: erasure, retention purge, completion statistics.
 import { eq, sql } from "drizzle-orm";
-import { db } from "../db";
-import { clients, contacts, formStarts, forms, newsletterOptins, submissions } from "@/db/schema";
-import { deletePrivatePrefix } from "../storage";
+import { db } from "@apex/db";
+import { clients, contacts, formStarts, forms, newsletterOptins, submissions } from "@apex/db/schema";
+import { deletePrivatePrefix } from "@apex/core/storage";
 
 export async function deleteSubmission(id: string) {
   await deletePrivatePrefix(`submissions/${id}/`);

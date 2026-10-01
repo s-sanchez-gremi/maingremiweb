@@ -1,11 +1,11 @@
 // ONE scheduler call, every minute: releases due scheduled publications, sends/retries queued emails, drops old
 // address hashes. Idempotent and safe to call more often. Secured by the same bearer secret as the other cron routes.
 import { revalidateContent } from "@/lib/cache";
-import { purgeOldErrors } from "@/lib/errors";
-import { beat } from "@/lib/heartbeat";
-import { cronAuthorized } from "@/lib/cron-auth";
-import { purgeIpHashes } from "@/lib/forms/admin-data";
-import { processOutbox } from "@/lib/outbox";
+import { purgeOldErrors } from "@apex/core/errors";
+import { beat } from "@apex/core/heartbeat";
+import { cronAuthorized } from "@apex/core/cron-auth";
+import { purgeIpHashes } from "@apex/forms/admin-data";
+import { processOutbox } from "@apex/core/outbox";
 import { publishDue } from "@/lib/publish";
 
 export const dynamic = "force-dynamic";

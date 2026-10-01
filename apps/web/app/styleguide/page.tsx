@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { CheckboxField, RadioGroup, SelectField, TextAreaField, TextField } from "@/components/ui/Field";
+import { Button } from "@apex/ui/components/Button";
+import { Card } from "@apex/ui/components/Card";
+import { CheckboxField, RadioGroup, SelectField, TextAreaField, TextField } from "@apex/ui/components/Field";
 import { contrast, readColorTokens } from "@/lib/contrast";
 import { SectionRenderer } from "@/sections/render";
 import type { Section } from "@/sections/registry";
@@ -27,7 +27,7 @@ const sections = [
 
 export default function Styleguide() {
   if (!["local", "e2e"].includes(process.env.APP_ENV ?? "")) notFound();
-  const tokens = readColorTokens(readFileSync(join(process.cwd(), "styles/tokens.css"), "utf8"));
+  const tokens = readColorTokens(readFileSync(join(process.cwd(), "../../packages/ui/src/tokens.css"), "utf8"));
   const pairs: [string, string][] = [["ink", "bg"], ["text2", "bg"], ["accent", "bg"], ["bg", "accent"], ["ink-text", "ink"], ["field-border", "surface"], ["danger", "surface"]];
 
   return (

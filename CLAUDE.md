@@ -179,7 +179,7 @@ Ask the person running this guide for the mockup artifact link(s) if they weren'
 - **SEO:** per-page title/description, canonical, hreflang (+ x-default), Open Graph/Twitter, `sitemap.xml` with alternates, `robots.txt`, localized 404/error pages.
 
 ## Design foundation (phase 4)
-- **One tokens file:** `apps/web/styles/tokens.css` holds every colour, type size, space, radius and shadow; the public site and the admin both read it. Nothing else defines a colour. To rebrand, edit that file.
+- **One tokens file:** `packages/ui/src/tokens.css` holds every colour, type size, space, radius and shadow; the public site and the admin both read it. Nothing else defines a colour. To rebrand, edit that file.
 - **Contrast rules (enforced by `lib/__tests__/contrast.test.ts`, which parses the tokens file):** `#8A8780` fails as text (3.1–3.6:1) so it is only used for input outlines (`--field-border`, needs 3:1); small grey text uses `--text2` `#5C5A54` (6:1+); accent `#D50032` is fine on light backgrounds but **must not be used for small text on dark panels** (3.4:1) — use ivory there (the hero label uses ivory with a red bar).
 - **Component library:** `components/ui/` — `Button`, `Card`, and accessible form fields (`TextField`, `TextAreaField`, `SelectField`, `CheckboxField`, `RadioGroup`: visible label, hint/error wired with `aria-describedby`, `aria-invalid`, 44px touch targets). Site pieces (`Shell`, header, footer, `PostCard`, section renderers) live in `components/site/` and `sections/render.tsx`.
 - **Styleguide:** `/styleguide` (local/e2e only, 404 in production) shows tokens with live contrast ratios, type, buttons, form fields in every state, cards and all section types.
@@ -272,3 +272,8 @@ Ask the person running this guide for the mockup artifact link(s) if they weren'
 - **Subscriptions:** *Registra la renovació* creates the expense and moves the renewal date by the period.
 - **Records are corrected, not deleted:** entries can be edited and **voided** (excluded from lists and totals, kept for traceability). Financial rows never cascade from people: links are `set null` and the supplier/member **name is copied onto the entry**, so deleting a supplier, member or contact (erasure) leaves the financial record intact (retention rules: adviser to confirm).
 - **Ownership:** Sam (business tools). New tables live in `db/schema/erp.ts`.
+
+## Monorepo layout after the shared-packages step (S1 of `docs/split-plan.md`)
+- **Source packages** (plain TypeScript, compiled by the apps through `transpilePackages`; no build step): `packages/db` (`@apex/db`: schema in core/website/crm/erp files, lazy client, migration runner), `packages/core` (`@apex/core/*`: staff auth with `SESSION_COOKIE`, permissions, storage, mail+outbox, money, search helpers, file detection, the field language, error log, heartbeat, `siteUrl`), `packages/ui` (`@apex/ui`: `tokens.css`, `admin.css`, Button/Card/Field, ConfirmButton, ListEditor, FieldForm, ListSearch, richtext), `packages/forms` (`@apex/forms/*`: field types, validation, messages, the pipeline, `FormRenderer`). SQL migrations stay in `/db/migrations`.
+- **Rules:** packages never import `@/…` (an app) and never import another app; an app imports packages by name. `FormRenderer` knows nothing about cookies: the website wraps it in `ConsentAwareForm`, which passes remembered campaign tags only when the visitor allowed them.
+- Still one app (`apps/web`) in this step; the CRM app comes in S2.

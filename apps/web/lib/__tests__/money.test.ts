@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatEuros, parseEuros, plainEuros, vatOf, withVat } from "../money";
+import { formatEuros, parseEuros, plainEuros, vatOf, withVat } from "@apex/core/money";
 
 describe("parseEuros()", () => {
   it.each([["12", 1200], ["12,5", 1250], ["12.50", 1250], ["1.234,56", 123456], ["1,234.56", 123456], ["1234,56", 123456], [" 0,05 € ", 5], ["-3,40", -340], ["0", 0]])("%s -> %s", (s, c) => expect(parseEuros(s)).toBe(c));

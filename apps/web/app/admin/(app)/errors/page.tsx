@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
-import { can } from "@/lib/permissions";
-import { errorLog } from "@/db/schema";
+import { db } from "@apex/db";
+import { requireUser } from "@apex/core/auth";
+import { can } from "@apex/core/permissions";
+import { errorLog } from "@apex/db/schema";
 import { resolveError } from "./actions";
 
 const fmt = (d: Date) => d.toLocaleString("ca-ES", { dateStyle: "short", timeStyle: "short" });

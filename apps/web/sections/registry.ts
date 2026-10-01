@@ -1,7 +1,7 @@
 // The single source of truth for section types. To add a type: add one entry here
 // (and its renderer in sections/render.tsx). Validation and the admin form are generated.
 import { z } from "zod";
-import { shape, type Field } from "./fields";
+import { shape, type Field } from "@apex/core/fields";
 
 export type SectionDef = { name: string; label: string; fields: Field[] };
 

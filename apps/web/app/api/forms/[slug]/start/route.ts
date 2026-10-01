@@ -1,6 +1,6 @@
 // Anonymous "someone began filling this in" counter (no cookie, no personal data) for the completion rate.
-import { recordStart } from "@/lib/forms/admin-data";
-import { loadForm } from "@/lib/forms/http";
+import { recordStart } from "@apex/forms/admin-data";
+import { loadForm } from "@apex/forms/http";
 
 export const dynamic = "force-dynamic";
 

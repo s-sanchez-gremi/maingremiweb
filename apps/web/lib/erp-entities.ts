@@ -2,8 +2,8 @@
 // one generic screen and one generic save action, so adding a list = adding an entry here (see CLAUDE.md "generic entity screens").
 import { asc } from "drizzle-orm";
 import type { AnyPgTable } from "drizzle-orm/pg-core";
-import { db } from "./db";
-import { costCenters, erpCategories, feeTiers, members, subscriptions, suppliers, users } from "@/db/schema";
+import { db } from "@apex/db";
+import { costCenters, erpCategories, feeTiers, members, subscriptions, suppliers, users } from "@apex/db/schema";
 
 export type FieldSpec = {
   name: string; label: string; wide?: boolean; required?: boolean;

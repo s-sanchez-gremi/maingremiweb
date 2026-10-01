@@ -1,9 +1,9 @@
 // Lead management on top of the pipeline's tables: status, owner, notes, and turning a contact into a client.
 // Plain DB logic (no Next imports) so it is testable; the server actions call it.
 import { and, desc, eq, sql } from "drizzle-orm";
-import { db } from "./db";
-import { clients, contacts, forms, leadNotes, leads, submissions, users } from "@/db/schema";
-import { matchAll } from "./search";
+import { db } from "@apex/db";
+import { clients, contacts, forms, leadNotes, leads, submissions, users } from "@apex/db/schema";
+import { matchAll } from "@apex/core/search";
 
 export const LEAD_STATUSES = ["new", "contacted", "qualified", "won", "lost"] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];

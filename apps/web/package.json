@@ -14,6 +14,10 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@apex/core": "workspace:*",
+    "@apex/db": "workspace:*",
+    "@apex/forms": "workspace:*",
+    "@apex/ui": "workspace:*",
     "@aws-sdk/client-s3": "^3.1143.0",
     "@aws-sdk/s3-request-presigner": "^3.1143.0",
     "@node-rs/argon2": "^2.2.1",

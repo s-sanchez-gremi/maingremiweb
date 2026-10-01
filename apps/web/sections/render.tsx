@@ -1,7 +1,7 @@
 // Public renderers, one per section type in sections/registry.ts. Editors fill in content only;
 // every look comes from the fixed design tokens in app/(site)/site.css.
 import type { ReactNode } from "react";
-import { RichText } from "@/lib/richtext";
+import { RichText } from "@apex/ui/richtext";
 import { embedTarget } from "@/lib/embed";
 import { mediaSrcSet, mediaUrl } from "@/lib/media-url";
 import { ui, type Locale } from "@/lib/i18n";
@@ -10,10 +10,10 @@ import { declarations, categories } from "@/lib/consent/registry";
 import type { PublicMedia } from "@/lib/content-queries";
 import { Embed } from "@/components/site/Embed";
 import { SmartLink } from "@/components/site/SmartLink";
-import { Card } from "@/components/ui/Card";
+import { Card } from "@apex/ui/components/Card";
 import { LatestPosts } from "@/components/site/LatestPosts";
 import { PublicForm } from "@/components/site/form/PublicForm";
-import type { Source } from "@/components/site/form/FormRenderer";
+import type { Source } from "@apex/forms/components/FormRenderer";
 import type { Section } from "./registry";
 
 type Ctx = { media: Record<string, PublicMedia>; locale: Locale; source: Source };

@@ -4,11 +4,12 @@ import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { db } from "./db";
-import { sessions, users } from "@/db/schema";
+import { db } from "@apex/db";
+import { sessions, users } from "@apex/db/schema";
 import { can, type Action } from "./permissions";
 
-const COOKIE = "apex_session";
+// Each app sets its own cookie name (SESSION_COOKIE) so a session of one app is never sent to, or accepted by, another.
+const COOKIE = process.env.SESSION_COOKIE ?? "apex_session";
 const TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { desc, eq, inArray } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { entries, entryTranslations, locales } from "@/db/schema";
+import { db } from "@apex/db";
+import { entries, entryTranslations, locales } from "@apex/db/schema";
 import { createEntry } from "./actions";
 
 const statusClass = { published: "chip ok", scheduled: "chip sched", draft: "chip" } as const;

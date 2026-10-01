@@ -1,26 +1,25 @@
 "use client";
 // The public form. Validation runs in the browser for instant feedback, but the server re-validates everything.
 import { useMemo, useRef, useState } from "react";
-import { Button } from "@/components/ui/Button";
-import { CheckboxField } from "@/components/ui/Field";
-import { InlineText } from "@/lib/richtext";
-import { lt, type Item } from "@/lib/forms/fieldTypes";
-import { fmt, msgs } from "@/lib/forms/messages";
-import { isVisible, toSteps, validateAnswers, type Answers } from "@/lib/forms/validate";
-import type { PublicForm } from "@/lib/content-queries";
-import type { Locale } from "@/db/schema";
+import { Button } from "@apex/ui/components/Button";
+import { CheckboxField } from "@apex/ui/components/Field";
+import { InlineText } from "@apex/ui/richtext";
+import { lt, type Item } from "@apex/forms/fieldTypes";
+import { fmt, msgs } from "@apex/forms/messages";
+import { isVisible, toSteps, validateAnswers, type Answers } from "@apex/forms/validate";
+import type { PublicForm } from "../public-form";
+import type { Locale } from "@apex/db/schema";
 import { FieldInput } from "./Inputs";
 import { fetchSolution } from "./pow-client";
-import { storedUtm, useConsent } from "../consent/store";
 
 export type Source = { path: string; entryId?: string | null; theme: string };
 type Solution = Awaited<ReturnType<typeof fetchSolution>>;
 
 const UTM = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"];
 
-export function FormRenderer({ form, locale, source }: { form: PublicForm; locale: Locale; source: Source }) {
+/** `campaign` returns the campaign tags remembered while browsing; the website passes it only when the visitor allowed that (cookie consent). The form itself knows nothing about cookies. */
+export function FormRenderer({ form, locale, source, campaign }: { form: PublicForm; locale: Locale; source: Source; campaign?: () => Record<string, string> }) {
   const t = msgs(locale);
-  const consentState = useConsent();
   const items = form.items as Item[];
   const steps = useMemo(() => toSteps(items), [items]);
   const [values, setValues] = useState<Answers>({});
@@ -88,7 +87,7 @@ export function FormRenderer({ form, locale, source }: { form: PublicForm; local
     try {
       const solution = await pow.current!;
       // Campaign tags: what is in this page's address, plus what was remembered while browsing (only if the visitor allowed it).
-      const utm: Record<string, string> = consentState?.attribution ? { ...storedUtm() } : {};
+      const utm: Record<string, string> = campaign ? { ...campaign() } : {};
       const params = new URLSearchParams(window.location.search);
       for (const k of UTM) { const v = params.get(k); if (v) utm[k] = v; }
       const body = new FormData();

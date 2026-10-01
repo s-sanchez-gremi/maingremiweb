@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import sharp from "sharp";
 import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { media } from "@/db/schema";
+import { db } from "@apex/db";
+import { media } from "@apex/db/schema";
 import { MediaError, deleteMedia, detectKind, mediaInUse, mediaUrl, processImage, saveUpload } from "../media";
 
 const png = (w: number, h: number) => sharp({ create: { width: w, height: h, channels: 3, background: "#D50032" } }).png().toBuffer();

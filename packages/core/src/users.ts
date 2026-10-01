@@ -1,7 +1,7 @@
 // User management rules. Pure DB logic (no Next imports); actions in app/admin/(app)/users call these.
 import { and, count, eq } from "drizzle-orm";
-import { db } from "./db";
-import { sessions, users } from "@/db/schema";
+import { db } from "@apex/db";
+import { sessions, users } from "@apex/db/schema";
 import { MIN_PASSWORD, hashPassword, verifyPassword } from "./password";
 import type { Role } from "./permissions";
 

@@ -1,9 +1,9 @@
 // ERP registry logic (Apex only REGISTERS; Sage keeps the accounting). Plain DB logic, no Next imports, so it is testable.
 import { and, asc, desc, eq, gte, isNull, lte, sql } from "drizzle-orm";
-import { db } from "./db";
-import { costCenters, erpCategories, erpEntries, feeTiers, members, subscriptions, suppliers } from "@/db/schema";
-import { VAT_RATES, parseEuros, plainEuros, vatOf } from "./money";
-import { matchAll } from "./search";
+import { db } from "@apex/db";
+import { costCenters, erpCategories, erpEntries, feeTiers, members, subscriptions, suppliers } from "@apex/db/schema";
+import { VAT_RATES, parseEuros, plainEuros, vatOf } from "@apex/core/money";
+import { matchAll } from "@apex/core/search";
 
 export class ErpError extends Error {}
 export const PAGE_SIZE = 50;

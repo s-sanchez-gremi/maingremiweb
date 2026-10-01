@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/auth";
+import { requireUser } from "@apex/core/auth";
 import { TaskRow } from "@/components/admin/TaskRow";
 import { listTasks } from "@/lib/projects";
 

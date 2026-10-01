@@ -1,7 +1,7 @@
 // The registry of form field types. To add one: add an entry here (config fields) and its check in validate.ts,
 // and its input in components/site/form/Inputs.tsx. The builder UI and the stored-data validation are generated.
 import { z } from "zod";
-import { shape, type Field } from "@/sections/fields";
+import { shape, type Field } from "@apex/core/fields";
 
 const yesNo = [{ value: "no", label: "No" }, { value: "yes", label: "Sí" }];
 const common: Field[] = [

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { costCenters, erpCategories, erpEntries, feeTiers, members, subscriptions, suppliers, users } from "@/db/schema";
+import { db } from "@apex/db";
+import { costCenters, erpCategories, erpEntries, feeTiers, members, subscriptions, suppliers, users } from "@apex/db/schema";
 import { ErpError, checkEntry, feePreview, generateFees, listEntries, markPaid, periodRange, renewSubscription, saveEntry, summary, toCsv, voidEntry } from "../erp";
 
 let uid: string;

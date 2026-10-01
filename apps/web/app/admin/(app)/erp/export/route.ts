@@ -1,6 +1,6 @@
 // CSV of the filtered entries, laid out for the gestoria's Sage import (category -> Sage account is already on each line).
-import { getUser } from "@/lib/auth";
-import { can } from "@/lib/permissions";
+import { getUser } from "@apex/core/auth";
+import { can } from "@apex/core/permissions";
 import { listEntries, toCsv } from "@/lib/erp";
 
 export const dynamic = "force-dynamic";

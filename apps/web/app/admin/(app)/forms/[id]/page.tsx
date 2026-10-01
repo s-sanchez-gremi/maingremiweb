@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { db } from "@apex/db";
 import { asc } from "drizzle-orm";
-import { clients, forms, projects } from "@/db/schema";
-import { formStats } from "@/lib/forms/admin-data";
-import type { FormSettings } from "@/lib/forms/settings-fields";
+import { clients, forms, projects } from "@apex/db/schema";
+import { formStats } from "@apex/forms/admin-data";
+import type { FormSettings } from "@apex/forms/settings-fields";
 import { siteUrl } from "@/lib/urls";
 import { FormEditor } from "./FormEditor";
 

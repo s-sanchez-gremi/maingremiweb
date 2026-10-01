@@ -2,9 +2,9 @@
 // 3 fixed WebP widths (strips metadata, defuses malformed files), store PDFs as-is. SVG is rejected on purpose.
 import sharp from "sharp";
 import { eq, sql } from "drizzle-orm";
-import { db } from "./db";
-import { media } from "@/db/schema";
-import { deletePrefix, putObject } from "./storage";
+import { db } from "@apex/db";
+import { media } from "@apex/db/schema";
+import { deletePrefix, putObject } from "@apex/core/storage";
 import { WIDTHS } from "./media-url";
 export { mediaUrl } from "./media-url";
 

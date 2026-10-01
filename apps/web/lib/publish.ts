@@ -1,8 +1,8 @@
 // The ONLY code that changes a translation's publish status. Pure DB logic (no Next imports) so it is testable;
 // the server action / cron route call it and then revalidate the returned tags.
 import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
-import { db } from "./db";
-import { entries, entryTranslations, entryVersions, media, type Locale } from "@/db/schema";
+import { db } from "@apex/db";
+import { entries, entryTranslations, entryVersions, media, type Locale } from "@apex/db/schema";
 import { collectMediaIds, sectionsSchema } from "@/sections/registry";
 import { RESERVED_SLUGS } from "./urls";
 

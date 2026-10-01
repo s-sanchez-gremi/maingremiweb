@@ -1,6 +1,6 @@
 // Called every minute by the host's scheduler (see README). Idempotent: safe to call more often or twice.
 import { revalidateContent } from "@/lib/cache";
-import { cronAuthorized } from "@/lib/cron-auth";
+import { cronAuthorized } from "@apex/core/cron-auth";
 import { publishDue } from "@/lib/publish";
 
 export const dynamic = "force-dynamic";

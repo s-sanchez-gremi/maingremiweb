@@ -1,0 +1,26 @@
+{
+  "name": "@apex/forms",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Everything about forms: field-type registry, validation, messages, the public form component with its bot-check client, and the submission pipeline. Rendered by the website; owned and written to by the CRM app.",
+  "exports": {
+    "./components/FormRenderer": "./src/components/FormRenderer.tsx",
+    "./components/Inputs": "./src/components/Inputs.tsx",
+    "./components/pow-client": "./src/components/pow-client.ts",
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@apex/core": "workspace:*",
+    "@apex/db": "workspace:*",
+    "@apex/ui": "workspace:*",
+    "drizzle-orm": "^0.45.3",
+    "zod": "^4.6.5"
+  },
+  "peerDependencies": {
+    "react": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19"
+  }
+}

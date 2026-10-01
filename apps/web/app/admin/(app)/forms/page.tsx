@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { desc } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { forms } from "@/db/schema";
-import { formStats } from "@/lib/forms/admin-data";
-import { outboxCounts } from "@/lib/outbox";
+import { db } from "@apex/db";
+import { forms } from "@apex/db/schema";
+import { formStats } from "@apex/forms/admin-data";
+import { outboxCounts } from "@apex/core/outbox";
 import { createForm } from "./actions";
 
 const dest = { crm_lead: "Contacte + lead al CRM", project: "Projecte / client", responses_only: "Només respostes" } as const;

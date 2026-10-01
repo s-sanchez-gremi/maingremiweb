@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { destroySession, requireUser } from "@/lib/auth";
-import { MIN_PASSWORD } from "@/lib/password";
-import { UserError, changeOwnPassword } from "@/lib/users";
+import { destroySession, requireUser } from "@apex/core/auth";
+import { MIN_PASSWORD } from "@apex/core/password";
+import { UserError, changeOwnPassword } from "@apex/core/users";
 
 async function changePassword(fd: FormData) {
   "use server";

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { destroySession, requireUser } from "@/lib/auth";
-import { can } from "@/lib/permissions";
+import { destroySession, requireUser } from "@apex/core/auth";
+import { can } from "@apex/core/permissions";
 import { AdminNav } from "@/components/admin/AdminNav";
 
 async function logout() {

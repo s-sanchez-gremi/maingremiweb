@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Answer } from "@/db/schema";
+import type { Answer } from "@apex/db/schema";
 
 export type AttachedRow = { id: string; createdAt: Date; formId: string; formName: string | null; answers: Answer[]; projectName?: string | null };
 
