@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { asc, desc, eq } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { db } from "@apex/db";
 import { requireUser } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
-import { clients, contacts, forms, leadNotes, leads, submissions, users, type Answer } from "@/db/schema";
+import { clients, contacts, forms, leadNotes, leads, submissions, users, type Answer } from "@apex/db/schema";
 import { LEAD_STATUSES, statusLabel } from "@/lib/leads";
 import { addLeadNote, convertLead, eraseContactAction, saveLead } from "../actions";
 

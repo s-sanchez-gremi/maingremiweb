@@ -1,8 +1,8 @@
 // Staff-only download of a file a visitor uploaded: checks the session, then sends a 60-second signed link.
 import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { db } from "@apex/db";
 import { getUser } from "@/lib/auth";
-import { submissions } from "@/db/schema";
+import { submissions } from "@apex/db/schema";
 import { privateDownloadUrl } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";

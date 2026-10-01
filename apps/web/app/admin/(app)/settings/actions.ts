@@ -2,9 +2,9 @@
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { revalidateContent } from "@/lib/cache";
-import { db } from "@/lib/db";
+import { db } from "@apex/db";
 import { settingsSchema } from "@/lib/settings-schema";
-import { settings } from "@/db/schema";
+import { settings } from "@apex/db/schema";
 
 export async function saveSettings(formData: FormData) {
   await requireUser("settings:write");

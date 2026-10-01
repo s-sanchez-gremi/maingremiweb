@@ -1,6 +1,6 @@
 // Fresh throwaway database "apex_test" (never touches "apex"), migrated from the real SQL files.
 import postgres from "postgres";
-import { migrate } from "../db/migrator";
+import { migrate } from "@apex/db/migrator";
 
 export default async function setup() {
   const admin = postgres("postgres://apex:apex@localhost:5432/postgres", { max: 1, onnotice: () => {} });

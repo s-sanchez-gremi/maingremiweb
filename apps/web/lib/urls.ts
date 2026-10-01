@@ -1,4 +1,4 @@
-import type { Locale } from "@/db/schema";
+import type { Locale } from "@apex/db/schema";
 
 // Slugs that would clash with fixed routes under /{locale}/.
 export const RESERVED_SLUGS = ["blog", "categoria", "search", "form", "embed", "styleguide", "admin", "api", "portal", "sitemap", "robots"];

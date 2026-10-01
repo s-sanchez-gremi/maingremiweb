@@ -1,5 +1,5 @@
 // Pure validation shared by the browser (instant feedback) and the server (the only one that counts).
-import type { Locale } from "@/db/schema";
+import type { Locale } from "@apex/db/schema";
 import { fmt, msgs } from "./messages";
 import { isRequired, lt, optionValues, type Item } from "./fieldTypes";
 

@@ -1,9 +1,9 @@
 // Client download of a shared project file: needs a portal session, the document must be shared AND belong to one of THIS client's
 // projects, then a 60-second signed link. Anything else is a plain 404 (no hint that the file exists).
 import { and, eq } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { db } from "@apex/db";
 import { getPortalUser } from "@/lib/portal-auth";
-import { projectDocuments, projects } from "@/db/schema";
+import { projectDocuments, projects } from "@apex/db/schema";
 import { privateDownloadUrl } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";

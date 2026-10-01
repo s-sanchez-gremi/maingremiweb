@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { requirePortalUser, destroyPortalSession } from "@/lib/portal-auth";
 import { projectsOf, sharedDocuments } from "@/lib/portal";
-import { db } from "@/lib/db";
-import { clients } from "@/db/schema";
+import { db } from "@apex/db";
+import { clients } from "@apex/db/schema";
 import { eq } from "drizzle-orm";
 
 const label = { active: "Actiu", paused: "En pausa", done: "Acabat" } as const;

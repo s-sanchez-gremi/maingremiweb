@@ -3,7 +3,7 @@
 //   /api/health?deep=1   database AND the scheduler heartbeat (point the external uptime monitor here: it also
 //                        catches "site is up but scheduled publishing and emails have silently stopped")
 import { sql } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { db } from "@apex/db";
 import { isFresh, lastBeat } from "@/lib/heartbeat";
 
 export const dynamic = "force-dynamic";

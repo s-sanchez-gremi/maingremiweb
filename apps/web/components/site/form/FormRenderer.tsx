@@ -8,7 +8,7 @@ import { lt, type Item } from "@/lib/forms/fieldTypes";
 import { fmt, msgs } from "@/lib/forms/messages";
 import { isVisible, toSteps, validateAnswers, type Answers } from "@/lib/forms/validate";
 import type { PublicForm } from "@/lib/content-queries";
-import type { Locale } from "@/db/schema";
+import type { Locale } from "@apex/db/schema";
 import { FieldInput } from "./Inputs";
 import { fetchSolution } from "./pow-client";
 import { storedUtm, useConsent } from "../consent/store";

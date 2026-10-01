@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { desc, eq, count } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { db } from "@apex/db";
 import { requireUser } from "@/lib/auth";
-import { contacts, forms, submissions } from "@/db/schema";
+import { contacts, forms, submissions } from "@apex/db/schema";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { removeSubmission } from "../../actions";
 

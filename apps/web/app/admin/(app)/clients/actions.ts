@@ -2,9 +2,9 @@
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "@/lib/db";
+import { db } from "@apex/db";
 import { requireUser } from "@/lib/auth";
-import { clients } from "@/db/schema";
+import { clients } from "@apex/db/schema";
 import { PortalError, invite, removePortalUser, setDisabled } from "@/lib/portal";
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();

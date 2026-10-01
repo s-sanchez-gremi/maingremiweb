@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { asc } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { db } from "@apex/db";
 import { requireUser } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { MIN_PASSWORD } from "@/lib/password";
-import { users } from "@/db/schema";
+import { users } from "@apex/db/schema";
 import { addUser, adminResetPassword, changeRole, removeUser } from "./actions";
 
 export default async function UsersPage({ searchParams }: { searchParams: Promise<{ error?: string; ok?: string }> }) {

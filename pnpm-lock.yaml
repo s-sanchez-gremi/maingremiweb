@@ -10,6 +10,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@apex/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@aws-sdk/client-s3':
         specifier: ^3.1143.0
         version: 3.1143.0
@@ -83,6 +86,15 @@ importers:
       vitest:
         specifier: ^5.0.2
         version: 5.0.2(@types/node@20.19.43)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.2)(tsx@4.23.15))
+
+  packages/db:
+    dependencies:
+      drizzle-orm:
+        specifier: ^0.45.3
+        version: 0.45.3(postgres@3.4.9)
+      postgres:
+        specifier: ^3.4.9
+        version: 3.4.9
 
 packages:
 

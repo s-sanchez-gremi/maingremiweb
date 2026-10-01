@@ -1,8 +1,8 @@
 // Reliable email: rows are written in the same transaction as the submission, then sent here with retries.
 // A crash or a mail-server outage never loses a notification, and never blocks or fails the visitor's submission.
 import { and, eq, lte, sql } from "drizzle-orm";
-import { db } from "./db";
-import { outbox } from "@/db/schema";
+import { db } from "@apex/db";
+import { outbox } from "@apex/db/schema";
 import { sendMail, type Mail, type Transport } from "./mail";
 
 const MAX_ATTEMPTS = 8;

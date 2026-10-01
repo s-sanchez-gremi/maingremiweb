@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { eq, asc, and, desc } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { categories, entries, entryTranslations, entryVersions, forms, locales, media, users, type Locale } from "@/db/schema";
+import { db } from "@apex/db";
+import { categories, entries, entryTranslations, entryVersions, forms, locales, media, users, type Locale } from "@apex/db/schema";
 import { mediaUrl } from "@/lib/media";
 import { EntryEditor } from "./EntryEditor";
 

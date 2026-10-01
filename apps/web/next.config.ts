@@ -3,6 +3,8 @@ import { resolve } from "node:path";
 
 const nextConfig: NextConfig = {
   agentRules: false,
+  // Workspace packages are plain TypeScript source (no build step): Next compiles them with the app.
+  transpilePackages: ["@apex/db"],
   // Staff upload project documents through a server action (max 10 MB file + form overhead); default is 1 MB.
   experimental: { serverActions: { bodySizeLimit: "12mb" } },
   // Only when building the production Docker image: a self-contained server (monorepo root so workspace files are traced).

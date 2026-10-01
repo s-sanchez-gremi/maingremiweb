@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { sessions, users } from "@/db/schema";
+import { db } from "@apex/db";
+import { sessions, users } from "@apex/db/schema";
 import { verifyPassword } from "../password";
 import { UserError, changeOwnPassword, createUser, deleteUser, resetPassword, setRole } from "../users";
 

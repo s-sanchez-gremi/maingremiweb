@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
-import { db } from "../db";
-import { errorLog, outbox } from "@/db/schema";
+import { db } from "@apex/db";
+import { errorLog, outbox } from "@apex/db/schema";
 import { fingerprint, recordError } from "../errors";
 import { beat, isFresh, lastBeat } from "../heartbeat";
 import { GET as health } from "@/app/api/health/route";

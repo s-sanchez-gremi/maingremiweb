@@ -1,8 +1,8 @@
 // Project manager: tasks and documents per project. Plain DB/storage logic (no Next imports) so it is testable.
 import { randomUUID } from "node:crypto";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
-import { db } from "./db";
-import { projectDocuments, projects, tasks, users } from "@/db/schema";
+import { db } from "@apex/db";
+import { projectDocuments, projects, tasks, users } from "@apex/db/schema";
 import { classifyUpload, safeName } from "./forms/files";
 import { deletePrivatePrefix, putPrivate } from "./storage";
 

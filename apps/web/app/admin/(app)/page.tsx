@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { sql } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { entryTranslations, errorLog, leads, tasks } from "@/db/schema";
+import { db } from "@apex/db";
+import { entryTranslations, errorLog, leads, tasks } from "@apex/db/schema";
 import { getUser } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { isFresh, lastBeat } from "@/lib/heartbeat";

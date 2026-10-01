@@ -4,8 +4,8 @@ import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { db } from "./db";
-import { sessions, users } from "@/db/schema";
+import { db } from "@apex/db";
+import { sessions, users } from "@apex/db/schema";
 import { can, type Action } from "./permissions";
 
 const COOKIE = "apex_session";

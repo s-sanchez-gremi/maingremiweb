@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { asc, eq, sql } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { db } from "@apex/db";
 import { requireUser } from "@/lib/auth";
-import { clients, projects } from "@/db/schema";
+import { clients, projects } from "@apex/db/schema";
 import { listLeads, statusLabel } from "@/lib/leads";
 import { matchAll } from "@/lib/search";
 

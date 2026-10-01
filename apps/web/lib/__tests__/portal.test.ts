@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { clients, outbox, portalSessions, portalTokens, portalUsers, projectDocuments, projects, users } from "@/db/schema";
+import { db } from "@apex/db";
+import { clients, outbox, portalSessions, portalTokens, portalUsers, projectDocuments, projects, users } from "@apex/db/schema";
 import { PortalError, checkLogin, invite, projectsOf, removePortalUser, requestReset, setDisabled, setDocumentShared, setPasswordWithToken, sharedDocuments, tokenValid } from "../portal";
 
 let a: string, b: string;

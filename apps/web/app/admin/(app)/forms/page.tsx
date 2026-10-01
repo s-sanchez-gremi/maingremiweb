@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { desc } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { forms } from "@/db/schema";
+import { db } from "@apex/db";
+import { forms } from "@apex/db/schema";
 import { formStats } from "@/lib/forms/admin-data";
 import { outboxCounts } from "@/lib/outbox";
 import { createForm } from "./actions";

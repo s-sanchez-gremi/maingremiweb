@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { entries, entryTranslations, entryVersions } from "@/db/schema";
+import { db } from "@apex/db";
+import { entries, entryTranslations, entryVersions } from "@apex/db/schema";
 import { publish, restoreVersion } from "../publish";
 import { norm, searchEntries, terms } from "../search";
 

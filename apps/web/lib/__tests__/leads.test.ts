@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { clients, contacts, forms, leadNotes, leads, submissions, users } from "@/db/schema";
+import { db } from "@apex/db";
+import { clients, contacts, forms, leadNotes, leads, submissions, users } from "@apex/db/schema";
 import { addNote, convertToClient, isStatus, listLeads, listPeople, setOwner, setStatus } from "../leads";
 import { eraseContact } from "../forms/admin-data";
 

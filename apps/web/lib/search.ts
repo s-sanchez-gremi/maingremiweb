@@ -2,7 +2,7 @@
 // the site has hundreds of pages, not millions. Accent- and case-insensitive ("formacio" finds "Formació",
 // "collegi" finds "col·legi"); every word must match; title matches rank first.
 import { sql } from "drizzle-orm";
-import { db } from "./db";
+import { db } from "@apex/db";
 import type { Locale } from "./i18n";
 
 export type SearchHit = { entryId: string; type: "post" | "page"; title: string; slug: string; publishedOn: string | null; isHome: boolean };

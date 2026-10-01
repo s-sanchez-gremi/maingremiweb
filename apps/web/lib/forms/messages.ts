@@ -1,5 +1,5 @@
 // Visitor-facing strings for public forms and the API's validation errors.
-import type { Locale } from "@/db/schema";
+import type { Locale } from "@apex/db/schema";
 
 const m = {
   ca: {

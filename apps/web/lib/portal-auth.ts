@@ -3,8 +3,8 @@ import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { and, eq, gt } from "drizzle-orm";
-import { db } from "./db";
-import { portalSessions, portalUsers } from "@/db/schema";
+import { db } from "@apex/db";
+import { portalSessions, portalUsers } from "@apex/db/schema";
 
 const COOKIE = "apex_portal";
 const TTL_MS = 7 * 24 * 60 * 60 * 1000;

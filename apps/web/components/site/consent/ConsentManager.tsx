@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { categories } from "@/lib/consent/registry";
 import { consentMsgs } from "@/lib/consent/messages";
-import type { Locale } from "@/db/schema";
+import type { Locale } from "@apex/db/schema";
 import { captureUtm, saveConsent, useConsent } from "./store";
 
 export function ConsentManager({ locale }: { locale: Locale }) {

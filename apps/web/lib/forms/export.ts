@@ -1,5 +1,5 @@
 // Spreadsheet export (CSV, UTF-8 with BOM so Excel and Google Sheets open accents correctly).
-import type { Answer } from "@/db/schema";
+import type { Answer } from "@apex/db/schema";
 
 /** A cell that starts with = + - @ would be executed as a formula by a spreadsheet: neutralise it. */
 export function cell(v: unknown): string {

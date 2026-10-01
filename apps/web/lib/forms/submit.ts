@@ -1,7 +1,7 @@
 // The lead-capture pipeline. Everything the guide lists happens here, in this order:
 // validate → consent → files → (one transaction: submission, contact upsert, lead, newsletter opt-in, email outbox).
-import { db } from "../db";
-import { forms, leads, newsletterOptins, submissions, type Answer, type Locale } from "@/db/schema";
+import { db } from "@apex/db";
+import { forms, leads, newsletterOptins, submissions, type Answer, type Locale } from "@apex/db/schema";
 import { deletePrivatePrefix, putPrivate } from "../storage";
 import { enqueueEmail } from "../outbox";
 import { siteUrl } from "../urls";

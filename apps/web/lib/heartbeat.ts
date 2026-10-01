@@ -1,7 +1,7 @@
 // The scheduler (/api/cron/tick) stamps "I ran" here; the deep health check and the admin dashboard read it.
 import { eq } from "drizzle-orm";
-import { db } from "./db";
-import { heartbeats } from "@/db/schema";
+import { db } from "@apex/db";
+import { heartbeats } from "@apex/db/schema";
 
 export const STALE_MS = 10 * 60_000; // the tick runs every minute; 10 minutes of silence means the scheduler is broken
 

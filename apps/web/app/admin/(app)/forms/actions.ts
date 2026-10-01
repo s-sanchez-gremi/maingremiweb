@@ -2,11 +2,11 @@
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "@/lib/db";
+import { db } from "@apex/db";
 import { requireUser } from "@/lib/auth";
 import { revalidateContent } from "@/lib/cache";
 import { slugify } from "@/lib/slug";
-import { clients, forms, projects } from "@/db/schema";
+import { clients, forms, projects } from "@apex/db/schema";
 import { checkDefinition, formItemsSchema } from "@/lib/forms/fieldTypes";
 import { formSettingsSchema } from "@/lib/forms/settings-fields";
 import { deleteForm, deleteSubmission } from "@/lib/forms/admin-data";

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { asc, sql } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { db } from "@apex/db";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { ListSearch } from "@/components/admin/ListSearch";
 import { ENTITIES, loadOptions, type FieldSpec, type Options } from "@/lib/erp-entities";

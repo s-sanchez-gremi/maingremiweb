@@ -4,10 +4,10 @@ import { revalidateContent } from "@/lib/cache";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "@/lib/db";
+import { db } from "@apex/db";
 import { requireUser } from "@/lib/auth";
 import { MediaError, deleteMedia } from "@/lib/media";
-import { media } from "@/db/schema";
+import { media } from "@apex/db/schema";
 
 export async function updateMedia(formData: FormData) {
   await requireUser("media:write");

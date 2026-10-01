@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { clients, projectDocuments, projects, tasks, users } from "@/db/schema";
+import { db } from "@apex/db";
+import { clients, projectDocuments, projects, tasks, users } from "@apex/db/schema";
 import { ProjectError, addFile, addLink, addTask, deleteDocument, deleteProject, isOverdue, listTasks, setTaskDone } from "../projects";
 import { getPrivateBytes } from "../storage";
 

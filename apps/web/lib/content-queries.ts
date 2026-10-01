@@ -1,8 +1,8 @@
 // Read-only queries for the PUBLIC site. They read only the `live` snapshot, never the draft columns.
 // Kept free of Next.js imports so they are testable; lib/content.ts wraps them in the tagged cache.
 import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
-import { db } from "./db";
-import { categories, entries, entryTranslations, forms, media, settings, users, type FormItem, type LiveContent, type Locale } from "@/db/schema";
+import { db } from "@apex/db";
+import { categories, entries, entryTranslations, forms, media, settings, users, type FormItem, type LiveContent, type Locale } from "@apex/db/schema";
 import { defaultSettings, settingsSchema, type Settings } from "./settings-schema";
 
 export type PublicEntry = {

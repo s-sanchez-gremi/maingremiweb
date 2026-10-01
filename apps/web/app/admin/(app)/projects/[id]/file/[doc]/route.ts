@@ -1,8 +1,8 @@
 // Staff-only download of a project file: checks the session and that the file belongs to THIS project, then sends a 60-second signed link.
 import { and, eq } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { db } from "@apex/db";
 import { getUser } from "@/lib/auth";
-import { projectDocuments } from "@/db/schema";
+import { projectDocuments } from "@apex/db/schema";
 import { privateDownloadUrl } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";

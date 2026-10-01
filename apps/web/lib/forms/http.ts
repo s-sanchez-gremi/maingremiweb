@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { forms } from "@/db/schema";
+import { db } from "@apex/db";
+import { forms } from "@apex/db/schema";
 import { isLocale, defaultLocale, type Locale } from "../i18n";
 import { ipHash } from "./pow";
 
