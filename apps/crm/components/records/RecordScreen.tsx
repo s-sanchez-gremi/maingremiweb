@@ -14,7 +14,7 @@ export type RecordParams = { saved?: string; error?: string; q?: string; sort?: 
 export function queryOf(e: Entity, sp: RecordParams): ListQuery {
   const filters: Record<string, string> = {};
   for (const f of filterFields(e)) { const v = sp[`f_${f.name}`]; if (v) filters[f.name] = v; }
-  return { q: sp.q, filters, sort: sp.sort, dir: sp.dir === "desc" ? "desc" : "asc", page: Number(sp.page) || 1 };
+  return { archived: sp.archived === "1", q: sp.q, filters, sort: sp.sort, dir: sp.dir === "desc" ? "desc" : "asc", page: Number(sp.page) || 1 };
 }
 const href = (e: Entity, sp: RecordParams, extra: Record<string, string | undefined>, path = e.basePath) => {
   const p = new URLSearchParams();
@@ -23,7 +23,7 @@ const href = (e: Entity, sp: RecordParams, extra: Record<string, string | undefi
   return qs ? `${path}?${qs}` : path;
 };
 
-function Input({ f, row, choices }: { f: Field; row?: Row; choices: Choices }) {
+export function Input({ f, row, choices }: { f: Field; row?: Row; choices: Choices }) {
   const v = row?.[f.name];
   if (f.type === "checkbox") return <label className="row" style={{ justifyContent: "flex-start", gap: 8 }}><input type="checkbox" name={f.name} defaultChecked={row ? !!v : true} />{f.label}</label>;
   if (f.type === "textarea") return <label style={f.wide ? { gridColumn: "1 / -1" } : undefined}>{f.label}<textarea name={f.name} defaultValue={String(v ?? "")} /></label>;
@@ -53,6 +53,7 @@ export async function RecordScreen({ entity: e, sp, rowActions }: { entity: Enti
         {(
           <form method="get" className="row" style={{ justifyContent: "flex-start", flexWrap: "wrap", gap: 10, alignItems: "end" }} aria-label="Filtres">
             {sp.q && <input type="hidden" name="q" value={sp.q} />}
+            {sp.archived === "1" && <input type="hidden" name="archived" value="1" />}
             {filters.map((f) => {
               const opts = f.type === "relation" ? choices[choiceKey(f)] ?? [] : f.type === "checkbox" ? [{ value: "1", label: "Sí" }, { value: "0", label: "No" }] : (f.choices ?? []).map(([value, label]) => ({ value, label }));
               return <label key={f.name}>{f.label}<select name={`f_${f.name}`} defaultValue={sp[`f_${f.name}`] ?? ""}><option value="">Tots</option>{opts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></label>;
@@ -72,7 +73,10 @@ export async function RecordScreen({ entity: e, sp, rowActions }: { entity: Enti
         </div>
         <div className="row" style={{ justifyContent: "space-between" }}>
           <span className="hint">{total} {total === 1 ? "element" : "elements"}</span>
-          <a className="btn" href={href(e, sp, { page: undefined }, `${e.basePath}/export`)}>Exporta CSV</a>
+          <span className="row" style={{ gap: 8 }}>
+            {e.archivable && <Link className="btn" href={href(e, sp, { archived: sp.archived === "1" ? undefined : "1", page: undefined })}>{sp.archived === "1" ? "Veure els actius" : "Veure els arxivats"}</Link>}
+            <a className="btn" href={href(e, sp, { page: undefined }, `${e.basePath}/export`)}>Exporta CSV</a>
+          </span>
         </div>
         {rows.length === 0 && <p className="hint">No hi ha cap element.</p>}
         {rows.map((r) => (
@@ -84,6 +88,7 @@ export async function RecordScreen({ entity: e, sp, rowActions }: { entity: Enti
               <div className="row" style={{ gridColumn: "1 / -1", justifyContent: "flex-start" }}><button className="btn primary" type="submit">Desa</button></div>
             </form>
             <div className="row" style={{ justifyContent: "flex-start", marginTop: 8 }}>
+              {e.detail && <Link className="btn" href={`${e.basePath}/${r.id}`}>Obre la fitxa</Link>}
               {rowActions?.(r)}
               <form action={deleteRecordAction}><input type="hidden" name="entity" value={e.key} /><input type="hidden" name="id" value={r.id} /><ConfirmButton className="btn link" message="Eliminar aquest element? Els registres que l'usen es conserven (només perden l'enllaç).">Elimina</ConfirmButton></form>
             </div>

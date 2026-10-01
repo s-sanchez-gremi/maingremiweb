@@ -109,7 +109,7 @@ test("engine lists: filter, sort and CSV export", async ({ page }) => {
     await addForm(page).getByLabel("Tipus").selectOption(kind);
     await addForm(page).getByLabel("Nom", { exact: true }).fill(name);
     await addForm(page).getByRole("button", { name: "Afegeix" }).click();
-    await expect(page.getByRole("status")).toContainText("Desat");
+    await expect(page.getByText(`${kind === "income" ? "Ingrés" : "Despesa"} · ${name}`)).toBeVisible(); // the new row, not the previous "Desat"
   }
   await page.goto("/admin/erp/categories?f_kind=expense");
   await expect(page.locator("select[name=f_kind]")).toHaveValue("expense");
@@ -123,4 +123,34 @@ test("engine lists: filter, sort and CSV export", async ({ page }) => {
   const csv = await res.text();
   expect(csv).toContain("Quotes socis");
   expect(csv).not.toContain("Paper oficina");
+});
+
+test("record page: notes, file, history, archive and linked records", async ({ page }) => {
+  await login(page, "admin");
+  await page.goto("/admin/erp/suppliers");
+  await addForm(page).getByLabel("Nom").fill("Fitxa Test SL");
+  await addForm(page).getByRole("button", { name: "Afegeix" }).click();
+  await expect(page.getByRole("status")).toContainText("Desat");
+  await page.locator("summary", { hasText: "Fitxa Test SL" }).click();
+  await page.locator("details", { hasText: "Fitxa Test SL" }).getByRole("link", { name: "Obre la fitxa" }).click();
+  await expect(page.getByRole("heading", { name: "Fitxa Test SL" })).toBeVisible();
+
+  await page.getByLabel("Nova nota").fill("Trucada amb el gerent");
+  await page.getByRole("button", { name: "Afegeix la nota" }).click();
+  await expect(page.getByRole("region", { name: "Notes" })).toContainText("Trucada amb el gerent");
+
+  await page.getByLabel("Telèfon").fill("93 123 45 67");
+  await page.getByRole("region", { name: "Dades" }).getByRole("button", { name: "Desa" }).click();
+  await expect(page.getByRole("region", { name: "Historial" })).toContainText("Telèfon: — → 93 123 45 67");
+
+  const pdf = Buffer.from("%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF");
+  await page.locator('input[type=file]').setInputFiles({ name: "contracte.pdf", mimeType: "application/pdf", buffer: pdf });
+  await page.locator("button", { hasText: "Puja" }).click();
+  await expect(page.getByRole("region", { name: "Fitxers" })).toContainText("contracte.pdf");
+
+  await page.getByRole("button", { name: "Arxiva" }).click();
+  await expect(page).toHaveURL(/\/admin\/erp\/suppliers\?/);
+  await expect(page.getByText("Fitxa Test SL")).toHaveCount(0);
+  await page.goto("/admin/erp/suppliers?archived=1");
+  await expect(page.getByText("Fitxa Test SL")).toBeVisible();
 });
