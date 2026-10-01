@@ -16,8 +16,8 @@ A local hook (`.githooks/pre-push`, installed by `pnpm install`) refuses pushes 
 
 ## Who owns what
 One app and one database, two areas (`.github/CODEOWNERS` makes GitHub ask the right person to review):
-- **Joan Marc (`@jmarcadell4-maker`) — the website:** the public site, and the admin of the website itself: content, media, categories, forms builder, settings, users, errors.
-- **Sam (`@s-sanchez-gremi`) — the business tools:** CRM (contacts and leads), project manager (clients, projects, tasks), client portal, and the future ERP/invoicing.
+- **Joan Marc (`@jmarcadell4-maker`) — the website:** the public site, and the admin of the website itself: content, media, categories, settings, users, errors.
+- **Sam (`@s-sanchez-gremi`) — the business tools:** CRM (contacts and leads), **forms** (builder, responses and the public submission pipeline), project manager (clients, projects, tasks), client portal, and the ERP registry.
 - **Shared, both review:** the database (`db/schema.ts`, migrations), `auth.ts` and `permissions.ts`, `proxy.ts`/CSP, the admin layout, menu, dashboard and global search, `deploy/`, `scripts/`, `.github/` and `CLAUDE.md`.
 - **Working across the line** is fine (a small fix in the other's area): open the PR as usual; the owner reviews it. Agree first before anything larger.
 - **New admin screens** (e.g. invoices) get their own folder under `app/admin/(staff)/(app)/` plus their own `lib/<name>.ts`, so two people rarely touch the same file. The menu (`AdminNav.tsx`) and dashboard are shared: keep edits there to one line per item.
