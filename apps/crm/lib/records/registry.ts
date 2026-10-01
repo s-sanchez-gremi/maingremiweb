@@ -1,0 +1,8 @@
+// Every entity the engine serves. Add a definition file under ./entities and list it here.
+import type { Entity } from "./entity";
+import { erpEntities } from "./entities/erp";
+
+export const ENTITIES: Record<string, Entity> = Object.fromEntries([...erpEntities].map((e) => [e.key, e]));
+export const entityByKey = (key: string) => ENTITIES[key];
+/** Entities that have screens of their own (lookup-only ones such as users do not). */
+export const screenEntity = (key: string) => { const e = ENTITIES[key]; return e && !e.hidden ? e : undefined; };

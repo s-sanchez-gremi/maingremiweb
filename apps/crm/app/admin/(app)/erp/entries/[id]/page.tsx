@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { asc, and, eq, isNull } from "drizzle-orm";
 import { EntryForm } from "@/components/admin/EntryForm";
-import { loadOptions } from "@/lib/erp-entities";
+import { loadOptions } from "@/lib/erp-options";
 import { db } from "@apex/db";
 import { erpEntries, members } from "@apex/db/schema";
 

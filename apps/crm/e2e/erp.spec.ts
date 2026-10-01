@@ -101,3 +101,26 @@ test("ERP registry: setup lists, an expense with a document, member fees in bulk
   await expect(page.getByRole("heading", { name: /Resum/ })).toBeVisible();
   await expect(page.getByText("Curs Packaging 2026")).toBeVisible();
 });
+
+test("engine lists: filter, sort and CSV export", async ({ page }) => {
+  await login(page, "admin");
+  await page.goto("/admin/erp/categories");
+  for (const [kind, name] of [["income", "Quotes socis"], ["expense", "Paper oficina"]] as const) {
+    await addForm(page).getByLabel("Tipus").selectOption(kind);
+    await addForm(page).getByLabel("Nom", { exact: true }).fill(name);
+    await addForm(page).getByRole("button", { name: "Afegeix" }).click();
+    await expect(page.getByRole("status")).toContainText("Desat");
+  }
+  await page.goto("/admin/erp/categories?f_kind=expense");
+  await expect(page.locator("select[name=f_kind]")).toHaveValue("expense");
+  await expect(page.getByText("Despesa · Paper oficina")).toBeVisible();
+  await expect(page.getByText("Ingrés · Quotes socis")).toHaveCount(0);
+  await page.locator("select[name=f_kind]").selectOption("income");
+  await page.getByRole("button", { name: "Aplica" }).click();
+  await expect(page).toHaveURL(/f_kind=income/);
+  const res = await page.request.get("/admin/erp/categories/export?f_kind=income");
+  expect(res.headers()["content-type"]).toContain("text/csv");
+  const csv = await res.text();
+  expect(csv).toContain("Quotes socis");
+  expect(csv).not.toContain("Paper oficina");
+});
