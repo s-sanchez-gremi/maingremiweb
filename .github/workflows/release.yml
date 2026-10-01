@@ -14,6 +14,12 @@ on:
       tag:
         description: "Production: image tag to deploy (for example sha-1a2b3c4, one already running on staging)"
         required: true
+      only:
+        description: "Which app to release: all, web (website + CMS) or crm (CRM, forms, ERP, portal). The apps are released and rolled back independently."
+        required: false
+        default: all
+        type: choice
+        options: [all, web, crm]
 
 permissions:
   contents: read
@@ -84,6 +90,7 @@ jobs:
       - uses: ./.github/actions/deploy
         with:
           tag: ${{ inputs.tag }}
+          only: ${{ inputs.only }}
           host: ${{ secrets.DEPLOY_HOST }}
           user: ${{ secrets.DEPLOY_USER }}
           dir: ${{ secrets.DEPLOY_DIR }}
