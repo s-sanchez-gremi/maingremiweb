@@ -9,7 +9,7 @@ const at = (key: string) => `/admin/erp/${key}`;
 
 export const erpEntities: Entity[] = [
   {
-    ...base, key: "suppliers", title: "Proveïdors", table: suppliers, basePath: at("suppliers"), search: ["name", "taxId", "email"],
+    ...base, key: "suppliers", title: "Proveïdors", table: suppliers, basePath: at("suppliers"), detail: true, archivable: true, search: ["name", "taxId", "email"],
     fields: [f("name", "Nom", "text", { required: true }), f("taxId", "NIF/CIF", "text"), f("email", "Correu", "email"), f("phone", "Telèfon", "phone"), f("notes", "Notes", "textarea", { wide: true })],
     summary: (r) => `${r.name}${r.taxId ? ` · ${r.taxId}` : ""}`,
   },
@@ -42,7 +42,7 @@ export const erpEntities: Entity[] = [
     hint: "L'IVA de les quotes l'ha de confirmar l'assessor (per defecte 0 %).",
   },
   {
-    ...base, key: "members", title: "Socis", table: members, basePath: at("members"), search: ["name", "taxId", "email"],
+    ...base, key: "members", title: "Socis", table: members, basePath: at("members"), detail: true, archivable: true, search: ["name", "taxId", "email"],
     fields: [
       f("name", "Empresa / nom", "text", { required: true }), f("taxId", "NIF/CIF", "text"), f("email", "Correu", "email"), f("phone", "Telèfon", "phone"),
       f("status", "Estat", "select", { filter: true, choices: [["active", "Actiu"], ["left", "Baixa"]] }),

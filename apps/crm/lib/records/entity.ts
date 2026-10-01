@@ -16,5 +16,7 @@ export type Entity = {
   label?: string;            // column used when another record points here (default "name")
   summary: (r: Record<string, unknown>) => string;
   hint?: string;
+  detail?: boolean;          // record page with notes, files, history and linked records ({basePath}/{id})
+  archivable?: boolean;      // table has `archivedAt`: records are archived and restored instead of only deleted
   hidden?: boolean;          // lookup-only (users): no screens
 };

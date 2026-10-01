@@ -33,6 +33,7 @@ export const suppliers = pgTable("suppliers", {
   phone: text().notNull().default(""),
   notes: text().notNull().default(""),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
 });
 
 export const feeTiers = pgTable("fee_tiers", {
@@ -58,6 +59,7 @@ export const members = pgTable("members", {
   contactId: uuid("contact_id").unique().references(() => contacts.id, { onDelete: "set null" }),
   notes: text().notNull().default(""),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
 });
 
 export const subscriptions = pgTable("subscriptions", {
