@@ -22,6 +22,8 @@ export default defineConfig({
     { name: "web", testDir: "../apps/web/e2e", use: { baseURL: WEB_URL } },
     { name: "crm", testDir: "../apps/crm/e2e", use: { baseURL: CRM_URL } },
   ],
+  // The readiness URLs must NOT touch the database: Playwright starts the servers BEFORE the global setup creates the throwaway database
+  // (a /api/health URL waits forever on a fresh machine; it only worked locally because an old database was left over).
   webServer: [
     {
       command: `${build}pnpm exec next start -p ${WEB_PORT}`,
@@ -30,7 +32,7 @@ export default defineConfig({
     },
     {
       command: `${build}pnpm exec next start -p ${CRM_PORT}`,
-      cwd: "../apps/crm", url: `${CRM_URL}/api/health`, timeout: 600_000, reuseExistingServer: false,
+      cwd: "../apps/crm", url: `${CRM_URL}/robots.txt`, timeout: 600_000, reuseExistingServer: false,
       env: { ...base, NEXT_DIST_DIR: ".next-e2e", WEB_INTERNAL_URL: WEB_URL },   // after a form changes, the CRM app expires the website's cache
     },
   ],
