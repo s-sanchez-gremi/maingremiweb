@@ -189,3 +189,19 @@ describe("former members database", () => {
     expect((await db.select().from(members)).find((x) => x.name === "Antiga Soci SA")!.status).toBe("left");
   });
 });
+
+describe("external (non-member) companies", () => {
+  it("are imported as companies without ERP records, merged with existing ones by name, never overwriting", async () => {
+    const existing = company({ name: "Gràfiques Vila, S.L.", cif: "" });
+    const ext = (name: string, extra: Record<string, unknown> = {}) => page({ Nombre: title(name), CIF: t(""), Agremiat: sel(null), Cuota: status("Sense dades"), web: { type: "url", url: "https://vila.example" }, ...extra });
+    const old = ext("Antic Extern SA", { Agremiat: sel("antic agremiat"), Import: num(300) });
+    const r = await run({ companies: ["c"], external: ["e"] }, { c: rows(existing), e: rows(ext("GRAFIQUES VILA SL"), ext("Altra Empresa"), old) });
+    const e = r.reports.find((x) => x.source.startsWith("Externes"))!;
+    expect(e).toMatchObject({ created: 2, updated: 1 });
+    const all = await db.select().from(clients);
+    expect(all).toHaveLength(3);
+    expect(all.find((x) => x.name === "Gràfiques Vila, S.L.")!.website).toBe("https://vila.example"); // blank filled
+    expect(all.find((x) => x.name === "Altra Empresa")!.memberStatus).toBe("prospect");
+    expect(await db.select().from(members)).toHaveLength(1); // only the real member from the main list
+  });
+});

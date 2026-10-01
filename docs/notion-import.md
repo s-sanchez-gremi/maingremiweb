@@ -12,6 +12,7 @@ Notion is only **read**, never changed. The import runs on your Mac, straight fr
 NOTION_TOKEN=secret_...
 NOTION_DB_COMPANIES=<id>,<id>      # every copy of Agremiats / Empreses (duplicates are merged by CIF)
 NOTION_DB_FORMER=<id>              # "Baixa agremiat": former members (every row becomes Exagremiada; a company also listed as a current member is left unchanged and counted)
+NOTION_DB_EXTERNAL=<id>            # "Externes": non-member companies (names, websites…); no ERP member or fee records are created for them
 NOTION_DB_GALA=<id>
 NOTION_DB_VISITS=<id>              # "Visites agremiats"
 NOTION_DB_LABOUR=<id>              # Laboral (optional)
