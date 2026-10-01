@@ -1,0 +1,80 @@
+# Who reviews what. GitHub asks the owner of the changed files to review a pull request (the LAST matching line wins).
+# Two areas, one app and one database. Anything not listed (or listed as shared) needs BOTH people.
+#   @jmarcadell4-maker   = website: public site + the website's admin (content, media, forms builder, settings, users)
+#   @s-sanchez-gremi     = business tools: CRM, project manager, ERP, client portal
+
+# ---- shared / infrastructure: both review ----
+*                                   @s-sanchez-gremi @jmarcadell4-maker
+/apps/web/db/                       @s-sanchez-gremi @jmarcadell4-maker
+/db/migrations/                     @s-sanchez-gremi @jmarcadell4-maker
+/apps/web/db/schema/website.ts      @jmarcadell4-maker
+/apps/web/db/schema/crm.ts          @s-sanchez-gremi
+/apps/web/lib/auth.ts               @s-sanchez-gremi @jmarcadell4-maker
+/apps/web/lib/permissions.ts        @s-sanchez-gremi @jmarcadell4-maker
+/apps/web/proxy.ts                  @s-sanchez-gremi @jmarcadell4-maker
+/apps/web/lib/csp.ts                @s-sanchez-gremi @jmarcadell4-maker
+/apps/web/app/admin/(app)/layout.tsx          @s-sanchez-gremi @jmarcadell4-maker
+/apps/web/app/admin/(app)/page.tsx            @s-sanchez-gremi @jmarcadell4-maker
+/apps/web/app/admin/(app)/search/             @s-sanchez-gremi @jmarcadell4-maker
+/apps/web/components/admin/AdminNav.tsx       @s-sanchez-gremi @jmarcadell4-maker
+/apps/web/components/admin/ListSearch.tsx     @s-sanchez-gremi @jmarcadell4-maker
+/apps/web/lib/search.ts             @s-sanchez-gremi @jmarcadell4-maker
+/apps/web/lib/storage.ts            @s-sanchez-gremi @jmarcadell4-maker
+/apps/web/lib/outbox.ts             @s-sanchez-gremi @jmarcadell4-maker
+/deploy/                            @s-sanchez-gremi @jmarcadell4-maker
+/scripts/                           @s-sanchez-gremi @jmarcadell4-maker
+/.github/                           @s-sanchez-gremi @jmarcadell4-maker
+/CLAUDE.md                          @s-sanchez-gremi @jmarcadell4-maker
+
+# ---- website: Joan Marc ----
+/apps/web/app/(site)/               @jmarcadell4-maker
+/apps/web/app/embed/                @jmarcadell4-maker
+/apps/web/app/api/forms/            @jmarcadell4-maker
+/apps/web/app/api/media/            @jmarcadell4-maker
+/apps/web/app/sitemap.ts            @jmarcadell4-maker
+/apps/web/app/robots.ts             @jmarcadell4-maker
+/apps/web/app/styleguide/           @jmarcadell4-maker
+/apps/web/app/admin/(app)/content/  @jmarcadell4-maker
+/apps/web/app/admin/(app)/media/    @jmarcadell4-maker
+/apps/web/app/admin/(app)/categories/ @jmarcadell4-maker
+/apps/web/app/admin/(app)/settings/ @jmarcadell4-maker
+/apps/web/app/admin/(app)/users/    @jmarcadell4-maker
+/apps/web/app/admin/(app)/forms/    @jmarcadell4-maker
+/apps/web/app/admin/(app)/errors/   @jmarcadell4-maker
+/apps/web/app/admin/(app)/account/  @jmarcadell4-maker
+/apps/web/sections/                 @jmarcadell4-maker
+/apps/web/components/site/          @jmarcadell4-maker
+/apps/web/components/ui/            @jmarcadell4-maker
+/apps/web/components/admin/FieldForm.tsx   @jmarcadell4-maker
+/apps/web/components/admin/ListEditor.tsx  @jmarcadell4-maker
+/apps/web/styles/                   @jmarcadell4-maker
+/apps/web/lib/consent/              @jmarcadell4-maker
+/apps/web/lib/forms/                @jmarcadell4-maker
+/apps/web/lib/content*.ts           @jmarcadell4-maker
+/apps/web/lib/publish.ts            @jmarcadell4-maker
+/apps/web/lib/page-data.ts          @jmarcadell4-maker
+/apps/web/lib/seo.ts                @jmarcadell4-maker
+/apps/web/lib/media*.ts             @jmarcadell4-maker
+/apps/web/lib/settings-schema.ts    @jmarcadell4-maker
+/apps/web/lib/users.ts              @jmarcadell4-maker
+/apps/web/lib/errors.ts             @jmarcadell4-maker
+/apps/web/lib/heartbeat.ts          @jmarcadell4-maker
+/apps/web/e2e/design.spec.ts        @jmarcadell4-maker
+/apps/web/e2e/cms.spec.ts           @jmarcadell4-maker
+/apps/web/e2e/consent.spec.ts       @jmarcadell4-maker
+/docs/guia-editor.md                @jmarcadell4-maker
+
+# ---- business tools: Sam ----
+/apps/web/app/admin/(app)/leads/    @s-sanchez-gremi
+/apps/web/app/admin/(app)/clients/  @s-sanchez-gremi
+/apps/web/app/admin/(app)/projects/ @s-sanchez-gremi
+/apps/web/app/admin/(app)/tasks/    @s-sanchez-gremi
+/apps/web/app/portal/               @s-sanchez-gremi
+/apps/web/components/admin/TaskRow.tsx          @s-sanchez-gremi
+/apps/web/components/admin/AttachedResponses.tsx @s-sanchez-gremi
+/apps/web/lib/leads.ts              @s-sanchez-gremi
+/apps/web/lib/projects.ts           @s-sanchez-gremi
+/apps/web/lib/portal.ts             @s-sanchez-gremi
+/apps/web/lib/portal-auth.ts        @s-sanchez-gremi
+/apps/web/e2e/projects.spec.ts      @s-sanchez-gremi
+/apps/web/e2e/portal.spec.ts        @s-sanchez-gremi
