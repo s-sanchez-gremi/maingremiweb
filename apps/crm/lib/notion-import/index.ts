@@ -4,6 +4,7 @@ import type { db as Db } from "@apex/db";
 import { importCompanies } from "./companies";
 import { importGala, importVisits } from "./events";
 import { importGeneric, TARGETS } from "./generic";
+import { importSponsors } from "./sponsors";
 import { queryDatabase, type Row } from "./notion";
 import { formatReport, type Report } from "./report";
 
@@ -27,7 +28,8 @@ export async function runImport(o: Options): Promise<{ reports: Report[]; text: 
       if (want("external")) { const r = await importCompanies(ctx, await readAll(o.read, o.sources.external), { label: "Externes (no socis)", erp: false }); reports.push(r.report); for (const [k, v] of r.idmap) idmap.set(k, v); }
       if (want("gala")) reports.push(await importGala(ctx, await readAll(o.read, o.sources.gala), idmap));
       if (want("visits")) reports.push(await importVisits(ctx, await readAll(o.read, o.sources.visits), idmap));
-      for (const k of ["labour", "training", "sponsors", "jobseekers"] as const) if (want(k)) reports.push(await importGeneric(ctx, k, await readAll(o.read, o.sources[k])));
+      if (want("sponsors")) reports.push(await importSponsors(ctx, await readAll(o.read, o.sources.sponsors), idmap));
+      for (const k of ["labour", "training", "jobseekers"] as const) if (want(k)) reports.push(await importGeneric(ctx, k, await readAll(o.read, o.sources[k])));
       if (o.dryRun) throw new Rollback();
     });
   } catch (e) { if (!(e instanceof Rollback)) throw e; }

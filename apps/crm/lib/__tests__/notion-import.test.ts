@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@apex/db";
-import { clients, eventAttendance, events, feeTiers, jobSeekers, members, people, visits, users } from "@apex/db/schema";
+import { clients, eventAttendance, events, feeTiers, jobSeekers, members, people, sponsors, visits, users } from "@apex/db/schema";
 import { mergeCompanies } from "../notion-import/companies";
 import { queryDatabase, toRow, flattenProp, mask, type Row } from "../notion-import/notion";
 import { runImport } from "../notion-import";
@@ -27,7 +27,7 @@ const run = (sources: Parameters<typeof runImport>[0]["sources"], data: Record<s
   runImport({ db, read: async (id) => data[id] ?? [], sources, dryRun: false, ...extra });
 
 beforeEach(async () => {
-  for (const x of [eventAttendance, events, visits, jobSeekers, people, members, feeTiers, clients, users]) await db.delete(x);
+  for (const x of [eventAttendance, events, visits, sponsors, jobSeekers, people, members, feeTiers, clients, users]) await db.delete(x);
 });
 
 describe("reading Notion", () => {
@@ -203,5 +203,26 @@ describe("external (non-member) companies", () => {
     expect(all.find((x) => x.name === "Gràfiques Vila, S.L.")!.website).toBe("https://vila.example"); // blank filled
     expect(all.find((x) => x.name === "Altra Empresa")!.memberStatus).toBe("prospect");
     expect(await db.select().from(members)).toHaveLength(1); // only the real member from the main list
+  });
+});
+
+describe("sponsors (Patrocinadors)", () => {
+  it("keeps the whole prospect pipeline readable, links the company by name, takes a plain budget as the amount", async () => {
+    const co = company({ name: "Gràfiques Vila, S.L.", cif: "B1" });
+    const sp = (name: string, extra: Record<string, unknown> = {}) => page({ Nombre: title(name), agremiat: multi("si"), esdeveniments: multi("Gala Gràfica", "Congrés"), "últim contacte": date("2026-02-10"), "persona de contacte": email("c@vila.example"), contactats: { type: "checkbox", checkbox: true }, proposta: t("Pack or"), pressupost: t("5.000 €"), seguiment: t("Trucar al març"), "històric": t(""), "descripció activitat": t("Impremta"), "desglossament press.": t(""), "📜 Empreses": rel(), ...extra });
+    const s = rows(sp("Grafiques Vila SL"), sp("Altra, SA", { pressupost: t("a negociar") }));
+    const r = await run({ companies: ["c"], sponsors: ["s"] }, { c: rows(co), s });
+    expect(r.reports.find((x) => x.source === "Patrocinadors")).toMatchObject({ created: 2 });
+    const all = await db.select().from(sponsors);
+    const vila = all.find((x) => x.name === "Grafiques Vila SL")!;
+    expect(vila).toMatchObject({ kind: "sponsor", status: "prospect", amountCents: 500000 });
+    expect(vila.companyId).toBeTruthy();
+    expect(vila.notes).toContain("Esdeveniments: Gala Gràfica, Congrés");
+    expect(vila.notes).toContain("Seguiment: Trucar al març");
+    const altra = all.find((x) => x.name === "Altra, SA")!;
+    expect([altra.amountCents, altra.companyId]).toEqual([null, null]);
+    expect(altra.notes).toContain("Pressupost: a negociar");
+    await run({ sponsors: ["s"] }, { s });
+    expect(await db.select().from(sponsors)).toHaveLength(2); // repeatable
   });
 });

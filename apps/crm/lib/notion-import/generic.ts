@@ -3,7 +3,7 @@
 // so nothing is lost and a person can tidy the record afterwards. Re-running never duplicates (external_ref).
 import { eq } from "drizzle-orm";
 import type { AnyPgTable } from "drizzle-orm/pg-core";
-import { jobSeekers, labourCases, sponsors, trainingCourses } from "@apex/db/schema";
+import { jobSeekers, labourCases, trainingCourses } from "@apex/db/schema";
 import type { Ctx } from "./companies";
 import { newReport } from "./report";
 import { isoDate, mask, str, type Row } from "./notion";
@@ -16,7 +16,6 @@ const phoneOf = (r: Row) => Object.entries(r.props).find(([k, v]) => /tel|phone|
 export const TARGETS: Record<string, Target> = {
   labour: { label: "Laboral", table: labourCases, name: "title", notes: "summary" },
   training: { label: "Formació bonificada", table: trainingCourses, name: "name", notes: "notes" },
-  sponsors: { label: "Patrocinadors", table: sponsors, name: "name", notes: "notes" },
   jobseekers: {
     label: "Borsa de treball", table: jobSeekers, name: "name", notes: "notes",
     // consent and retention are NOT known from Notion: they stay empty on purpose, and the note says so

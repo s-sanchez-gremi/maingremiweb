@@ -37,7 +37,8 @@ Safest first run: point `DATABASE_URL` at a throwaway database (`createdb apex_i
 | Cuota status + Import | an **ERP member** for member/former companies and a fee tier "Quota N €" (yearly amount); "Impagament" / "Sense dades" is kept in the member's notes. Fee *entries* are not created: generate them from *Quotes* when you decide. |
 | Gala list | one **event** + **people** + **attendance** (categories, seats and row in the attendance notes). **DNI numbers are not imported.** |
 | Visites agremiats | **Visits** (status, type, date, company; the responsible person's name goes into the summary) |
-| Laboral, Formació bonificada, Patrocinadors | **Labour cases / Training / Sponsors**: the page title is the name, every other property is kept as text lines in the notes |
+| Patrocinadors | **Sponsors** (a prospect pipeline: status *Potencial*): events targeted, last contact, contact, proposal, budget, follow-up and history are kept as readable lines in the notes; linked to a company when its name matches exactly one; a plain-number budget becomes the amount |
+| Laboral, Formació bonificada | **Labour cases / Training**: the page title is the name, every other property is kept as text lines in the notes |
 | Borsa de treball | **Job seekers** (see below) |
 
 ## 4. Job seekers (Borsa de treball)
