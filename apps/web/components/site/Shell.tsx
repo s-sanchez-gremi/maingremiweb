@@ -36,7 +36,10 @@ export async function Shell({ locale, alternates, children }: { locale: Locale; 
       </div>
       <header className="header">
         <div className="wrap">
-          <SmartLink href={home} className="logo">APEX</SmartLink>
+          <SmartLink href={home} className="logo">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/gremi-logo.png" alt="GREMI, Indústria i Comunicació Gràfica de Catalunya, des del 1491" width={600} height={349} />
+          </SmartLink>
           <NavDesktop items={nav} label="Principal" />
           <div className="header-actions">
             <SearchBox locale={locale} />
@@ -74,7 +77,10 @@ export async function Shell({ locale, alternates, children }: { locale: Locale; 
         <div className="wrap">
           <div className="footer-grid">
             <div>
-              <SmartLink href={home} className="logo">APEX</SmartLink>
+              <SmartLink href={home} className="logo">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/brand/gremi-logo.png" alt="GREMI, Indústria i Comunicació Gràfica de Catalunya, des del 1491" width={600} height={349} />
+              </SmartLink>
               {L(s.footerText, locale) && <p className="about">{L(s.footerText, locale)}</p>}
             </div>
             {s.footerColumns.map((c, i) => (

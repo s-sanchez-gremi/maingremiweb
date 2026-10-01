@@ -50,7 +50,8 @@
 .site .langs a[aria-current=true]{color:var(--bg);font-weight:700;background:var(--ink2)}
 .site .header{background:var(--bg);border-bottom:1px solid var(--line);position:relative}
 .site .header .wrap{display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:72px}
-.site .logo{font-family:var(--serif);font-size:26px;font-weight:700;letter-spacing:1px;line-height:1}
+.site .logo{display:inline-flex;align-items:center;min-height:var(--tap)}
+.site .logo img{height:46px;width:auto}
 .site .nav-desktop,.site .header-actions{display:none}
 .site .nav-desktop ul,.site .nav-mobile ul{list-style:none;margin:0;padding:0}
 .site .nav-desktop ul{display:flex;gap:40px;font-size:15px;font-weight:500}
@@ -153,7 +154,7 @@
 .site .footer ul{list-style:none;margin:0;padding:0;display:grid;gap:2px;font-size:var(--fs-sm);color:var(--text2)}
 .site .footer li a{display:inline-flex;align-items:center;min-height:32px}
 .site .footer a:hover{color:var(--accent)}
-.site .footer .logo{font-size:22px}
+.site .footer .logo img{height:84px}
 .site .footer .about{font-size:13px;color:var(--text2);max-width:34ch;margin-top:14px;line-height:1.6}
 .site .footer-bottom{display:flex;justify-content:space-between;gap:var(--sp-3);flex-wrap:wrap;margin-top:var(--sp-6);padding:var(--sp-5) 0 28px;border-top:1px solid var(--line);font-size:var(--fs-xs);color:var(--text2)}
 .site .footer-bottom ul{display:flex;gap:20px;flex-wrap:wrap}
@@ -175,7 +176,7 @@
   .site .topbar .wrap{min-height:40px}
   .site .langs a{min-width:36px;min-height:36px}
   .site .header .wrap{min-height:88px}
-  .site .logo{font-size:28px}
+  .site .header .logo img{height:66px}
   .site .hero .wrap{min-height:460px;padding-top:var(--sp-7);padding-bottom:var(--sp-7)}
   .site .tiles-grid{grid-template-columns:repeat(4,1fr);column-gap:0}
   .site .tile{padding:var(--sp-6) 28px}
