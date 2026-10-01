@@ -4,6 +4,10 @@
 import { defineConfig } from "@playwright/test";
 import { CRM_PORT, CRM_URL, CRON_SECRET, E2E_DB, REJECTED_STATE, WEB_PORT, WEB_URL } from "./constants";
 
+// scripts/ci.sh builds both apps one after the other BEFORE the tests (E2E_PREBUILT=1): two builds at once starve a small CI runner.
+const prebuilt = !!process.env.E2E_PREBUILT;
+const build = prebuilt ? "" : "rm -rf .next-e2e .next/types .next/dev/types && pnpm exec next build && ";
+
 const base = { DATABASE_URL: E2E_DB, CRON_SECRET, APP_ENV: "e2e", SITE_URL: WEB_URL, BOT_SECRET: "e2e-bot-secret-value-for-tests", E2E_WEB_URL: WEB_URL, E2E_CRM_URL: CRM_URL };
 
 export default defineConfig({
@@ -20,13 +24,13 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `rm -rf .next-e2e .next/types .next/dev/types && pnpm exec next build && pnpm exec next start -p ${WEB_PORT}`,
-      cwd: "../apps/web", url: `${WEB_URL}/robots.txt`, timeout: 300_000, reuseExistingServer: false,
+      command: `${build}pnpm exec next start -p ${WEB_PORT}`,
+      cwd: "../apps/web", url: `${WEB_URL}/robots.txt`, timeout: 600_000, reuseExistingServer: false,
       env: { ...base, NEXT_DIST_DIR: ".next-e2e", CRM_INTERNAL_URL: CRM_URL },   // /api/forms/* is forwarded to the CRM app (no Caddy here)
     },
     {
-      command: `rm -rf .next-e2e .next/types .next/dev/types && pnpm exec next build && pnpm exec next start -p ${CRM_PORT}`,
-      cwd: "../apps/crm", url: `${CRM_URL}/api/health`, timeout: 300_000, reuseExistingServer: false,
+      command: `${build}pnpm exec next start -p ${CRM_PORT}`,
+      cwd: "../apps/crm", url: `${CRM_URL}/api/health`, timeout: 600_000, reuseExistingServer: false,
       env: { ...base, NEXT_DIST_DIR: ".next-e2e", WEB_INTERNAL_URL: WEB_URL },   // after a form changes, the CRM app expires the website's cache
     },
   ],

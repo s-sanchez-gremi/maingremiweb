@@ -37,8 +37,11 @@ for app in web crm; do
 done
 
 if [ "$FAST" = 0 ]; then
-  step "end-to-end tests (real browser, real production build)"
-  pnpm --filter @apex/e2e test
+  step "end-to-end tests (real browser, real production builds of both apps)"
+  for app in web crm; do
+    ( cd apps/$app && rm -rf .next-e2e .next/types .next/dev/types && NEXT_DIST_DIR=.next-e2e pnpm exec next build >/dev/null ) && echo "$app e2e build ok"   # one after the other: parallel builds starve small CI machines
+  done
+  E2E_PREBUILT=1 pnpm --filter @apex/e2e test
   if [ "$DOCKER" = 1 ]; then
     step "Docker image smoke test"
     ./scripts/docker-smoke.sh
