@@ -7,6 +7,8 @@
 *                                   @s-sanchez-gremi @jmarcadell4-maker
 /apps/web/db/                       @s-sanchez-gremi @jmarcadell4-maker
 /db/migrations/                     @s-sanchez-gremi @jmarcadell4-maker
+/apps/web/db/schema/website.ts      @jmarcadell4-maker
+/apps/web/db/schema/crm.ts          @s-sanchez-gremi
 /apps/web/lib/auth.ts               @s-sanchez-gremi @jmarcadell4-maker
 /apps/web/lib/permissions.ts        @s-sanchez-gremi @jmarcadell4-maker
 /apps/web/proxy.ts                  @s-sanchez-gremi @jmarcadell4-maker
