@@ -272,3 +272,8 @@ Ask the person running this guide for the mockup artifact link(s) if they weren'
 - **Subscriptions:** *Registra la renovació* creates the expense and moves the renewal date by the period.
 - **Records are corrected, not deleted:** entries can be edited and **voided** (excluded from lists and totals, kept for traceability). Financial rows never cascade from people: links are `set null` and the supplier/member **name is copied onto the entry**, so deleting a supplier, member or contact (erasure) leaves the financial record intact (retention rules: adviser to confirm).
 - **Ownership:** Sam (business tools). New tables live in `db/schema/erp.ts`.
+
+## Monorepo layout after the shared-packages step (S1 of `docs/split-plan.md`)
+- **Source packages** (plain TypeScript, compiled by the apps through `transpilePackages`; no build step): `packages/db` (`@apex/db`: schema in core/website/crm/erp files, lazy client, migration runner), `packages/core` (`@apex/core/*`: staff auth with `SESSION_COOKIE`, permissions, storage, mail+outbox, money, search helpers, file detection, the field language, error log, heartbeat, `siteUrl`), `packages/ui` (`@apex/ui`: `tokens.css`, `admin.css`, Button/Card/Field, ConfirmButton, ListEditor, FieldForm, ListSearch, richtext), `packages/forms` (`@apex/forms/*`: field types, validation, messages, the pipeline, `FormRenderer`). SQL migrations stay in `/db/migrations`.
+- **Rules:** packages never import `@/…` (an app) and never import another app; an app imports packages by name. `FormRenderer` knows nothing about cookies: the website wraps it in `ConsentAwareForm`, which passes remembered campaign tags only when the visitor allowed them.
+- Still one app (`apps/web`) in this step; the CRM app comes in S2.

@@ -61,6 +61,7 @@ test("client portal: invite → set password → sees only own project and share
   await expect(c.getByRole("link", { name: "Brief compartit" })).toBeVisible();
   await expect(c.getByText("Nota interna")).toHaveCount(0);
   await expect(c.getByText("Projecte B secret")).toHaveCount(0);
+  await expect(c).toHaveTitle(/Portal de clients/); // the title streams in after the first paint on a slow machine; axe must not run before it
   const a11y = await new AxeBuilder({ page: c }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   expect(a11y.violations).toEqual([]);
 
