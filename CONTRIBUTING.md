@@ -25,7 +25,7 @@ Two apps in one repository sharing one database (`docs/split-plan.md`); `.github
 - **Database changes are the main collision point.** Tell the other person before adding a migration, and rebase right before merging so the number is the next free one. Tables live in `packages/db/src/schema/{core,website,crm,erp}.ts`; the migration rule for independent releases is in `docs/split-plan.md` (additive only).
 
 ## Rules that prevent the usual collisions
-- **Migrations** (`db/migrations/NNNN_name.sql`): never edit one that is already on `main`. Take the next free number **after** rebasing on `main`; if two branches both added `0012_…`, the second one to merge renumbers its file (a unit test fails on duplicates or gaps).
+- **Migrations** (`db/migrations/NNNN_name.sql`): never edit one that is already on `main`, and keep them **additive** (the website and the CRM app deploy independently, so either can run one version behind: add columns/tables; drop or rename only in a later release). Take the next free number **after** rebasing on `main`; if two branches both added `0012_…`, the second one to merge renumbers its file (a unit test fails on duplicates or gaps).
 - **Lockfile** (`pnpm-lock.yaml`): on a conflict, take `main`'s version and run `pnpm install` again; never hand-edit.
 - **`CLAUDE.md`** is the source of truth for decisions: change it in the same PR as the behaviour it describes.
 - **Secrets** never go in git (`.env` is ignored). Production/staging values live on the servers and in GitHub environment secrets.

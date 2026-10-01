@@ -1,6 +1,6 @@
 # Plan: split the app into "website + CMS" and "CRM + internal tools"
 
-Status: **S1 (shared packages) and S2 (CRM app) done; S3-S5 pending.** Owner: Sam. Needs a read from Joan Marc (it moves shared code), then a short freeze (section 8).
+Status: **S1 (shared packages), S2 (CRM app) and S3 (image, deploy, Caddy hosts, drills) done; S4 (database users) and S5 (final docs) pending.** Owner: Sam. Needs a read from Joan Marc (it moves shared code), then a short freeze (section 8).
 
 ## 1. Goal
 Two apps in the **same repository and the same Postgres database**, so that a mistake, a bad release or an outage in one area cannot break the other:
@@ -58,7 +58,7 @@ deploy/  one Dockerfile, build arg APP=web|crm, one compose with both services
 - **Dashboard, menu and global search:** each app gets its own (the current shared ones are split in step S2).
 
 ## 7. Releases without breaking each other
-- One image build per app from one Dockerfile (`APP=web|crm`); compose runs `web`, `crm` and Caddy; `deploy.sh` deploys both by default or one (`--only crm`), waits for each health check and rolls back only the app that failed.
+- **One image holds both apps** (a deviation from the first draft, which said one image per app): the container command picks `start-web` or `start-crm`, while each app keeps its own service, version tag (`APEX_TAG_WEB` / `APEX_TAG_CRM`), health check and rollback; one build, one artifact, simpler pipeline; compose runs `web`, `crm` and Caddy; `deploy.sh` deploys both by default or one (`--only crm`), waits for each health check and rolls back only the app that failed.
 - **Migrations run once per release, before either app starts, and must be backward compatible with the previous version of both apps** (add columns/tables, never drop or rename in the same release; remove in a later release once nothing uses it). This is what lets the two apps ship independently. `CONTRIBUTING.md` gets this rule and the PR template a checkbox.
 - CI keeps one workflow with two build/test targets; later path filters can skip an app's e2e when only the other changed.
 - Caddy: `<domain>` → web, **except `/api/forms/*` → crm** (open to everyone, same address for the browser); `crm.<domain>` → crm, with the allow-list rule from `deploy/Caddyfile` and `/portal*` exempt. Staging mirrors this (`staging-crm.<domain>`), `scripts/caddy-drill.sh` is extended to prove both rules.
