@@ -4,7 +4,7 @@ import { and, asc, count, desc, eq, isNotNull, isNull, sql, type SQL } from "dri
 import { db } from "@apex/db";
 import { matchAll } from "@apex/core/search";
 import type { Entity } from "./entity";
-import { csvValue, parseFields, showValue, type Field } from "./fieldTypes";
+import { csvValue, parseFields, RecordError, showValue, type Field } from "./fieldTypes";
 import { purgeExtras } from "./features";
 import { recordHistory, type Change } from "@apex/db/schema";
 import { entityByKey } from "./registry";
@@ -53,6 +53,19 @@ export async function listRecords(e: Entity, q: ListQuery, opts: { all?: boolean
 export async function getRecord(e: Entity, id: string) {
   const [r] = await db.select().from(e.table).where(eq(cols(e).id, id)).limit(1);
   return (r as Row | undefined) ?? null;
+}
+
+/** Saves ONE field (a cell edited in place), validated like the full form, and logs the change. */
+export async function saveField(e: Entity, id: string, name: string, raw: string, actor?: Actor) {
+  const f = e.fields.find((x) => x.name === name);
+  if (!f) throw new RecordError("Camp desconegut");
+  const values = parseFields([f], () => raw);
+  const before = await getRecord(e, id);
+  if (!before) throw new RecordError("El registre ja no existeix");
+  await db.update(e.table).set(values).where(eq(cols(e).id, id));
+  const changes = diffRecord(e, before, values);
+  for (const c of changes) if (f.type === "relation") { c.from = await nameOf(f, c.from); c.to = await nameOf(f, c.to); }
+  if (changes.length) await logHistory(e, id, "update", changes, actor);
 }
 
 export type Actor = { id: string; email: string };
