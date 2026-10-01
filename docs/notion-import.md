@@ -38,7 +38,8 @@ Safest first run: point `DATABASE_URL` at a throwaway database (`createdb apex_i
 | Gala list | one **event** + **people** + **attendance** (categories, seats and row in the attendance notes). **DNI numbers are not imported.** |
 | Visites agremiats | **Visits** (status, type, date, company; the responsible person's name goes into the summary) |
 | Patrocinadors | **Sponsors** (a prospect pipeline: status *Potencial*): events targeted, last contact, contact, proposal, budget, follow-up and history are kept as readable lines in the notes; linked to a company when its name matches exactly one; a plain-number budget becomes the amount |
-| Laboral, Formació bonificada | **Labour cases / Training**: the page title is the name, every other property is kept as text lines in the notes |
+| Laboral lists (04/03, 28/9) | each list is an **event** ("Laboral 04/03"…) with its contacts as **people** and one attendance row each (status *Convidat*); configure as `NOTION_DB_LABOUR=<id>:<event name>,<id>:<event name>`. A company name that matches no company is kept in the attendance notes |
+| Bonificada | **Formació bonificada** courses: status (En curs → running, Bonificat/Acabat → done), hours, end date, company from the member/external relation; code, price, trainers count, budget file name and responsible person in the notes |
 | Borsa de treball | **Job seekers** (see below) |
 
 ## 4. Job seekers (Borsa de treball)
