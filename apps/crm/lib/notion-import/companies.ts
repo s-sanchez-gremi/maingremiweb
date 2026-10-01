@@ -63,7 +63,7 @@ const COLS = ["name", "taxId", "customerNumber", "email", "emailBilling", "email
 const euros = (n: number) => n.toLocaleString("ca-ES", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
 
 /** `forceStatus`: every row of this database has that status whatever its own "Agremiat" says (the "Baixa agremiat" database = former members). */
-export async function importCompanies(ctx: Ctx, rows: Row[], opts: { forceStatus?: Company["memberStatus"]; label?: string } = {}) {
+export async function importCompanies(ctx: Ctx, rows: Row[], opts: { forceStatus?: Company["memberStatus"]; label?: string; erp?: boolean } = {}) {
   const { db } = ctx;
   const report: Report = newReport(opts.label ?? "Empreses (Agremiats)");
   report.read = rows.length;
@@ -126,7 +126,7 @@ export async function importCompanies(ctx: Ctx, rows: Row[], opts: { forceStatus
       if (!dup.length) { await db.insert(people).values({ name: c.contact, role: "Contacte", companyId: id, source: "Notion · Agremiats", externalRef: `${c.ids[0]}#att` }).onConflictDoNothing(); bump(report, "contact people created"); }
     }
     // ERP member + fee tier (amount per year as in Notion; "Impagament" / "Sense dades" kept in the member's notes)
-    if (ctx.erp !== false && (c.memberStatus === "member" || c.memberStatus === "former")) {
+    if ((opts.erp ?? ctx.erp) !== false && (c.memberStatus === "member" || c.memberStatus === "former")) {
       const has = await db.select({ id: members.id }).from(members).where(eq(members.companyId, id)).limit(1);
       if (!has.length) {
         let tierId: string | null = null;
