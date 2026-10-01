@@ -1,5 +1,5 @@
 // Features every engine record gets for free: notes, private file attachments, change history and "linked records" (two-way links).
-import { and, desc, eq, isNull, count } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, count } from "drizzle-orm";
 import { db } from "@apex/db";
 import { recordFiles, recordHistory, recordNotes } from "@apex/db/schema";
 import { classifyUpload, safeName } from "@apex/core/files";
@@ -63,8 +63,27 @@ export async function linkedRecords(e: Entity, id: string): Promise<Linked[]> {
       const [{ n }] = await db.select({ n: count() }).from(src.table).where(and(...conds));
       if (!Number(n)) continue;
       const rows = (await db.select().from(src.table).where(and(...conds)).limit(8)) as Record<string, unknown>[];
-      out.push({ entity: src, field: f.name, label: `${src.title} · ${f.label}`, total: Number(n), rows: rows.map((r) => ({ id: String(r.id), text: src.summary(r) })) });
+      // a row also names what else it points at (an attendance row: the person and company, or the event)
+      const names = await namesOfLinks(src, rows, f.name);
+      out.push({ entity: src, field: f.name, label: `${src.title} · ${f.label}`, total: Number(n), rows: rows.map((r) => ({ id: String(r.id), text: [src.summary(r), ...(names.get(String(r.id)) ?? [])].join(" · ") })) });
     }
+  }
+  return out;
+}
+
+/** For each row, the names its OTHER relation fields point at (users excluded), so a linked row reads like a sentence. */
+async function namesOfLinks(src: Entity, rows: Record<string, unknown>[], skip: string) {
+  const out = new Map<string, string[]>();
+  for (const f of src.fields) {
+    if (f.type !== "relation" || f.name === skip || !f.to || f.to === "users") continue;
+    const target = ENTITIES[f.to];
+    if (!target) continue;
+    const ids = [...new Set(rows.map((r) => r[f.name]).filter((v): v is string => typeof v === "string"))];
+    if (!ids.length) continue;
+    const t = target.table as unknown as Record<string, never>;
+    const found = await db.select({ id: t.id, l: t[target.label ?? "name"] }).from(target.table).where(inArray(t.id, ids));
+    const byId = new Map(found.map((x) => [String((x as { id: string }).id), String((x as { l: unknown }).l)]));
+    for (const r of rows) { const n = byId.get(String(r[f.name])); if (n) out.set(String(r.id), [...(out.get(String(r.id)) ?? []), n]); }
   }
   return out;
 }

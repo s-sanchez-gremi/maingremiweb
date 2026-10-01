@@ -28,6 +28,7 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
     return s ? `${here}?${s}` : here;
   };
   const sortKey = q.sort ?? e.sort ?? "name";
+  const dir = q.dir ?? (sortKey === (e.sort ?? "name") ? e.sortDir : undefined) ?? "asc";
   const BIG = 60; // a relation with more choices than this is edited in the side panel, not in a table cell
   const optsOf = (f: Field) => (f.type === "relation" ? choices[choiceKey(f)] ?? [] : (f.choices ?? []).map(([value, label]) => ({ value, label })));
   const raw = (f: Field, v: unknown) => (f.type === "checkbox" ? (v ? "on" : "") : f.type === "relation" || f.type === "select" ? String(v ?? "") : FIELD_TYPES[f.type].show(v, f));
@@ -54,7 +55,7 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
             </select>
           ))}
           {sp.archived === "1" && <input type="hidden" name="archived" value="1" />}
-          <input type="hidden" name="sort" value={sortKey} /><input type="hidden" name="dir" value={q.dir} />
+          <input type="hidden" name="sort" value={sortKey} /><input type="hidden" name="dir" value={dir} />
           <button type="submit">Filtra</button>
           <span className="ws-spacer" />
           {e.archivable && <Link className="ws-btn" href={href({ archived: sp.archived === "1" ? undefined : "1", page: undefined })}>{sp.archived === "1" ? "Actius" : "Arxivats"}</Link>}
@@ -68,9 +69,9 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
               <tr>
                 <th className="ws-open-col" aria-label="Obre" />
                 {e.fields.map((f) => (
-                  <th key={f.name} scope="col" aria-sort={sortKey === f.name ? (q.dir === "desc" ? "descending" : "ascending") : undefined}>
+                  <th key={f.name} scope="col" aria-sort={sortKey === f.name ? (dir === "desc" ? "descending" : "ascending") : undefined}>
                     {sortable.has(f.name)
-                      ? <Link href={href({ sort: f.name, dir: sortKey === f.name && q.dir !== "desc" ? "desc" : "asc", page: undefined })}><i aria-hidden>{GLYPH[f.type]}</i>{f.label}{sortKey === f.name && <b aria-hidden>{q.dir === "desc" ? " ↓" : " ↑"}</b>}</Link>
+                      ? <Link href={href({ sort: f.name, dir: sortKey === f.name && dir !== "desc" ? "desc" : "asc", page: undefined })}><i aria-hidden>{GLYPH[f.type]}</i>{f.label}{sortKey === f.name && <b aria-hidden>{dir === "desc" ? " ↓" : " ↑"}</b>}</Link>
                       : <span><i aria-hidden>{GLYPH[f.type]}</i>{f.label}</span>}
                   </th>
                 ))}
