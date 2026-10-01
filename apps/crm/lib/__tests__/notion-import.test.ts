@@ -63,7 +63,7 @@ describe("companies", () => {
     const child = company({ name: "Filial SL", cif: "B2", amount: 492, cuota: "Impagament", att: "Anna Puig", matriu: [parent.id], mail: "info@filial.example" });
     const old = company({ name: "Antiga SA", cif: "C3", agremiat: "antic agremiat" });
     const prospect = company({ name: "Potencial", cif: "D4", agremiat: "NO AGREMIAT" });
-    const { reports } = await run({ companies: ["db"] }, { db: rows(parent, child, old, prospect) });
+    const { reports } = await run({ companies: ["db"] }, { db: rows(parent, child, old, prospect) }, { minTier: 1 });
     expect(reports[0]).toMatchObject({ created: 4, updated: 0 });
     const f = (await db.select().from(clients)).find((x) => x.name === "Filial SL")!;
     expect(f).toMatchObject({ taxId: "B2", memberStatus: "member", email: "info@filial.example", city: "Terrassa", province: "Barcelona", getsMagazine: true, foundedYear: 1998 });
@@ -107,6 +107,15 @@ describe("companies", () => {
     await run({ companies: ["db"] }, { db: rows(company({ name: "A", cif: "A1", amount: 50 })) }, { erp: false });
     expect(await db.select().from(members)).toHaveLength(0);
   });
+  it("only shared fee amounts become tiers; one-off amounts stay in the member's notes", async () => {
+    const shared = [1, 2, 3, 4, 5].map((i) => company({ name: `Soci ${i}`, cif: `S${i}`, amount: 356 }));
+    const odd = company({ name: "Especial SL", cif: "E1", amount: 123.45 });
+    const r = await run({ companies: ["db"] }, { db: rows(...shared, odd) });
+    expect((await db.select().from(feeTiers)).map((x) => x.name)).toEqual(["Quota 356 €"]);
+    expect(r.reports[0].extra["custom fee amounts kept in notes"]).toBe(1);
+    const m = (await db.select().from(members)).find((x) => x.name === "Especial SL")!;
+    expect([m.tierId, m.notes]).toEqual([null, "Quota anual (Notion): 123,45 €"]);
+  });
 });
 
 describe("gala, visits and the other areas", () => {
@@ -126,6 +135,14 @@ describe("gala, visits and the other areas", () => {
     await run({ gala: ["g"] }, { g: rows(a, b, c) });
     expect(await db.select().from(eventAttendance)).toHaveLength(2);
   });
+  it("people sharing one company mailbox stay separate people; typed company names match despite legal forms and short names", async () => {
+    const co = company({ name: "Gràfiques Vila, S.L.", cif: "B1" });
+    const att = (name: string, empresa: string) => page({ Nom: title(name), Email: email("info@vila.example"), Empresa: t(empresa), "📜 Empreses": rel(), Categoria: multi(), SEIENTS: multi() });
+    await run({ companies: ["c"], gala: ["g"] }, { c: rows(co), g: rows(att("Anna Puig", "GRAFIQUES VILA SL"), att("Joan Soler", "Grafiques Vila"), att("Marta Roca", "Altra empresa")) });
+    expect((await db.select().from(people)).map((x) => x.name).sort()).toEqual(["Anna Puig", "Joan Soler", "Marta Roca"]);
+    const at = await db.select().from(eventAttendance);
+    expect(at.filter((x) => x.companyId)).toHaveLength(2);
+  });
   it("visits: maps status, kind, date, company and keeps the responsible person in the summary", async () => {
     const co = company({ name: "Vila SL", cif: "B1" });
     const v = page({ "Nombre de la tarea": title("Visita de benvinguda"), Data: date("2026-02-10"), Empresa: rel(co.id), Estado: status("Completada"), "Tipo de tarea": multi("Agremiar"), Prioridad: sel("Alta"), "Descripción": t("Molt interessats"), Responsable: { type: "people", people: [{ name: "Sam" }] } });
@@ -144,5 +161,16 @@ describe("gala, visits and the other areas", () => {
     expect(x.notes).toContain("consentiment"); expect(x.notes).toContain("Dissenyadora");
     await run({ jobseekers: ["j"] }, { j: rows(j) });
     expect(await db.select().from(jobSeekers)).toHaveLength(1);
+  });
+});
+
+describe("messy real-world values", () => {
+  it("leaves impossible founding years and employee counts empty instead of failing, and says so", async () => {
+    const bad = page({ Empresa: title("Rara SL"), CIF: t("B5"), Agremiat: sel("agremiat"), "Any fundació": num(1042026), treballadors: num(-4) });
+    const r = await run({ companies: ["db"] }, { db: rows(bad) }, { erp: false });
+    expect(r.reports[0].created).toBe(1);
+    expect(r.reports[0].extra["invalid founding years left empty"]).toBe(1);
+    expect(r.reports[0].extra["invalid employee counts left empty"]).toBe(1);
+    expect((await db.select().from(clients))[0]).toMatchObject({ foundedYear: null, employees: null });
   });
 });
