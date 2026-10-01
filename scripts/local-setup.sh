@@ -24,6 +24,7 @@ echo "node $(node -v), $(docker --version), pnpm $(pnpm -v)"
 step "configuration"
 if [ ! -f .env ]; then cp .env.example .env; echo "created .env from .env.example"; else echo ".env already exists, kept as is"; fi
 ln -sf ../../.env apps/web/.env
+ln -sf ../../.env apps/crm/.env
 
 step "installing dependencies"
 pnpm install --frozen-lockfile
@@ -52,7 +53,7 @@ else
   echo "users already exist, kept as is (add more with: PASSWORD=... pnpm --filter web user:create <email> <admin|editor>)"
 fi
 
-printf '\n\033[1mReady.\033[0m\n  Site:   http://localhost:3000/ca\n  Admin:  http://localhost:3000/admin\n  Mail:   http://localhost:8025\n'
+printf '\n\033[1mReady.\033[0m\n  Site:   http://localhost:3000/ca\n  Admin:  http://localhost:3000/admin   (website + content)\n  CRM:    http://localhost:3001/admin   (contacts, forms, projects, ERP)  portal: http://localhost:3001/portal\n  Mail:   http://localhost:8025\n'
 if [ "$START" = 1 ]; then
   printf '\nStarting the app (keep this window open; Ctrl+C stops it)...\n'
   exec pnpm --filter web dev

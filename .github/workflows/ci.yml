@@ -33,7 +33,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter web exec playwright install --with-deps chromium
+      - run: pnpm --filter @apex/e2e exec playwright install --with-deps chromium
       - name: All checks
         run: ./scripts/ci.sh --no-docker
       - name: Keep test evidence when something fails
@@ -42,8 +42,8 @@ jobs:
         with:
           name: test-results
           path: |
-            apps/web/test-results
-            apps/web/playwright-report
+            e2e/test-results
+            e2e/playwright-report
           retention-days: 7
 
   docker:

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { sql } from "drizzle-orm";
 import { db } from "@apex/db";
-import { entryTranslations, errorLog, leads, tasks } from "@apex/db/schema";
+import { entryTranslations, errorLog } from "@apex/db/schema";
 import { getUser } from "@apex/core/auth";
 import { can } from "@apex/core/permissions";
 import { isFresh, lastBeat } from "@apex/core/heartbeat";
@@ -11,9 +11,7 @@ export default async function Dashboard() {
   const rows = await db.select({ status: entryTranslations.status, n: sql<number>`count(*)::int` })
     .from(entryTranslations).groupBy(entryTranslations.status);
   const n = (s: string) => rows.find((r) => r.status === s)?.n ?? 0;
-  const newLeads = (await db.select({ n: sql<number>`count(*)::int` }).from(leads).where(sql`status = 'new'`))[0].n;
   const me = await getUser();
-  const myTasks = me ? (await db.select({ n: sql<number>`count(*)::int` }).from(tasks).where(sql`owner_id = ${me.id} and done_at is null`))[0].n : 0;
   const admin = can(me, "settings:write");
   const sys = admin ? { beat: await lastBeat(), mail: await outboxCounts(), errors: (await db.select({ n: sql<number>`count(*)::int` }).from(errorLog).where(sql`not resolved`))[0].n } : null;
   return (
@@ -25,8 +23,6 @@ export default async function Dashboard() {
           <div className="row"><span>Publicat</span><strong>{n("published")}</strong></div>
           <div className="row"><span>Programat</span><strong>{n("scheduled")}</strong></div>
           <div className="row"><span>Esborrany</span><strong>{n("draft")}</strong></div>
-          <div className="row"><span>Leads nous</span><strong><Link href="/admin/leads?status=new">{newLeads}</Link></strong></div>
-          <div className="row"><span>Les meves tasques obertes</span><strong><Link href="/admin/tasks">{myTasks}</Link></strong></div>
           <Link className="btn primary" href="/admin/content?type=post" style={{ textAlign: "center" }}>Obre els articles</Link>
         </div>
         {sys && (

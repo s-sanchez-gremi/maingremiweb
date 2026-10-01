@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@apex/db";
 import { requireUser } from "@apex/core/auth";
-import { revalidateContent } from "@/lib/cache";
+import { revalidateWebContent } from "@/lib/web-cache";
 import { slugify } from "@apex/core/slug";
 import { clients, forms, projects } from "@apex/db/schema";
 import { checkDefinition, formItemsSchema } from "@apex/forms/fieldTypes";
@@ -57,14 +57,14 @@ export async function saveForm(fd: FormData) {
     if (code === "23505") return fail("Aquest enllaç (slug) ja l'utilitza un altre formulari");
     throw e;
   }
-  revalidateContent();
+  await revalidateWebContent();
   redirect(`/admin/forms/${id}?saved=1`);
 }
 
 export async function removeForm(fd: FormData) {
   await requireUser("forms:write");
   await deleteForm(z.string().uuid().parse(fd.get("id")));
-  revalidateContent();
+  await revalidateWebContent();
   redirect("/admin/forms");
 }
 

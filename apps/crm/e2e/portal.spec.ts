@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, request as pwRequest, test, type Page } from "@playwright/test";
 import postgres from "postgres";
-import { E2E_DB } from "../playwright.config";
+import { E2E_DB } from "@apex/e2e/constants";
 
 const sql = postgres(E2E_DB, { max: 1 });
 const PW = "portal-e2e-password-1";
@@ -96,5 +96,5 @@ test("portal pages are not indexed and are not frameable", async ({ request }) =
   expect(r.headers()["x-frame-options"]).toBe("DENY");
   expect(r.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
   expect(await r.text()).toContain("noindex");
-  expect(await (await request.get("/robots.txt")).text()).toContain("Disallow: /portal");
+  expect(await (await request.get("/robots.txt")).text()).toContain("Disallow: /"); // the CRM host is not for search engines
 });

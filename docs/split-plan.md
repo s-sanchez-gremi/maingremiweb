@@ -1,6 +1,6 @@
 # Plan: split the app into "website + CMS" and "CRM + internal tools"
 
-Status: **approved in principle, not started.** Owner: Sam. Needs a read from Joan Marc (it moves shared code), then a short freeze (section 8).
+Status: **S1 (shared packages) and S2 (CRM app) done; S3-S5 pending.** Owner: Sam. Needs a read from Joan Marc (it moves shared code), then a short freeze (section 8).
 
 ## 1. Goal
 Two apps in the **same repository and the same Postgres database**, so that a mistake, a bad release or an outage in one area cannot break the other:

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCsp, kindOf } from "../csp";
+import { buildCsp, kindOf } from "@apex/core/csp";
 import { clientIp } from "@apex/forms/http";
 import { CONSENT_COOKIE, parseConsent, serializeConsent } from "../consent/state";
 import { declarations, categories } from "../consent/registry";

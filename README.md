@@ -14,7 +14,7 @@ Then open http://localhost:3000/ca (site) and http://localhost:3000/admin. By ha
 ```
 cp .env.example .env
 pnpm install
-pnpm dev        # starts Docker services, then the Next.js app
+pnpm dev        # starts Docker services, then both apps: website + CMS on :3000, CRM + forms + portal on :3001
 ```
 Mail caught at http://localhost:8025 · S3 (s3mock) http://localhost:9090
 

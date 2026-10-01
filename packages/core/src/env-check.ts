@@ -6,7 +6,7 @@ export const shouldCheck = (env: Env) => env.NODE_ENV === "production" && ["stag
 
 const PLACEHOLDER = /^(change-?me|changeme|secret|password|xxx+|todo)?$/i;
 
-export function checkEnv(env: Env): string[] {
+export function checkEnv(env: Env, opts: { botSecret?: boolean } = { botSecret: true }): string[] {
   const problems: string[] = [];
   const need = (k: string) => { if (!env[k]?.trim()) problems.push(`${k} is not set`); return env[k]?.trim() ?? ""; };
   const secret = (k: string, min: number) => {
@@ -31,6 +31,6 @@ export function checkEnv(env: Env): string[] {
   need("S3_ACCESS_KEY"); need("S3_SECRET_KEY");
 
   secret("CRON_SECRET", 24);
-  secret("BOT_SECRET", 32);
+  if (opts.botSecret) secret("BOT_SECRET", 32); // only the app that runs the public form pipeline needs it
   return problems;
 }

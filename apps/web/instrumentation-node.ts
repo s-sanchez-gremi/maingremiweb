@@ -1,5 +1,5 @@
 import { bootstrapAdmin } from "./lib/bootstrap";
-import { checkEnv, shouldCheck } from "./lib/env-check";
+import { checkEnv, shouldCheck } from "@apex/core/env-check";
 
 /** Staging/production only: stop immediately, with a clear message, if the configuration is unsafe or incomplete. */
 export async function run() {
