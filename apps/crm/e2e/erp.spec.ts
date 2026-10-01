@@ -109,7 +109,7 @@ test("engine lists: filter, sort and CSV export", async ({ page }) => {
     await addForm(page).getByLabel("Tipus").selectOption(kind);
     await addForm(page).getByLabel("Nom", { exact: true }).fill(name);
     await addForm(page).getByRole("button", { name: "Afegeix" }).click();
-    await expect(page.getByRole("status")).toContainText("Desat");
+    await expect(page.getByText(`${kind === "income" ? "Ingrés" : "Despesa"} · ${name}`)).toBeVisible(); // the new row, not the previous "Desat"
   }
   await page.goto("/admin/erp/categories?f_kind=expense");
   await expect(page.locator("select[name=f_kind]")).toHaveValue("expense");
