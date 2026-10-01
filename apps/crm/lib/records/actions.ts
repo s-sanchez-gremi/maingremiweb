@@ -44,7 +44,7 @@ export async function saveRecordAction(fd: FormData) {
   } catch (err) {
     const code = (err as { cause?: { code?: string } }).cause?.code;
     if (err instanceof RecordError) go(back, { error: err.message });
-    if (code === "23505") go(back, { error: "Ja existeix un element amb aquest nom" });
+    if (code === "23505") go(back, { error: "Ja existeix un registre amb aquest valor (nom o NIF/CIF)" });
     throw err;
   }
   // a record created in the workspace opens in the side panel right away
@@ -60,7 +60,7 @@ export async function saveCellAction(entity: string, id: string, field: string, 
   try { await saveField(e, z.string().uuid().parse(id), field, raw, user); return { ok: true }; }
   catch (err) {
     if (err instanceof RecordError) return { ok: false, error: err.message };
-    if ((err as { cause?: { code?: string } }).cause?.code === "23505") return { ok: false, error: "Ja existeix un element amb aquest nom" };
+    if ((err as { cause?: { code?: string } }).cause?.code === "23505") return { ok: false, error: "Ja existeix un registre amb aquest valor (nom o NIF/CIF)" };
     throw err;
   }
 }

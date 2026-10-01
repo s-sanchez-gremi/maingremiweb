@@ -56,3 +56,4 @@ input[type=checkbox].ws .ws-cell { width: 18px; min-height: 0; margin: 9px 10px;
   .ws-split.open { grid-template-columns: 1fr; } .ws-peek { position: fixed; inset: 0; z-index: 20; height: auto; }
   .ws-content { padding: 18px 14px 60px; }
 }
+.ws-static { display: block; color: inherit; }

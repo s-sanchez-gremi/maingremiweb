@@ -18,5 +18,6 @@ export type Entity = {
   hint?: string;
   detail?: boolean;          // record page with notes, files, history and linked records ({basePath}/{id})
   archivable?: boolean;      // table has `archivedAt`: records are archived and restored instead of only deleted
+  links?: (id: string) => { href: string; label: string }[]; // extra links on the record page (e.g. projects and portal access)
   hidden?: boolean;          // lookup-only (users): no screens
 };

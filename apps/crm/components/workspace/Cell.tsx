@@ -4,8 +4,8 @@ import { useState, useTransition } from "react";
 import { saveCellAction } from "@/lib/records/actions";
 
 type Opt = { value: string; label: string };
-export function Cell({ entity, id, name, type, value, options, required, label }: {
-  entity: string; id: string; name: string; type: string; value: string; options?: Opt[]; required?: boolean; label: string;
+export function Cell({ entity, id, name, type, value, options, display, required, label }: {
+  entity: string; id: string; name: string; type: string; value: string; options?: Opt[]; display?: string; required?: boolean; label: string;
 }) {
   const [v, setV] = useState(value);
   const [saved, setSaved] = useState(value);
@@ -23,6 +23,7 @@ export function Cell({ entity, id, name, type, value, options, required, label }
   };
   const common = { "aria-label": label, className: `ws-cell${state === "err" ? " err" : ""}`, title: msg || undefined, "aria-invalid": state === "err" || undefined } as const;
 
+  if (type === "relation" && !options) return <span className="ws-cell ws-static" title="Es canvia des de la fitxa">{display || "—"}</span>;
   let input;
   if (type === "checkbox") input = <input {...common} type="checkbox" checked={v === "on"} onChange={(e) => { const n = e.target.checked ? "on" : ""; setV(n); save(n); }} />;
   else if (type === "select" || type === "relation") {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { asc, desc, eq } from "drizzle-orm";
+import { asc, desc, eq, isNull } from "drizzle-orm";
 import { db } from "@apex/db";
 import { ConfirmButton } from "@apex/ui/components/ConfirmButton";
 import { AttachedResponses } from "@/components/admin/AttachedResponses";
@@ -15,7 +15,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const [p] = await db.select().from(projects).where(eq(projects.id, id));
   if (!p) notFound();
-  const cl = await db.select({ id: clients.id, name: clients.name }).from(clients).orderBy(asc(clients.name));
+  const cl = await db.select({ id: clients.id, name: clients.name }).from(clients).where(isNull(clients.archivedAt)).orderBy(asc(clients.name));
   const rows = await db.select({ s: submissions, formName: forms.name }).from(submissions).leftJoin(forms, eq(forms.id, submissions.formId))
     .where(eq(submissions.projectId, id)).orderBy(desc(submissions.createdAt)).limit(100);
   const [taskRows, docs, staff] = await Promise.all([

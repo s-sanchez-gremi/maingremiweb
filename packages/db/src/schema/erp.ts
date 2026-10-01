@@ -1,7 +1,7 @@
 // ERP REGISTRY tables (Sam): Apex only registers these; Sage does the accounting. Money = integer cents, VAT = basis points.
 import { pgTable, uuid, text, timestamp, date, integer, boolean, bigint } from "drizzle-orm/pg-core";
 import { users } from "./core";
-import { contacts, projects } from "./crm";
+import { clients, contacts, projects } from "./crm";
 
 const cents = (name: string) => bigint(name, { mode: "number" });
 
@@ -56,6 +56,7 @@ export const members = pgTable("members", {
   leftOn: date("left_on"),
   tierId: uuid("tier_id").references(() => feeTiers.id, { onDelete: "set null" }),
   billingPeriod: text("billing_period").$type<"annual" | "quarterly">().notNull().default("annual"),
+  companyId: uuid("company_id").references(() => clients.id, { onDelete: "set null" }),
   contactId: uuid("contact_id").unique().references(() => contacts.id, { onDelete: "set null" }),
   notes: text().notNull().default(""),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

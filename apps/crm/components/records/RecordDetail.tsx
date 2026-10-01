@@ -15,7 +15,7 @@ export async function RecordDetail({ entity: e, id, sp, workspace }: { entity: E
   const r = await getRecord(e, id);
   if (!r) return null;
   const page = workspace ? `/workspace/${e.key}?open=${id}` : `${e.basePath}/${id}`;
-  const files_ = `${e.basePath}/${id}/files`;
+  const files_ = workspace || e.basePath.startsWith("/workspace/") ? `/workspace/${e.key}/${id}/files` : `${e.basePath}/${id}/files`;
   const linkTo = (key: string, base: string, rid: string) => (workspace ? `/workspace/${key}?open=${rid}` : `${base}/${rid}`);
   const archived = e.archivable && !!r.archivedAt;
   const [choices, notes, files, history, linked] = await Promise.all([relationChoices(e), listNotes(e, id), listFiles(e, id), listHistory(e, id), linkedRecords(e, id)]);
@@ -40,6 +40,8 @@ export async function RecordDetail({ entity: e, id, sp, workspace }: { entity: E
             <form action={deleteRecordAction}>{hidden}<ConfirmButton className="btn link" message="Eliminar definitivament aquest registre amb les seves notes, fitxers i historial?">Elimina</ConfirmButton></form>
           </div>
         </section>
+
+        {e.links && <p className="row" style={{ justifyContent: "flex-start", gap: 12 }}>{e.links(id).map((l) => <Link key={l.href} href={l.href}>{l.label}</Link>)}</p>}
 
         {linked.length > 0 && (
           <section className="card" aria-label="Registres enllaçats">

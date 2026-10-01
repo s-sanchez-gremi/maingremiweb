@@ -1,6 +1,6 @@
 // BUSINESS-TOOLS tables (Sam): contacts and leads, submissions, clients, projects, tasks, project documents, client portal.
 // Add new ERP tables in their own file next to this one (e.g. erp.ts) and re-export it from index.ts.
-import { pgTable, uuid, text, timestamp, jsonb, date, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, jsonb, date, integer, boolean, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { users } from "./core";
 import { forms } from "./website";
 
@@ -11,6 +11,40 @@ export const clients = pgTable("clients", {
   phone: text().notNull().default(""),
   notes: text().notNull().default(""),
   contactId: uuid("contact_id").unique().references(() => contacts.id, { onDelete: "set null" }),
+  // Companies fields (migration 0014, records engine)
+  taxId: text("tax_id").notNull().default(""),
+  customerNumber: text("customer_number").notNull().default(""),
+  memberStatus: text("member_status").$type<"member" | "former" | "prospect">().notNull().default("prospect"),
+  emailBilling: text("email_billing").notNull().default(""),
+  emailOther: text("email_other").notNull().default(""),
+  phoneOther: text("phone_other").notNull().default(""),
+  address: text().notNull().default(""),
+  postalCode: text("postal_code").notNull().default(""),
+  city: text().notNull().default(""),
+  website: text().notNull().default(""),
+  activity: text().notNull().default(""),
+  services: text().notNull().default(""),
+  employees: integer(),
+  foundedYear: integer("founded_year"),
+  getsMagazine: boolean("gets_magazine").notNull().default(false),
+  parentCompanyId: uuid("parent_company_id").references((): AnyPgColumn => clients.id, { onDelete: "set null" }),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  externalRef: text("external_ref"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const people = pgTable("people", {
+  id: uuid().primaryKey().defaultRandom(),
+  name: text().notNull(),
+  email: text().notNull().default(""),
+  phone: text().notNull().default(""),
+  role: text().notNull().default(""),
+  companyId: uuid("company_id").references(() => clients.id, { onDelete: "set null" }),
+  source: text().notNull().default(""),
+  notes: text().notNull().default(""),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  externalRef: text("external_ref"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

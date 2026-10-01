@@ -43,12 +43,44 @@ test("workspace: create in the side panel, edit cells in place, open the record"
   await page.screenshot({ path: "test-results/workspace-suppliers.png" });
 });
 
-test("workspace is closed to editors", async ({ page }) => {
+test("workspace: editors get the CRM databases, not the ERP ones", async ({ page }) => {
   await page.goto("/admin/login");
   await page.getByLabel("Correu electrònic").fill("editor@e2e.test");
   await page.getByLabel("Contrasenya").fill(process.env.E2E_EDITOR_PASSWORD!);
   await page.getByRole("button", { name: "Entra" }).click();
   await expect(page.getByRole("heading", { name: "Tauler" })).toBeVisible();
   expect((await page.goto("/workspace/suppliers"))?.status()).toBe(404);
-  expect((await page.goto("/workspace"))?.status()).toBe(404);
+  await page.goto("/workspace");
+  await expect(page).toHaveURL(/\/workspace\/companies$/);
+  await expect(page.getByRole("link", { name: "Proveïdors" })).toHaveCount(0);
+});
+
+test("workspace: companies (one per tax id), people linked to a company", async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 800 });
+  await login(page);
+  await page.goto("/workspace/companies");
+  const panel = page.getByRole("complementary", { name: "Fitxa" });
+  const create = async (name: string, taxId: string) => {
+    await page.goto("/workspace/companies?new=1");
+    await panel.getByLabel("Nom", { exact: true }).fill(name);
+    await panel.getByLabel("NIF/CIF").fill(taxId);
+    await panel.getByRole("button", { name: "Crea" }).click();
+  };
+  await create("Gràfiques Vila SL", "B99887766");
+  await expect(page).toHaveURL(/open=/);
+  await expect(page.getByRole("heading", { name: "Gràfiques Vila SL" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Projectes i accés al portal/ })).toBeVisible();
+
+  await create("Duplicada SL", "b 99887766");
+  await expect(page.getByRole("alert").filter({ hasText: "Ja existeix" })).toBeVisible();
+
+  await page.goto("/workspace/people?new=1");
+  await panel.getByLabel("Nom", { exact: true }).fill("Anna Puig");
+  await panel.getByLabel("Empresa").selectOption({ label: "Gràfiques Vila SL" });
+  await panel.getByRole("button", { name: "Crea" }).click();
+  await expect(page.getByRole("heading", { name: "Anna Puig" })).toBeVisible();
+
+  await page.goto("/workspace/companies");
+  await page.getByRole("link", { name: "Obre Gràfiques Vila SL · B99887766" }).click();
+  await expect(page.getByRole("region", { name: "Registres enllaçats" })).toContainText("Anna Puig");
 });
