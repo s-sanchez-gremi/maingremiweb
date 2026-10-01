@@ -32,6 +32,7 @@ const draftSections = z.array(z.object({
   id: z.string().min(1),
   type: z.enum(sectionDefs.map((d) => d.name) as [string, ...string[]]),
   data: z.record(z.string(), z.unknown()),
+  style: z.record(z.string(), z.string()).optional(),
 })).max(60);
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();

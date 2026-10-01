@@ -1,11 +1,13 @@
 // Tiny declarative field language. The admin form AND the Zod validation are generated from these.
 import { z } from "zod";
+import { blockDefs } from "./blocks";
 
 export type Field =
   | { name: string; label: string; kind: "text" | "textarea" | "image" | "link" | "form" | "entry" | "ltext" | "ltextarea" | "fieldref"; required?: boolean }
   | { name: string; label: string; kind: "select"; options: { value: string; label: string }[]; required?: boolean }
   | { name: string; label: string; kind: "embed"; required?: boolean }
-  | { name: string; label: string; kind: "list"; fields: Field[]; max?: number };
+  | { name: string; label: string; kind: "list"; fields: Field[]; max?: number }
+  | { name: string; label: string; kind: "blocks"; max?: number }; // typed blocks from sections/blocks.ts
 
 // Embeds: pasted link only, YouTube and Adobe hosts only.
 const EMBED_HOSTS = ["youtube.com", "youtu.be", "express.adobe.com", "acrobat.adobe.com", "creativecloud.adobe.com", "adobe.com"];
@@ -53,7 +55,18 @@ export function schemaFor(field: Field): z.ZodType {
     }
     case "list":
       return z.array(z.object(shape(field.fields))).max(field.max ?? 24).default([]);
+    case "blocks":
+      return z.array(blockSchema()).max(field.max ?? 20).default([]);
   }
+}
+
+let blockUnion: z.ZodType | undefined;
+function blockSchema(): z.ZodType {
+  if (!blockUnion) {
+    const v = blockDefs.map((d) => z.object({ id: z.string().min(1).max(64), type: z.literal(d.name), data: z.object(shape(d.fields as unknown as Field[])) }));
+    blockUnion = z.discriminatedUnion("type", v as unknown as [(typeof v)[0], ...typeof v]);
+  }
+  return blockUnion;
 }
 
 export function shape(fields: Field[]): Record<string, z.ZodType> {
