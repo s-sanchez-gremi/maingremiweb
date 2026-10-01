@@ -20,7 +20,7 @@ One app and one database, two areas (`.github/CODEOWNERS` makes GitHub ask the r
 - **Sam (`@s-sanchez-gremi`) — the business tools:** CRM (contacts and leads), **forms** (builder, responses and the public submission pipeline), project manager (clients, projects, tasks), client portal, and the ERP registry.
 - **Shared, both review:** the database (`db/schema.ts`, migrations), `auth.ts` and `permissions.ts`, `proxy.ts`/CSP, the admin layout, menu, dashboard and global search, `deploy/`, `scripts/`, `.github/` and `CLAUDE.md`.
 - **Working across the line** is fine (a small fix in the other's area): open the PR as usual; the owner reviews it. Agree first before anything larger.
-- **New admin screens** (e.g. invoices) get their own folder under `app/admin/(app)/` plus their own `lib/<name>.ts`, so two people rarely touch the same file. The menu (`AdminNav.tsx`) and dashboard are shared: keep edits there to one line per item.
+- **New admin screens** (e.g. invoices) get their own folder under `app/admin/(staff)/(app)/` plus their own `lib/<name>.ts`, so two people rarely touch the same file. The menu (`AdminNav.tsx`) and dashboard are shared: keep edits there to one line per item.
 - **The database schema is split by area** (`db/schema/website.ts` Joan Marc, `db/schema/crm.ts` Sam, `db/schema/core.ts` shared); new ERP tables go in their own file, re-exported from `db/schema/index.ts`. Migrations stay in one shared sequence.
 - **Database changes are the main collision point.** Tell the other person before adding a migration, and rebase right before merging so the number is the next free one.
 

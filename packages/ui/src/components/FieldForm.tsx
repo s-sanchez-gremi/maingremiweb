@@ -7,7 +7,7 @@ type Data = Record<string, unknown>;
 export type Options = { media: { id: string; label: string; url?: string }[]; forms: { id: string; label: string }[]; pages?: { id: string; label: string }[]; earlier?: { id: string; label: string }[] };
 
 export function emptyData(fields: Field[]): Data {
-  return Object.fromEntries(fields.map((f) => [f.name, f.kind === "list" ? [] : f.kind === "ltext" || f.kind === "ltextarea" ? { ca: "", es: "", en: "" } : f.kind === "select" ? f.options[0].value : ""]));
+  return Object.fromEntries(fields.map((f) => [f.name, f.kind === "list" || f.kind === "blocks" ? [] : f.kind === "ltext" || f.kind === "ltextarea" ? { ca: "", es: "", en: "" } : f.kind === "select" ? f.options[0].value : ""]));
 }
 
 export function FieldForm({ fields, data, onChange, options }: {
@@ -89,6 +89,22 @@ export function FieldForm({ fields, data, onChange, options }: {
                 />
               </div>
             );
+          case "blocks": {
+            type B = { id: string; type: string; data: Data };
+            const byName = Object.fromEntries(f.blocks.map((d) => [d.name, d]));
+            return (
+              <div key={f.name} className="nested">
+                <strong style={{ fontSize: 12 }}>{f.label}</strong>
+                <ListEditor<B>
+                  items={(v as B[]) ?? []}
+                  onChange={(next) => set(f.name, next)}
+                  title={(b) => byName[b.type]?.label ?? b.type}
+                  render={(b, update) => <FieldForm fields={byName[b.type]?.fields ?? []} data={b.data} onChange={(data) => update({ ...b, data })} options={options} />}
+                  add={{ label: "Afegeix un bloc", options: f.blocks.map((d) => ({ value: d.name, label: d.label })), make: (type) => ({ id: crypto.randomUUID(), type, data: emptyData(byName[type].fields) }) }}
+                />
+              </div>
+            );
+          }
           default: // text, link, embed
             return (
               <label key={f.name}>{f.label}{req}

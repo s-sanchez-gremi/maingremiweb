@@ -66,7 +66,7 @@ Rough total: **about 38-49 working days** for one person. Order: E0 → E1 → E
 **Erasure design (affects the existing erase feature):** financial rows must survive a data-erasure request for the legal retention period. No cascade from contacts/clients/members into financial tables; each record stores the fiscal identity it needs, and erasure anonymises personal fields only where the law allows.
 
 ## 5. Screens
-New folders under `app/admin/(app)/`: `purchases/`, `expenses/`, `suppliers/`, `subscriptions/`, `collections/`, `members/`, `courses/`, `remittances/`, `bank/`, `erp-reports/`; logic in `lib/<name>.ts`. One menu group "Gestió" (the menu file is shared, one line per item). Client-portal: later, optional: members could see their own fee status (same isolation rules as the portal).
+New folders under `app/admin/(staff)/(app)/`: `purchases/`, `expenses/`, `suppliers/`, `subscriptions/`, `collections/`, `members/`, `courses/`, `remittances/`, `bank/`, `erp-reports/`; logic in `lib/<name>.ts`. One menu group "Gestió" (the menu file is shared, one line per item). Client-portal: later, optional: members could see their own fee status (same isolation rules as the portal).
 
 ## 6. Roles (to define later) and how we stay ready
 - Today the system has two staff roles (admin, editor) and **no user-defined roles** (a deliberate rule in `CLAUDE.md`). The ERP needs finer permissions (e.g. who requests, who approves, who pays, who sees amounts, who exports).

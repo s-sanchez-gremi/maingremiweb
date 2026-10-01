@@ -1,7 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
 import { revalidateContent } from "@/lib/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@apex/db";
 import { requireUser } from "@apex/core/auth";
@@ -32,6 +32,7 @@ const draftSections = z.array(z.object({
   id: z.string().min(1),
   type: z.enum(sectionDefs.map((d) => d.name) as [string, ...string[]]),
   data: z.record(z.string(), z.unknown()),
+  style: z.record(z.string(), z.string()).optional(),
 })).max(60);
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -98,4 +99,22 @@ export async function restoreEntryVersion(versionId: string, formData: FormData)
     redirect(`/admin/content/${id}?locale=${locale}&error=${encodeURIComponent(msg)}`);
   }
   redirect(`/admin/content/${id}?locale=${locale}&saved=restore`);
+}
+
+/** Autosave from the visual editor: stores the sections of the DRAFT only (never what is live), so its preview can
+ *  render them. Same shape check as saveEntry; full validation still happens in publish(). */
+export async function saveDraftSections(id: string, locale: string, json: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireUser("content:write");
+  const entryId = z.string().uuid().parse(id);
+  const loc = z.enum(locales).parse(locale) as Locale;
+  let sections: unknown[];
+  try { sections = draftSections.parse(JSON.parse(json)); }
+  catch { return { ok: false, error: "Les seccions no són vàlides." }; }
+  const done = await db.update(entryTranslations).set({ sections, updatedAt: new Date() })
+    .where(and(eq(entryTranslations.entryId, entryId), eq(entryTranslations.locale, loc))).returning({ id: entryTranslations.entryId });
+  if (!done.length) {
+    try { await db.insert(entryTranslations).values({ entryId, locale: loc, slug: `nou-${entryId.slice(0, 8)}`, sections }); }
+    catch { return { ok: false, error: "Desa la pàgina primer (amb títol) per crear aquest idioma." }; }
+  }
+  return { ok: true };
 }

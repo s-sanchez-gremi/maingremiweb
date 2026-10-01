@@ -22,10 +22,10 @@ Estats: **Esborrany** (no publicat), **Programat** (es publicarà sol el dia i l
 
 1. A **Articles** (notícies) o **Pàgines**, prem **Nou article** / **Nova pàgina**.
 2. A la columna lateral, omple el títol, l'adreça (*slug*), la categoria, l'autor/a i la imatge de portada.
-3. El contingut es construeix amb **seccions**, una sota l'altra:
-   - **Afegeix** una secció des de la llista.
-   - **↑ ↓** la mouen amunt o avall. **✕** l'elimina.
-   - No hi ha manera de canviar colors, tipus de lletra o posicions. El disseny és sempre el mateix, i així el web es veu coherent.
+3. El contingut es construeix amb **seccions**, una sota l'altra. Hi ha dues maneres de treballar (botons **Visual** / **Llista** a dalt):
+   - **Visual** (per defecte a les pàgines): a l'esquerra hi ha els **blocs** (títol, text, imatge, botó…) i les **seccions**; arrossega'ls a la vista prèvia del mig, o fes-hi clic. Fes clic a qualsevol part de la vista prèvia per editar-la a la dreta. Els blocs es poden posar en **columnes** (1, 2, 3 o 4). Cada secció té un **Estil**: fons (per defecte, crema, beix, blanc, negre o vermell GREMI), espai i alineació. **Ordinador / Mòbil** mostra com es veurà en cada pantalla. Els canvis es desen sols a l'esborrany.
+   - **Llista** (per defecte als articles): **Afegeix** una secció, **↑ ↓** la mouen, **✕** l'elimina.
+   - Els colors i les lletres són sempre els de la marca: només es pot triar entre les opcions de marca, i així el web es veu coherent.
 4. Prem **Desa**. Quan estigui llest, prem **Publica**. Si vols que surti més endavant, tria dia i hora i prem **Programa**.
 
 ### Tipus de secció

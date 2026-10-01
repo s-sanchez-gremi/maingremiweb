@@ -13,9 +13,9 @@
 /apps/web/lib/permissions.ts        @s-sanchez-gremi @jmarcadell4-maker
 /apps/web/proxy.ts                  @s-sanchez-gremi @jmarcadell4-maker
 /apps/web/lib/csp.ts                @s-sanchez-gremi @jmarcadell4-maker
-/apps/web/app/admin/(app)/layout.tsx          @s-sanchez-gremi @jmarcadell4-maker
-/apps/web/app/admin/(app)/page.tsx            @s-sanchez-gremi @jmarcadell4-maker
-/apps/web/app/admin/(app)/search/             @s-sanchez-gremi @jmarcadell4-maker
+/apps/web/app/admin/(staff)/(app)/layout.tsx          @s-sanchez-gremi @jmarcadell4-maker
+/apps/web/app/admin/(staff)/(app)/page.tsx            @s-sanchez-gremi @jmarcadell4-maker
+/apps/web/app/admin/(staff)/(app)/search/             @s-sanchez-gremi @jmarcadell4-maker
 /apps/web/components/admin/AdminNav.tsx       @s-sanchez-gremi @jmarcadell4-maker
 /apps/web/components/admin/ListSearch.tsx     @s-sanchez-gremi @jmarcadell4-maker
 /apps/web/lib/search.ts             @s-sanchez-gremi @jmarcadell4-maker
@@ -34,14 +34,14 @@
 /apps/web/app/sitemap.ts            @jmarcadell4-maker
 /apps/web/app/robots.ts             @jmarcadell4-maker
 /apps/web/app/styleguide/           @jmarcadell4-maker
-/apps/web/app/admin/(app)/content/  @jmarcadell4-maker
-/apps/web/app/admin/(app)/media/    @jmarcadell4-maker
-/apps/web/app/admin/(app)/categories/ @jmarcadell4-maker
-/apps/web/app/admin/(app)/settings/ @jmarcadell4-maker
-/apps/web/app/admin/(app)/users/    @jmarcadell4-maker
-/apps/web/app/admin/(app)/forms/    @s-sanchez-gremi
-/apps/web/app/admin/(app)/errors/   @jmarcadell4-maker
-/apps/web/app/admin/(app)/account/  @jmarcadell4-maker
+/apps/web/app/admin/(staff)/(app)/content/  @jmarcadell4-maker
+/apps/web/app/admin/(staff)/(app)/media/    @jmarcadell4-maker
+/apps/web/app/admin/(staff)/(app)/categories/ @jmarcadell4-maker
+/apps/web/app/admin/(staff)/(app)/settings/ @jmarcadell4-maker
+/apps/web/app/admin/(staff)/(app)/users/    @jmarcadell4-maker
+/apps/web/app/admin/(staff)/(app)/forms/    @s-sanchez-gremi
+/apps/web/app/admin/(staff)/(app)/errors/   @jmarcadell4-maker
+/apps/web/app/admin/(staff)/(app)/account/  @jmarcadell4-maker
 /apps/web/sections/                 @jmarcadell4-maker
 /apps/web/components/site/          @jmarcadell4-maker
 /apps/web/components/ui/            @jmarcadell4-maker
@@ -66,10 +66,10 @@
 /docs/guia-editor.md                @jmarcadell4-maker
 
 # ---- business tools: Sam ----
-/apps/web/app/admin/(app)/leads/    @s-sanchez-gremi
-/apps/web/app/admin/(app)/clients/  @s-sanchez-gremi
-/apps/web/app/admin/(app)/projects/ @s-sanchez-gremi
-/apps/web/app/admin/(app)/tasks/    @s-sanchez-gremi
+/apps/web/app/admin/(staff)/(app)/leads/    @s-sanchez-gremi
+/apps/web/app/admin/(staff)/(app)/clients/  @s-sanchez-gremi
+/apps/web/app/admin/(staff)/(app)/projects/ @s-sanchez-gremi
+/apps/web/app/admin/(staff)/(app)/tasks/    @s-sanchez-gremi
 /apps/web/app/portal/               @s-sanchez-gremi
 /apps/web/components/admin/TaskRow.tsx          @s-sanchez-gremi
 /apps/web/components/admin/AttachedResponses.tsx @s-sanchez-gremi
