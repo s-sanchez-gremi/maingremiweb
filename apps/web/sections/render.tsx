@@ -87,8 +87,10 @@ function renderOne(s: Section, ctx: Ctx, opts: { h1: boolean; after?: ReactNode 
     case "cta":
       return (
         <section className="cta"><div className="wrap">
-          <h2>{str(d.heading)}</h2>
-          {str(d.text) && <p>{str(d.text)}</p>}
+          <div className="cta-text">
+            <h2>{str(d.heading)}</h2>
+            {str(d.text) && <p>{str(d.text)}</p>}
+          </div>
           {str(d.linkUrl) && <SmartLink href={str(d.linkUrl)} className="btn primary">{str(d.linkLabel) || str(d.linkUrl)}</SmartLink>}
         </div></section>
       );
@@ -96,9 +98,9 @@ function renderOne(s: Section, ctx: Ctx, opts: { h1: boolean; after?: ReactNode 
       const tiles = (d.tiles as Data[]) ?? [];
       if (!tiles.length) return null;
       return (
-        <div className="tiles">
+        <div className="tiles"><div className="wrap tiles-grid">
           {tiles.map((x, i) => <div className="tile" key={i}><span className="eyebrow">{str(x.label)}</span>{str(x.text) && <span>{str(x.text)}</span>}</div>)}
-        </div>
+        </div></div>
       );
     }
     case "cookieList": {
@@ -134,7 +136,7 @@ function renderOne(s: Section, ctx: Ctx, opts: { h1: boolean; after?: ReactNode 
             {cards.map((c, i) => {
               const m = ctx.media[str(c.image)];
               return (
-                <Card key={i} image={m ? <Img m={m} sizes="(min-width:900px) 25vw, 100vw" /> : undefined}>
+                <Card key={i} image={m ? <Img m={m} sizes="(min-width:900px) 25vw, 100vw" /> : undefined} linked={!!str(c.linkUrl)}>
                   {str(c.label) && <span className="eyebrow">{str(c.label)}</span>}
                   <h3>{str(c.linkUrl) ? <SmartLink href={str(c.linkUrl)} className="stretch">{str(c.title)}</SmartLink> : str(c.title)}</h3>
                   {str(c.text) && <div className="meta">{str(c.text)}</div>}

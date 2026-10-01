@@ -14,6 +14,7 @@ export function PostCard({ post, media, locale }: { post: PostCardData; media: R
         // eslint-disable-next-line @next/next/no-img-element
         <img src={mediaUrl(cover, 480)} srcSet={mediaSrcSet(cover)} sizes="(min-width:900px) 33vw, 100vw" alt={cover.alt} loading="lazy" width={cover.width ?? undefined} height={cover.height ?? undefined} />
       ) : undefined}
+      linked
     >
       {post.category && <span className="eyebrow">{post.category.name}</span>}
       <h3><SmartLink href={entryPath("post", locale, post.slug)} className="stretch">{post.title || t.untitled}</SmartLink></h3>
