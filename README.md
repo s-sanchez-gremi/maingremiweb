@@ -3,10 +3,10 @@
 Public site + custom CMS + form/lead pipeline. Build guide: `CLAUDE.md`. Plan: `PLAN.md`.
 
 ## Requirements
-Node 22+, pnpm, Docker (local Postgres, S3-compatible mock, Mailpit), `pg_dump`/`pg_restore` for backups.
+Node 26 (what production runs; 22+ still works for development), pnpm, Docker (local Postgres, S3-compatible mock, Mailpit), `pg_dump`/`pg_restore` for backups.
 
 ## Run locally
-One command (Mac/Linux; needs Node 22+ and Docker Desktop running). Safe to re-run after every `git pull`:
+One command (Mac/Linux; needs Node 22+ (26 recommended) and Docker Desktop running). Safe to re-run after every `git pull`:
 ```
 ./scripts/local-setup.sh       # installs, starts Docker services, migrates, demo content, asks for a first admin, starts the app
 ```
