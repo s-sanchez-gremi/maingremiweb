@@ -4,7 +4,7 @@ import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { db as Db } from "@apex/db";
 import { clients, feeTiers, members, people } from "@apex/db/schema";
 import { bump, newReport, type Report } from "./report";
-import { first, mask, normName, normTaxId, num, str, type Row } from "./notion";
+import { canon, first, mask, normName, normTaxId, num, str, type Row } from "./notion";
 
 export type Ctx = { db: typeof Db; overwrite?: boolean; erp?: boolean; minTier?: number };
 type Company = {
@@ -20,7 +20,7 @@ const phone = (v: unknown) => (typeof v === "number" ? String(v) : str(v as stri
 
 export function toCompany(r: Row): Company | null {
   const p = r.props;
-  const name = first(p["Empresa"], p["Nom"], p["Name"]);
+  const name = first(p["Empresa"], p["Nombre"], p["Nom"], p["Name"]);
   if (!name || r.trashed) return null;
   const phones = [...new Set([phone(p["Telèfon"]), phone(p["Teléfono"]), phone(p["telefon"])].filter(Boolean))];
   const services = [...new Set([str(p["Serveis"]), str(p["Serveis oferts"])].filter(Boolean))].join("\n");
@@ -62,11 +62,13 @@ export function mergeCompanies(rows: Row[]) {
 const COLS = ["name", "taxId", "customerNumber", "email", "emailBilling", "emailOther", "phone", "phoneOther", "address", "postalCode", "city", "province", "website", "activity", "services"] as const;
 const euros = (n: number) => n.toLocaleString("ca-ES", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
 
-export async function importCompanies(ctx: Ctx, rows: Row[]) {
+/** `forceStatus`: every row of this database has that status whatever its own "Agremiat" says (the "Baixa agremiat" database = former members). */
+export async function importCompanies(ctx: Ctx, rows: Row[], opts: { forceStatus?: Company["memberStatus"]; label?: string } = {}) {
   const { db } = ctx;
-  const report: Report = newReport("Empreses (Agremiats)");
+  const report: Report = newReport(opts.label ?? "Empreses (Agremiats)");
   report.read = rows.length;
   const merged = mergeCompanies(rows);
+  if (opts.forceStatus) for (const c of merged) c.memberStatus = opts.forceStatus;
   // values the database would refuse are left empty and counted (typos in Notion, e.g. a date typed into "Any fundació")
   for (const c of merged) {
     if (c.foundedYear !== null && !(Number.isInteger(c.foundedYear) && c.foundedYear >= 1500 && c.foundedYear <= 2200)) { c.foundedYear = null; bump(report, "invalid founding years left empty"); }
@@ -78,6 +80,9 @@ export async function importCompanies(ctx: Ctx, rows: Row[]) {
   const shared = new Map<number, number>();
   for (const c of merged) if (c.amount && c.amount > 0 && (c.memberStatus === "member" || c.memberStatus === "former")) shared.set(c.amount, (shared.get(c.amount) ?? 0) + 1);
   const created: { c: Company; id: string }[] = [];
+  // companies without a CIF are matched by their cleaned-up name (legal forms, accents, punctuation ignored) when exactly one exists
+  const byCanon = new Map<string, string[]>();
+  for (const x of await db.select({ id: clients.id, name: clients.name }).from(clients)) { const k = canon(x.name); if (k) byCanon.set(k, [...(byCanon.get(k) ?? []), x.id]); }
   bump(report, "pages merged as duplicates", rows.filter((r) => !r.trashed).length - merged.length);
   bump(report, "companies without CIF", merged.filter((c) => !c.taxId).length);
 
@@ -85,7 +90,7 @@ export async function importCompanies(ctx: Ctx, rows: Row[]) {
     const key = normTaxId(c.taxId);
     const existing = (await db.select().from(clients).where(c.ids.length ? inArray(clients.externalRef, c.ids) : undefined).limit(1))[0]
       ?? (key ? (await db.select().from(clients).where(sql`upper(replace(${clients.taxId}, ' ', '')) = ${key}`).limit(1))[0] : undefined)
-      ?? (!key ? (await db.select().from(clients).where(and(sql`lower(${clients.name}) = ${c.name.toLowerCase()}`, eq(clients.taxId, ""))).limit(1))[0] : undefined);
+      ?? (!key ? await (async () => { const hit = byCanon.get(canon(c.name)); return hit?.length === 1 ? (await db.select().from(clients).where(eq(clients.id, hit[0])).limit(1))[0] : undefined; })() : undefined);
     let id: string;
     if (existing) {
       id = existing.id;
@@ -94,12 +99,14 @@ export async function importCompanies(ctx: Ctx, rows: Row[]) {
       if (c.employees !== null && (ctx.overwrite || existing.employees === null)) patch.employees = c.employees;
       if (c.foundedYear !== null && (ctx.overwrite || existing.foundedYear === null)) patch.foundedYear = c.foundedYear;
       if (c.getsMagazine && !existing.getsMagazine) patch.getsMagazine = true;
+      if (opts.forceStatus === "former" && existing.memberStatus === "member") bump(report, "also a CURRENT member elsewhere (status left unchanged, check by hand)");
       if (c.memberStatus !== "prospect" && (ctx.overwrite || existing.memberStatus === "prospect")) patch.memberStatus = c.memberStatus;
       if (!existing.externalRef) patch.externalRef = c.ids[0];
       if (Object.keys(patch).length) { await db.update(clients).set(patch).where(eq(clients.id, id)); report.updated++; } else report.skipped++;
     } else {
       const [row] = await db.insert(clients).values({ ...Object.fromEntries(COLS.map((k) => [k, c[k]])), memberStatus: c.memberStatus, employees: c.employees, foundedYear: c.foundedYear, getsMagazine: c.getsMagazine, externalRef: c.ids[0] } as typeof clients.$inferInsert).returning({ id: clients.id });
       id = row.id; report.created++;
+      { const k = canon(c.name); if (k) byCanon.set(k, [...(byCanon.get(k) ?? []), id]); }
       if (report.samples.length < 5) report.samples.push(`${mask(c.name)} · ${c.memberStatus}`);
     }
     for (const pid of c.ids) idmap.set(pid, id);

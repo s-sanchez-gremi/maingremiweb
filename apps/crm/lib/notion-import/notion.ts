@@ -59,3 +59,7 @@ export const normTaxId = (s: string) => s.replace(/\s+/g, "").toUpperCase();
 export const normName = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 export const mask = (s: string) => s.split(/\s+/).map((w) => (w.length > 1 ? w[0] + "•".repeat(Math.min(w.length - 1, 5)) : w)).join(" ");
 export const isoDate = (s: string) => (/^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : null);
+
+const LEGAL = /\b(s ?l ?u?|s ?a ?u?|s ?c ?p|s ?coop|c ?b|sociedad limitada|sociedad anonima)\b/g;
+/** a company name reduced to what identifies it: accents, case, punctuation and legal forms (SL, SA, SLU…) removed */
+export const canon = (s: string) => normName(s).replace(LEGAL, " ").replace(/\s+/g, " ").trim();

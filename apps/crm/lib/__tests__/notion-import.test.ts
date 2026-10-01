@@ -174,3 +174,18 @@ describe("messy real-world values", () => {
     expect((await db.select().from(clients))[0]).toMatchObject({ foundedYear: null, employees: null });
   });
 });
+
+describe("former members database", () => {
+  it("every row becomes a former member (title column 'Nombre'), also when its own status says agremiat; current members are never downgraded", async () => {
+    const current = company({ name: "Encara Soci SL", cif: "B1", agremiat: "agremiat" });
+    const gone = page({ Nombre: title("Antiga Soci SA"), CIF: t("B2"), Agremiat: sel("agremiat"), Cuota: status("Corrent pagament"), Import: num(null), "Teléfono": phone("") });
+    const both = page({ Nombre: title("Encara Soci SL"), CIF: t("B1"), Agremiat: sel("agremiat"), Cuota: status("Impagament"), Import: num(null), "Teléfono": phone("") });
+    const r = await run({ companies: ["c"], former: ["f"] }, { c: rows(current), f: rows(gone, both) });
+    const f = r.reports.find((x) => x.source.startsWith("Exagremiats"))!;
+    expect(f.extra["also a CURRENT member elsewhere (status left unchanged, check by hand)"]).toBe(1);
+    const all = await db.select().from(clients);
+    expect(all.find((x) => x.name === "Antiga Soci SA")!.memberStatus).toBe("former");
+    expect(all.find((x) => x.name === "Encara Soci SL")!.memberStatus).toBe("member");
+    expect((await db.select().from(members)).find((x) => x.name === "Antiga Soci SA")!.status).toBe("left");
+  });
+});

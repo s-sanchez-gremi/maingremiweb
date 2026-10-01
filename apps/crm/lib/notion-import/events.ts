@@ -4,11 +4,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { clients, eventAttendance, events, people, visits } from "@apex/db/schema";
 import type { Ctx } from "./companies";
 import { bump, newReport } from "./report";
-import { first, isoDate, mask, normName, str, type Row } from "./notion";
-
-const LEGAL = /\b(s ?l ?u?|s ?a ?u?|s ?c ?p|s ?coop|c ?b|sociedad limitada|sociedad anonima)\b/g;
-/** a company name reduced to what identifies it: accents, case, punctuation and legal forms (SL, SA, SLU…) removed */
-export const canon = (s: string) => normName(s).replace(LEGAL, " ").replace(/\s+/g, " ").trim();
+import { canon, first, isoDate, mask, str, type Row } from "./notion";
 
 /** Finds companies by relation (Notion page ids already imported) or by the name typed as text: exact first, then a unique containment match. */
 async function companyMatcher(ctx: Ctx, idmap: Map<string, string>) {
