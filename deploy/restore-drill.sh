@@ -26,7 +26,9 @@ if [[ "$KEY" == *.enc ]]; then
 else cp "$TMP/file" "$TMP/dump"; fi
 
 docker run -d --name "$NAME" -e POSTGRES_PASSWORD=drill -e POSTGRES_DB=restored "$PG_IMAGE" >/dev/null
-for i in $(seq 1 40); do docker exec "$NAME" pg_isready -U postgres -d restored >/dev/null 2>&1 && break; sleep 1; [ "$i" = 40 ] && { echo "scratch Postgres did not start"; false; }; done
+# -h 127.0.0.1: during first start the image runs a TEMPORARY server that only listens on the unix socket and then shuts down;
+# a socket check passes too early and the next command hits "database system is shutting down". Only the real server listens on TCP.
+for i in $(seq 1 40); do docker exec "$NAME" pg_isready -h 127.0.0.1 -U postgres -d restored >/dev/null 2>&1 && break; sleep 1; [ "$i" = 40 ] && { echo "scratch Postgres did not start"; false; }; done
 docker exec -i "$NAME" pg_restore -U postgres -d restored --no-owner --exit-on-error < "$TMP/dump"
 
 q() { docker exec "$NAME" psql -U postgres -d restored -Atc "$1"; }
