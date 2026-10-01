@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { db } from "../db";
-import { users } from "@/db/schema";
+import { db } from "@apex/db";
+import { users } from "@apex/db/schema";
 import { bootstrapAdmin } from "../bootstrap";
-import { createUser } from "../users";
+import { createUser } from "@apex/core/users";
 
 const logs: string[] = [];
 const log = (m: string) => { logs.push(m); };

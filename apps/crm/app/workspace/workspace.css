@@ -1,0 +1,60 @@
+/* Workspace: a Notion-like surface for the records engine. Colours come from the shared tokens; nothing here defines a colour. */
+.ws { background: var(--bg, #fff); }
+.ws-shell { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+.ws-side { background: var(--bg2); border-right: 1px solid var(--line); padding: 14px 10px; display: flex; flex-direction: column; gap: 14px; position: sticky; top: 0; height: 100vh; overflow: auto; }
+.ws-brand { font-weight: 600; padding: 4px 8px; font-size: 14px; }
+.ws-group { display: grid; gap: 1px; margin-bottom: 10px; }
+.ws-group-name { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text2); padding: 4px 8px; }
+.ws-group a { padding: 5px 8px; border-radius: 6px; color: inherit; text-decoration: none; font-size: 14px; }
+.ws-group a:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.ws-group a[aria-current="page"] { background: color-mix(in srgb, var(--ink) 11%, transparent); font-weight: 600; }
+.ws-foot { margin-top: auto; display: grid; gap: 6px; font-size: 12px; color: var(--text2); }
+.ws-foot a { color: inherit; } .ws-foot button { all: unset; cursor: pointer; text-decoration: underline; }
+.ws-main { min-width: 0; }
+.ws-split { display: grid; grid-template-columns: 1fr; min-height: 100vh; }
+.ws-split.open { grid-template-columns: minmax(0, 1fr) minmax(360px, 480px); }
+.ws-content { padding: 28px 32px 60px; min-width: 0; }
+.ws-head { display: flex; align-items: baseline; gap: 10px; }
+.ws-head h1 { margin: 0; font-family: var(--serif); font-size: 30px; }
+.ws-count { color: var(--text2); font-size: 14px; }
+.ws-hint { color: var(--text2); font-size: 13px; margin: 6px 0 0; max-width: 70ch; }
+.ws-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 16px 0 10px; }
+.ws .ws-toolbar input[type=search], .ws .ws-toolbar select { border: 1px solid var(--field-border); border-radius: 6px; padding: 6px 9px; font: inherit; font-size: 13px; background: var(--bg); min-height: 32px; }
+.ws .ws-toolbar input[type=search] { min-width: 240px; width: auto; flex: 0 1 280px; }
+.ws .ws-toolbar button, .ws .ws-btn { border: 1px solid var(--field-border); background: var(--bg); border-radius: 6px; padding: 6px 11px; font: inherit; font-size: 13px; color: inherit; text-decoration: none; cursor: pointer; min-height: 32px; display: inline-flex; align-items: center; }
+.ws-btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.ws-toolbar button:hover, .ws-btn:hover { background: var(--bg2); } .ws-btn.primary:hover { background: var(--ink2, var(--ink)); }
+.ws-spacer { flex: 1; }
+.ws-tablewrap { overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+.ws-table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.ws-table th { position: sticky; top: 0; background: var(--bg2); text-align: left; font-weight: 500; font-size: 12px; color: var(--text2); border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); white-space: nowrap; padding: 0; }
+.ws-table th > a, .ws-table th > span { display: block; padding: 8px 10px; color: inherit; text-decoration: none; }
+.ws-table th i { font-style: normal; opacity: .7; margin-right: 6px; font-size: 11px; }
+.ws-table td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 0; min-width: 140px; vertical-align: middle; }
+.ws-table td:last-child, .ws-table th:last-child { border-right: 0; }
+.ws-table tr:hover td { background: color-mix(in srgb, var(--ink) 3%, transparent); }
+.ws-table tr[aria-selected] td { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.ws-open-col { min-width: 0 !important; width: 34px; text-align: center; }
+.ws-open { color: var(--text2); text-decoration: none; padding: 6px 8px; display: inline-block; border-radius: 4px; } .ws-open:hover { background: var(--bg2); color: var(--ink); }
+.ws-cellwrap { display: flex; align-items: center; position: relative; }
+.ws .ws-cell { all: unset; box-sizing: border-box; width: 100%; padding: 8px 10px; min-height: 36px; font: inherit; font-size: 14px; background: transparent; resize: none; overflow: hidden; text-overflow: ellipsis; }
+select.ws .ws-cell { appearance: none; cursor: pointer; }
+input[type=checkbox].ws .ws-cell { width: 18px; min-height: 0; margin: 9px 10px; padding: 0; appearance: auto; }
+.ws .ws-cell:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--bg); border-radius: 2px; }
+.ws .ws-cell.err { outline: 2px solid var(--accent); outline-offset: -2px; }
+.ws-ok { position: absolute; right: 8px; color: var(--text2); font-size: 12px; }
+.ws-bad { position: absolute; right: 6px; top: 100%; z-index: 3; background: var(--ink); color: var(--bg); font-size: 12px; padding: 4px 8px; border-radius: 6px; white-space: nowrap; }
+.ws-empty { padding: 28px !important; text-align: center; color: var(--text2); }
+.ws-pager { display: flex; gap: 14px; align-items: center; margin-top: 12px; font-size: 13px; color: var(--text2); } .ws-pager a { color: inherit; }
+.ws-peek { border-left: 1px solid var(--line); background: var(--bg); position: sticky; top: 0; height: 100vh; overflow: auto; }
+.ws-close { position: absolute; top: 10px; right: 12px; color: var(--text2); text-decoration: none; padding: 4px 8px; border-radius: 6px; z-index: 2; } .ws-close:hover { background: var(--bg2); }
+.peek-body { padding: 22px 20px 60px; display: grid; gap: 12px; }
+.peek-title { font-family: var(--serif); font-size: 22px; margin: 0 28px 0 0; }
+.ws .peek-body .body { padding: 0; } .ws .peek-body .card { border-radius: 8px; }
+@media (max-width: 900px) {
+  .ws-shell { grid-template-columns: 1fr; } .ws-side { position: static; height: auto; flex-direction: row; flex-wrap: wrap; }
+  .ws-split.open { grid-template-columns: 1fr; } .ws-peek { position: fixed; inset: 0; z-index: 20; height: auto; }
+  .ws-content { padding: 18px 14px 60px; }
+}
+.ws-static { display: block; color: inherit; }
+.ws .ws-search input { width: 100%; box-sizing: border-box; border: 1px solid var(--field-border); border-radius: 6px; padding: 6px 9px; font: inherit; font-size: 13px; background: var(--bg); min-height: 32px; }

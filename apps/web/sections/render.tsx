@@ -1,7 +1,7 @@
 // Public renderers, one per section type in sections/registry.ts. Editors fill in content only;
 // every look comes from the fixed design tokens in app/(site)/site.css.
 import type { ReactNode } from "react";
-import { RichText } from "@/lib/richtext";
+import { RichText } from "@apex/ui/richtext";
 import { embedTarget } from "@/lib/embed";
 import { mediaSrcSet, mediaUrl } from "@/lib/media-url";
 import { ui, type Locale } from "@/lib/i18n";
@@ -10,11 +10,12 @@ import { declarations, categories } from "@/lib/consent/registry";
 import type { PublicMedia } from "@/lib/content-queries";
 import { Embed } from "@/components/site/Embed";
 import { SmartLink } from "@/components/site/SmartLink";
-import { Card } from "@/components/ui/Card";
+import { Card } from "@apex/ui/components/Card";
 import { LatestPosts } from "@/components/site/LatestPosts";
 import { PublicForm } from "@/components/site/form/PublicForm";
-import type { Source } from "@/components/site/form/FormRenderer";
-import type { Section } from "./registry";
+import type { Source } from "@apex/forms/components/FormRenderer";
+import { UNSTYLED, type Section } from "./registry";
+import { COLUMN_FIELDS, columnCount } from "./blocks";
 
 type Ctx = { media: Record<string, PublicMedia>; locale: Locale; source: Source };
 type Data = Record<string, unknown>;
@@ -49,6 +50,49 @@ function Header({ d, ctx, h1, children }: { d: Data; ctx: Ctx; h1: boolean; chil
       </div>
     </section>
   );
+}
+
+type BlockItem = { id: string; type: string; data: Data };
+
+function renderBlock(b: BlockItem, ctx: Ctx): ReactNode {
+  const d = b.data;
+  const t = ui(ctx.locale);
+  switch (b.type) {
+    case "heading": {
+      const size = str(d.size) || "m";
+      return size === "s" ? <h3 className="b-heading s">{str(d.text)}</h3> : <h2 className={`b-heading ${size}`}>{str(d.text)}</h2>;
+    }
+    case "text":
+      return <RichText body={str(d.body)} />;
+    case "image": {
+      const m = ctx.media[str(d.image)];
+      if (!m) return null;
+      return (
+        <figure>
+          <Img m={m} sizes="(min-width:900px) 50vw, 100vw" />
+          {(str(d.caption) || m.credit) && <figcaption>{[str(d.caption), m.credit].filter(Boolean).join(" · ")}</figcaption>}
+        </figure>
+      );
+    }
+    case "button":
+      return str(d.url) ? <div><SmartLink href={str(d.url)} className={`btn${str(d.variant) === "outline" ? "" : " primary"}`}>{str(d.label) || str(d.url)}</SmartLink></div> : null;
+    case "embed": {
+      const target = embedTarget(str(d.url));
+      if (!target) return null;
+      return <Embed src={target.src} title={target.title} original={str(d.url)} labels={{ load: t.loadEmbed, note: t.embedNote, open: t.openExternal, always: consentMsgs(ctx.locale).allowEmbeds }} />;
+    }
+    case "card": {
+      const m = ctx.media[str(d.image)];
+      return (
+        <Card image={m ? <Img m={m} sizes="(min-width:900px) 33vw, 100vw" /> : undefined} linked={!!str(d.linkUrl)}>
+          {str(d.label) && <span className="eyebrow">{str(d.label)}</span>}
+          <h3>{str(d.linkUrl) ? <SmartLink href={str(d.linkUrl)} className="stretch">{str(d.title)}</SmartLink> : str(d.title)}</h3>
+          {str(d.text) && <div className="meta">{str(d.text)}</div>}
+        </Card>
+      );
+    }
+  }
+  return null;
 }
 
 function renderOne(s: Section, ctx: Ctx, opts: { h1: boolean; after?: ReactNode }): ReactNode {
@@ -87,8 +131,10 @@ function renderOne(s: Section, ctx: Ctx, opts: { h1: boolean; after?: ReactNode 
     case "cta":
       return (
         <section className="cta"><div className="wrap">
-          <h2>{str(d.heading)}</h2>
-          {str(d.text) && <p>{str(d.text)}</p>}
+          <div className="cta-text">
+            <h2>{str(d.heading)}</h2>
+            {str(d.text) && <p>{str(d.text)}</p>}
+          </div>
           {str(d.linkUrl) && <SmartLink href={str(d.linkUrl)} className="btn primary">{str(d.linkLabel) || str(d.linkUrl)}</SmartLink>}
         </div></section>
       );
@@ -96,9 +142,9 @@ function renderOne(s: Section, ctx: Ctx, opts: { h1: boolean; after?: ReactNode 
       const tiles = (d.tiles as Data[]) ?? [];
       if (!tiles.length) return null;
       return (
-        <div className="tiles">
+        <div className="tiles"><div className="wrap tiles-grid">
           {tiles.map((x, i) => <div className="tile" key={i}><span className="eyebrow">{str(x.label)}</span>{str(x.text) && <span>{str(x.text)}</span>}</div>)}
-        </div>
+        </div></div>
       );
     }
     case "cookieList": {
@@ -123,6 +169,21 @@ function renderOne(s: Section, ctx: Ctx, opts: { h1: boolean; after?: ReactNode 
     }
     case "latestPosts":
       return <LatestPosts heading={str(d.heading)} count={Number(d.count) || 3} locale={ctx.locale} />;
+    case "columns": {
+      const n = columnCount(d.layout);
+      return (
+        <section className="block"><div className="wrap">
+          {str(d.heading) && <div className="sec-head"><h2>{str(d.heading)}</h2></div>}
+          <div className={`cols l-${str(d.layout) || "1-1"}`}>
+            {COLUMN_FIELDS.slice(0, n).map((c) => (
+              <div className="col" key={c} data-col={c}>
+                {((d[c] as BlockItem[]) ?? []).map((b) => <div className={`b b-${b.type}`} key={b.id} data-block-id={b.id}>{renderBlock(b, ctx)}</div>)}
+              </div>
+            ))}
+          </div>
+        </div></section>
+      );
+    }
     case "cardGrid": {
       const cards = (d.cards as Data[]) ?? [];
       if (!cards.length) return null;
@@ -134,7 +195,7 @@ function renderOne(s: Section, ctx: Ctx, opts: { h1: boolean; after?: ReactNode 
             {cards.map((c, i) => {
               const m = ctx.media[str(c.image)];
               return (
-                <Card key={i} image={m ? <Img m={m} sizes="(min-width:900px) 25vw, 100vw" /> : undefined}>
+                <Card key={i} image={m ? <Img m={m} sizes="(min-width:900px) 25vw, 100vw" /> : undefined} linked={!!str(c.linkUrl)}>
                   {str(c.label) && <span className="eyebrow">{str(c.label)}</span>}
                   <h3>{str(c.linkUrl) ? <SmartLink href={str(c.linkUrl)} className="stretch">{str(c.title)}</SmartLink> : str(c.title)}</h3>
                   {str(c.text) && <div className="meta">{str(c.text)}</div>}
@@ -148,13 +209,21 @@ function renderOne(s: Section, ctx: Ctx, opts: { h1: boolean; after?: ReactNode 
   }
 }
 
+/** Brand style classes for a section's wrapper (see "brand styles" in site.css). Defaults add nothing. */
+function styleClass(s: Section): string | undefined {
+  if (UNSTYLED.has(s.type) || !s.style) return undefined;
+  const { bg, space, align } = s.style as Record<string, string>;
+  const c = [bg && bg !== "auto" && `sx sx-bg-${bg}`, space && space !== "m" && `sx-sp-${space}`, align === "center" && "sx-center"].filter(Boolean);
+  return c.length ? c.join(" ") : undefined;
+}
+
 /** Renders a page's sections. The first "header" section becomes the page <h1>; `afterHeader` (post meta) is placed inside it. */
 export function SectionRenderer({ sections, media, locale, afterHeader, source }: { sections: Section[]; media: Record<string, PublicMedia>; locale: Locale; afterHeader?: ReactNode; source?: Source }) {
   const firstHeader = sections.findIndex((s) => s.type === "header");
   return (
     <>
       {sections.map((s, i) => (
-        <div key={s.id}>{renderOne(s, { media, locale, source: source ?? { path: "", theme: "" } }, { h1: i === firstHeader, after: i === firstHeader ? afterHeader : undefined })}</div>
+        <div key={s.id} className={styleClass(s)} data-section-id={s.id}>{renderOne(s, { media, locale, source: source ?? { path: "", theme: "" } }, { h1: i === firstHeader, after: i === firstHeader ? afterHeader : undefined })}</div>
       ))}
     </>
   );

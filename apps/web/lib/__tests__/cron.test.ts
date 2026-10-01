@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cronAuthorized } from "../cron-auth";
+import { cronAuthorized } from "@apex/core/cron-auth";
 
 const req = (auth?: string) => new Request("http://x/api/cron/publish", { headers: auth ? { authorization: auth } : {} });
 
