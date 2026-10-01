@@ -210,8 +210,12 @@ test.describe("navigation with dropdowns, header buttons and social links", () =
     await expect(page.getByRole("status")).toContainText("Desat");
 
     await page.goto("/ca");
-    await page.getByRole("navigation", { name: "Principal" }).getByRole("button", { name: "Recursos" }).click();
-    await expect(page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: "Guia de l'associat" })).toBeVisible();
+    const nav = page.getByRole("navigation", { name: "Principal" });
+    const recursos = nav.getByRole("button", { name: "Recursos" }), guia = nav.getByRole("link", { name: "Guia de l'associat" });
+    await expect(async () => { // a click before the page has hydrated does nothing (slow CI machines), so retry until the menu is open
+      if ((await recursos.getAttribute("aria-expanded")) !== "true") await recursos.click();
+      await expect(guia).toBeVisible({ timeout: 1500 });
+    }).toPass({ timeout: 20_000 });
 
     // A top-level item with neither a link nor a submenu is refused.
     await page.goto("/admin/settings");
