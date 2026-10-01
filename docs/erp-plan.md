@@ -1,89 +1,92 @@
-# ERP plan (quotes, billing data, invoice register)
+# ERP plan: costs, purchases, subscriptions, courses and member fees
 
-Status: **proposal for review**, nothing built. Owner: Sam. Needs the legal adviser's input on section 6 before any invoice-related code.
+Status: **proposal, v2** (after the team's answers); nothing built. Owner: Sam. Roles and permissions are deliberately left open (section 6). The legal adviser should read section 7 before any money-related code.
 
-## 1. What we mean by "ERP" here
-The brief only names ERP as a later phase after CRM and project manager ("invoicing, documents"). This plan assumes the smallest useful meaning: **money that flows from clients and projects**: what we offer (quotes), what we have billed (invoices), and what has been paid. It is **not** accounting, payroll, stock, purchasing or tax filing (the gestoria keeps doing those). Section 8 lists what we still need to confirm.
+## 1. What the ERP is for (from the team)
+1. **Courses:** their costs and the payments received for them.
+2. **Expenses** and **purchases** (what we buy and from whom, with approval).
+3. **Subscriptions:** recurring costs we pay (software, memberships, services) and their renewals.
+4. **Guild member fees** (quotes de socis): who owes what, who has paid, reminders.
 
-## 2. The key decision: do NOT build our own invoice issuer (yet)
-Since the anti-fraud rules (Ley 11/2021, Real Decreto 1007/2023, "Veri*Factu"), any software that **issues invoices** must keep tamper-evident billing records (hash chain, event log), print a QR, and either send records to the tax agency (Veri*Factu mode) or keep them signed, and the producer must publish a *declaración responsable*. If we built it, the association would be the software producer and carry that obligation and liability. The compliance dates were postponed: from **1 Jan 2027** for companies and **1 Jul 2027** for self-employed. On top of that, B2B electronic invoicing becomes mandatory under Ley 18/2022 ("Crea y Crece"), developed by **Real Decreto 238/2026** (BOE 31 Mar 2026), with 12-month (turnover over 8 M EUR) and 24-month (everyone else) deadlines that start counting when the ministerial order takes effect; **confirm the exact dates**.
+The books and the legal invoices stay in **Sage Despachos**. So Apex is the **operational layer in front of the accounting**: it records what happens day to day, links it to clients, projects, courses and members, and hands the gestoria clean data to import into Sage. It is not accounting, tax filing, payroll or stock.
 
-| | A. Build our own invoice issuer | **B. Apex keeps quotes + an invoice *register*; a certified tool issues the legal invoices (recommended)** |
-|---|---|---|
-| Legal risk | High: we must comply with, and keep up with, Veri*Factu, Facturae/e-invoicing, rectification rules | Low: the certified tool carries it |
-| Effort | Large, and permanent (rules keep changing) | Small |
-| Fits "simple, robust, one database" | Partly | Yes: Apex stores what was invoiced and paid, in our database, but does not generate the legal document |
-| Gives staff | One place for everything | One extra tool to log into (but its invoices appear in Apex and in the client portal) |
+## 2. Design decisions
+- **Apex does not issue legal invoices.** Anti-fraud rules (Veri*Factu) apply to software that *issues* invoices; Sage provides the certified issuer (it publishes a Veri*Factu *declaración responsable*). Apex stores what Sage issued (number, PDF, amount) and what we *receive* from suppliers. This removes the biggest legal risk from our code.
+- **Money:** integer cents, VAT as basis points (2100 = 21%), EUR only, one written rounding rule (per line, half up) with heavy unit tests.
+- **Cost centers:** every cost or income belongs to a cost center (a **course**, a **project**, or **general**), which is what makes "how much did this course cost / earn" possible.
+- **Never edit history:** saved financial records are corrected by a new linked record (reversal/rectification), not by editing or deleting.
+- **Sage export:** Sage Despachos Connected imports journals and invoices from Excel/CSV through its *import guides* (a standard guide for journal entries exists; invoices need a plug-in) and customizable guides. So Apex produces a **monthly CSV/Excel in the layout the gestoria's guide expects**; we need that template from the gestoria. A direct API is a later option, not a first step.
 
-**Recommendation: B.** Revisit A only if the adviser confirms a need that no certified tool covers. Which tool the association already uses (or picks) decides how invoices reach Apex: a CSV export you import, a PDF you attach, or later an API link.
+## 3. Phases (each small, shippable, tested, reviewed by the other person)
 
-## 3. Phases (each small, each shippable, each reviewed by the adviser where it touches the law)
+**E0. Foundations (about 2 days)**
+`lib/money.ts`; cost centers (course / project / general, optional budget); categories for expenses and income, each with the **Sage account number** it maps to (so exports need no manual coding); suppliers (name, tax id, contact, IBAN, payment terms).
 
-**E1. Billing data and catalogue (about 2-3 days)**
-- On a client: legal name, tax id (NIF/CIF), billing address, invoice email. (A client created from a contact starts empty.)
-- A small catalogue of items we sell (name, default unit price, VAT rate), editable by admins.
+**E1. Expenses and purchases (about 6-8 days)**
+- **Purchase request → approval → order → received → invoiced.** Lines with quantity and price; cost center and category; status history; who requested/approved (approval rule decided with roles).
+- **Expenses:** date, supplier, category, cost center, base + VAT + total, supplier invoice number, receipt/PDF in the private bucket, paid/unpaid with payment date and method. An expense can come from a purchase.
+- Lists with search (same search bar as the CRM), filters by cost center, supplier, month, unpaid.
 
-**E2. Quotes / pressupostos (about 4-5 days)**
-- A quote belongs to a client (optionally a project): lines (item or free text, quantity, unit price, discount %, VAT rate), totals computed in cents, validity date, status *draft → sent → accepted / rejected / expired*.
-- PDF export with the association's details; numbering by series and year (`P-2026-0001`), no gaps once sent.
-- A quote is **not** a tax invoice, so the invoicing rules do not apply; the PDF must say so ("Pressupost, no és una factura").
-- Accepted quote → button "mark as invoiced" to link it to an invoice record (E3).
+**E2. Subscriptions (about 3-4 days)**
+Subscription = supplier, what it is, amount, billing period (monthly/annual), next renewal, owner, category, cost center, active. Renewal reminder emails (existing outbox), a "this month / this year" cost view, and one click to record the expected expense when the invoice arrives.
 
-**E3. Invoice register and payments (about 4-5 days)**
-- Record (never generate) each invoice the certified tool issued: series+number, issue date, client, base, VAT, total, due date, PDF (private bucket), link to project/quote.
-- Status *pending / paid / overdue*, payments (date, amount, method), overdue list, reminder email to the client through the existing outbox.
-- Corrections are **new records** (rectifying invoice, linked to the original); an invoice record is never edited or deleted once saved.
-- Invoices marked "visible to client" show in the **client portal** (same share control as documents).
-- CSV export for the gestoria.
+**E3. Courses: costs and payments (about 5-6 days)**
+A course is a cost center with: dates, budget, instructors/suppliers, **costs** (expenses assigned to it) and **income** (payments received: date, amount, payer, method, optional Sage invoice number). Dashboard: budget vs. actual, **margin per course**. Payments are *recorded*, not processed (no online payment in scope). Optional link to a client/contact and to a project.
 
-**E4. Decision gate: membership fees and anything else.** If the main use is billing member dues in bulk (the "Agremia't" side), that is a different workflow (recurring fees, remittances/SEPA) and needs its own short plan.
+**E4. Guild member fees (about 6-8 days)**
+Members (company, tax id, status active/left, join date, fee plan and amount, billing period), a **fee charge** per period (pending / paid / overdue / waived), payments recorded, overdue list, reminder emails, annual fee generation in bulk with a preview. Bridge from the CRM: a lead from the *Agremia't* form → **convert to member** (like convert to client today). Export to Sage for the invoices/receipts.
+
+**E5. Reports and Sage export (about 4-5 days)**
+Monthly export in the agreed Sage layout; per cost center income/expense/margin; budget vs. actual; unpaid expenses; overdue fees; CSV for everything.
+
+**Decision gates (not planned yet):** SEPA direct-debit remittance file for fees (bank format, its own plan); online payments (excluded); API link to Sage.
+
+Rough total: **26-34 working days** for one person, E0 first, then E1 and E2 (smallest, most useful), then E3/E4 in the order the team needs, E5 growing alongside.
 
 ## 4. Data model (new file `apps/web/db/schema/erp.ts`, re-exported from `index.ts`)
-Money is **integer cents**, VAT rate is **basis points** (2100 = 21%), currency EUR only, rounding rule written down once (round per line, half up) and unit-tested.
-- `billing_profiles` (client_id, legal_name, tax_id, address fields, invoice_email)
-- `erp_items` (name, unit_price_cents, vat_bp, active)
-- `quotes` (client_id, project_id, series, number, status, valid_until, notes) + `quote_lines` (quote_id, position, item_id?, description, qty, unit_price_cents, discount_bp, vat_bp)
-- `invoice_records` (client_id, project_id?, quote_id?, series, number, issued_on, due_on, base_cents, vat_cents, total_cents, corrects_id?, file_key, shared, source_tool, external_ref) with unique (series, number)
-- `payments` (invoice_id, paid_on, amount_cents, method)
-- Migrations as always: next free number, shared review.
+`cost_centers` · `erp_categories` (kind expense/income, sage_account) · `suppliers` · `purchases` + `purchase_lines` · `expenses` (+ file key, supplier invoice no.) · `subscriptions` · `courses` (extends a cost center: dates, budget) · `income_entries` (cost center, amount, date, payer, method, sage_invoice_ref) · `members` · `fee_plans` · `member_fees` (period, amount, status, paid_on). Corrections are new rows linked by `corrects_id`. Migrations take the next free number, with shared review.
+**Erasure design (affects the existing erase feature):** financial rows must survive a data-erasure request for the legal retention period. No cascade from contacts/clients/members into financial tables; each record stores the fiscal identity it needs, and erasure anonymises personal fields only where the law allows.
 
-## 5. Screens and permissions
-- New folders under `app/admin/(app)/`: `quotes/`, `invoices/`, `catalogue/`; logic in `lib/quotes.ts`, `lib/invoices.ts`, `lib/money.ts` (all in Sam's area, see `CODEOWNERS`); one new menu line each.
-- New permission `erp:write`, **admins only at first** (money). Editors see nothing until we decide otherwise.
-- Client portal: a new "Factures" list per client, only records marked visible.
+## 5. Screens
+New folders under `app/admin/(app)/`: `purchases/`, `expenses/`, `suppliers/`, `subscriptions/`, `courses/`, `members/`, `erp-reports/`; logic in `lib/<name>.ts`. One menu group "Gestió" (the menu file is shared, one line per item). Client-portal: later, optional: members could see their own fee status (same isolation rules as the portal).
 
-## 6. Legal and data-protection points to confirm with the adviser (before E3, and for E2's PDF)
-1. Legal form and tax status of the association (VAT exemption for member fees? corporate income tax status?), which decides the Veri*Factu start date and the VAT treatment on quotes.
-2. Confirm option B is acceptable: invoices are issued only by certified software, Apex only records them.
-3. Mandatory content of an invoice and the rules for rectifying invoices (Real Decreto 1619/2012): we must never edit or delete an issued invoice; corrections are new, linked records in their own series.
-4. B2B e-invoicing (RD 238/2026): exact start date for the association and the tool's compliance.
-5. **Retention vs. erasure (important, affects code already built):** the contact-erasure feature deletes a contact and the client made from them. Invoice data must be kept for the legal period (Código de Comercio: 6 years; tax rules: 4 years of limitation; **adviser to confirm**). So invoice records must survive an erasure request with only the minimum fiscal data, and erasure must not cascade into them. We will design `invoice_records` with no cascade from contacts/clients and store the fiscal identity needed on the record itself.
-6. Privacy notice and consent wording for sending invoice reminders by email.
-7. Where invoice PDFs may be stored (EU buckets, private, retention).
+## 6. Roles (to define later) and how we stay ready
+- Today the system has two staff roles (admin, editor) and **no user-defined roles** (a deliberate rule in `CLAUDE.md`). The ERP needs finer permissions (e.g. who requests, who approves, who pays, who sees amounts, who exports).
+- Plan: all ERP code asks `can(user, "erp:…")` only, with actions such as `erp:read`, `erp:request`, `erp:approve`, `erp:pay`, `erp:export`, `erp:admin`. **Until roles are defined these are admin-only**, so nothing is exposed by default. When the roles are decided we add them as a *fixed list in code* (e.g. `finance`, `manager`), changing only `permissions.ts` and the users screen; this is a decision for both developers because it touches shared auth.
+- Approval limits (e.g. purchases over X EUR need a second person) are a setting once the roles exist.
 
-## 7. Out of scope (on purpose)
-Issuing legal invoices, Veri*Factu/Facturae generation, online payments (cards, SEPA), accounting and ledgers, tax returns (modelo 303/347/390 etc.), purchasing and supplier invoices, stock, payroll, multi-currency.
+## 7. Legal and data-protection points for the adviser (before E1 stores supplier/member data)
+1. Confirm who **issues** the association's invoices and receipts today (the association itself in Sage Despachos, or the gestoria on its behalf) and that Sage's certified issuing covers the association's Veri*Factu duty (start **1 Jan 2027** for companies; **1 Jul 2027** for self-employed, per RD-ley 15/2025). The B2B e-invoicing law (Ley 18/2022, RD 238/2026) has 12/24-month deadlines that start when a ministerial order takes effect: confirm the date.
+2. VAT treatment of **member fees** and course income (exemptions, pro-rata deduction on expenses) and the association's tax status: it decides which fields the exports need.
+3. **Retention** of purchase and expense documents and invoices (Código de Comercio 6 years; tax limitation 4 years; adviser to confirm) and how that interacts with GDPR erasure (section 4).
+4. Privacy notice for suppliers' and members' data, and consent/legitimate-interest wording for fee reminder emails.
+5. Whether storing supplier IBANs and receipts in our private EU bucket is acceptable under the association's data policy.
+6. Whether member bank details (for a future SEPA remittance) need extra safeguards.
 
-## 8. Questions for the team
-1. Is "ERP" exactly E1-E3, or do you also mean something else (expenses, purchasing, membership dues, inventory)?
-2. Which tool issues invoices today (or which will we choose)? Can it export CSV/PDF, and does it have an API?
-3. Roughly how many invoices and quotes per month?
-4. Do members pay fees through Apex-managed invoices (E4), or is that handled elsewhere?
-5. Who should see money: only admins, or also project/CRM staff?
-6. Does the gestoria need a fixed export format?
+## 8. Out of scope (on purpose)
+Issuing legal invoices; Veri*Factu/Facturae generation; online payments; accounting ledger and tax returns (modelos 303/347/390…); payroll; stock/inventory; multi-currency; bank-statement reconciliation (possible later gate).
 
-## 9. Order of work and decision gates
-1. Adviser answers section 6 items 1, 2 and 5 (before writing any invoice tables).
-2. E1 → E2 (quotes can start while the adviser reviews E3).
-3. Gate: choose the invoicing tool and agree the import method.
-4. E3 → portal "Factures".
-5. Gate: membership fees (E4) and any API integration, each with its own plan.
+## 9. Questions for the team
+1. **Sage Despachos** is a product for accounting firms: does the association have its own login, or does the gestoria keep the books and issue invoices? Which Excel import guide(s) do they use today (we need their template)?
+2. **Courses:** where do students enroll and pay today (Campus virtual, bank transfer, Sage invoices)? Are course prices fixed? Do instructors invoice us?
+3. **Members:** how many; one flat fee or tiers (by company size)? Billed annually or quarterly? Paid by SEPA direct debit, transfer or card? Do they receive an invoice or a receipt?
+4. **Purchases:** who requests and who approves, and from what amount?
+5. **Subscriptions:** roughly how many, and who owns renewals?
+6. What does the gestoria need each month (format, deadline)?
+7. Which Sage **chart-of-accounts numbers** map to our expense and income categories (list from the gestoria)?
 
-Each phase follows the team rules: own branch, tests (money rounding and numbering get heavy unit tests), review by the other person, `CLAUDE.md` updated in the same pull request.
+## 10. Order of work
+1. Answers to section 9 (1, 3, 6, 7 first) and adviser items 1-3.
+2. E0, then E1 and E2 in parallel with the answers on courses and members.
+3. Gate: roles defined; then approval rules and amounts visibility.
+4. E3, E4, E5 in the order the team picks.
+Team rules apply: own branch per phase, tests (money and numbering get heavy tests), review by the other person, `CLAUDE.md` updated in the same pull request.
 
 ## Sources
-- Veri*Factu dates (RD-ley 15/2025 postponement: 1 Jan 2027 companies, 1 Jul 2027 self-employed): [Infocop](https://www.infocop.es/verifactu-entrara-en-vigor-en-2027-recuerda-las-claves-del-nuevo-sistema-de-facturacion-para-autonomos-y-pymes/), [Cegid](https://www.cegid.com/ib/es/sistema-verifactu/)
-- B2B e-invoicing (Ley 18/2022, RD 238/2026, 12/24-month periods, dates still tied to a ministerial order): [Spendesk](https://www.spendesk.com/es/blog/factura-electronica-b2b-obligatoria/), [Invoo](https://invoo.es/es/blog/analisis/factura-electronica-b2b-obligatoria-2026-2027/)
-- Invoice content and rectifying invoices (RD 1619/2012): [Agencia Tributaria, manual IVA](https://sede.agenciatributaria.gob.es/Sede/ayuda/manuales-videos-folletos/manuales-practicos/manual-iva-2024/capitulo-10-obligac-formales-suj-registro/obligaciones-materia-facturacion/facturas-rectificacion.html)
+- Veri*Factu dates (RD-ley 15/2025: 1 Jan 2027 companies, 1 Jul 2027 self-employed): [Infocop](https://www.infocop.es/verifactu-entrara-en-vigor-en-2027-recuerda-las-claves-del-nuevo-sistema-de-facturacion-para-autonomos-y-pymes/), [Cegid](https://www.cegid.com/ib/es/sistema-verifactu/)
+- B2B e-invoicing (Ley 18/2022, RD 238/2026, 12/24-month periods tied to a ministerial order): [Spendesk](https://www.spendesk.com/es/blog/factura-electronica-b2b-obligatoria/), [Invoo](https://invoo.es/es/blog/analisis/factura-electronica-b2b-obligatoria-2026-2027/)
+- Invoice content and rectification (RD 1619/2012): [Agencia Tributaria](https://sede.agenciatributaria.gob.es/Sede/ayuda/manuales-videos-folletos/manuales-practicos/manual-iva-2024/capitulo-10-obligac-formales-suj-registro/obligaciones-materia-facturacion/facturas-rectificacion.html)
+- Sage Despachos Connected imports (Excel/CSV import guides, journal guide, invoice plug-in): [Sage community: importing entries](https://communityhub.sage.com/es/sage-despachos-connected/f/fiscal-contable/272374/importar-asientos-en-sage-despachos-conected)
+- Sage Veri*Factu declaration and certified invoicing: [Sage: Veri*Factu readiness](https://www.sage.com/es-es/blog/preparacion-para-verifactu-esta-software-facturacion-listo/), [Sage Despachos certifications](https://www.sage.com/es-es/confianza-seguridad/certificaciones/sage-despachos/)
 
-These are secondary sources checked on 2026-10-01; the adviser must confirm them against the official texts.
+These are secondary sources checked on 2026-10-01; the adviser must confirm them against the official texts, and the gestoria must confirm Sage's import layout.
