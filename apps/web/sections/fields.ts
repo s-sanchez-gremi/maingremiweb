@@ -56,12 +56,13 @@ export function schemaFor(field: Field): z.ZodType {
     case "list":
       return z.array(z.object(shape(field.fields))).max(field.max ?? 24).default([]);
     case "blocks":
-      return z.array(blockSchema()).max(field.max ?? 20).default([]);
+      return z.array(blockSchemaFor()).max(field.max ?? 20).default([]);
   }
 }
 
 let blockUnion: z.ZodType | undefined;
-function blockSchema(): z.ZodType {
+/** One block (any type from sections/blocks.ts). Exported for the editor preview, which checks blocks one by one. */
+export function blockSchemaFor(): z.ZodType {
   if (!blockUnion) {
     const v = blockDefs.map((d) => z.object({ id: z.string().min(1).max(64), type: z.literal(d.name), data: z.object(shape(d.fields as unknown as Field[])) }));
     blockUnion = z.discriminatedUnion("type", v as unknown as [(typeof v)[0], ...typeof v]);

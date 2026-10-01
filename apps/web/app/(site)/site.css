@@ -299,6 +299,7 @@
 .site .sx-bg-red .btn.primary:hover{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 .site .sx-bg-red .cta::before{display:none}
 .site .sx-bg-red .cta h2::before{background:var(--bg)}
+.site .sx-bg-red .cta p{color:var(--bg)}
 .site .card{color:var(--ink)}
 .site .sx-sp-s section.block,.site .sx-sp-s .cta{padding:var(--sp-5) 0}
 .site .sx-sp-l section.block,.site .sx-sp-l .cta{padding:var(--sp-8) 0}

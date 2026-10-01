@@ -57,3 +57,31 @@
 .admin .listsearch{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
 .admin .listsearch input[type=search]{flex:1 1 280px;min-width:0}
 .admin .listsearch select{flex:0 0 auto}
+.admin .btn.danger{color:var(--danger)}
+.admin .b-devices{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.admin .b-devices .btn{border:0;border-radius:0;padding:8px 14px}
+.admin .b-devices .btn[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+/* visual page builder: library | live preview | inspector */
+.admin .builder{display:grid;grid-template-columns:190px minmax(0,1fr) 320px;gap:16px;margin:-8px 0 24px;align-items:start}
+.admin .b-lib,.admin .b-inspect{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;display:grid;gap:10px;align-content:start}
+.admin .b-lib{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px}
+.admin .b-lib h3{font-size:12px;font-family:Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:1px;color:var(--text2)}
+.admin .b-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.admin .b-grid button{font:inherit;font-size:12px;min-height:56px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:grab;text-align:center;line-height:1.25}
+.admin .b-grid button:hover{border-color:var(--accent);color:var(--accent)}
+.admin .b-canvas{display:grid;gap:8px;min-width:0}
+.admin .b-bar{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.admin .b-frame{background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;height:calc(100vh - 140px);min-height:520px}
+.admin .b-frame.mobile{width:390px;margin:0 auto;border-radius:24px;border:8px solid var(--ink)}
+.admin .b-frame iframe{width:100%;height:100%;border:0;display:block}
+.admin .b-tools{display:flex;flex-wrap:wrap;gap:6px}
+.admin .b-tools .btn{padding:6px 10px;font-size:13px}
+.admin .b-colist{display:grid;gap:4px}
+.admin .b-colist strong{font-size:12px}
+.admin .b-colist button{font:inherit;font-size:13px;text-align:left;padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);cursor:pointer}
+@media (max-width:1200px){.admin .builder{grid-template-columns:minmax(0,1fr)}.admin .b-lib,.admin .b-inspect{position:static;max-height:none}.admin .b-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}}
+.admin .b-lib{overflow-x:hidden}
+.admin .b-grid button{min-width:0;overflow-wrap:anywhere}
+.admin .b-grid{grid-template-columns:1fr}
+.admin .b-grid button{min-height:40px;text-align:left;padding:8px 12px;overflow-wrap:normal;display:flex;align-items:center;gap:8px}
+.admin .b-grid button::before{content:"⠿";content:"⠿" / "";color:var(--field-border);font-size:14px}
