@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import postgres from "postgres";
 import { hash } from "@node-rs/argon2";
 import { migrate } from "@apex/db/migrator";
-import { E2E_DB } from "../playwright.config";
+import { E2E_DB } from "./constants";
 
 export default async function globalSetup() {
   const admin = postgres("postgres://apex:apex@localhost:5432/postgres", { max: 1, onnotice: () => {} });

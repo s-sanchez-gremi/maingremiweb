@@ -15,14 +15,14 @@
 A local hook (`.githooks/pre-push`, installed by `pnpm install`) refuses pushes to `main`. GitHub's own branch protection is not available on a private repo on the free plan, so these rules are by agreement; turning on "require a pull request + status checks" is the first thing to do if the plan is upgraded.
 
 ## Who owns what
-One app and one database, two areas (`.github/CODEOWNERS` makes GitHub ask the right person to review):
-- **Joan Marc (`@jmarcadell4-maker`) — the website:** the public site, and the admin of the website itself: content, media, categories, settings, users, errors.
-- **Sam (`@s-sanchez-gremi`) — the business tools:** CRM (contacts and leads), **forms** (builder, responses and the public submission pipeline), project manager (clients, projects, tasks), client portal, and the ERP registry.
-- **Shared, both review:** the database (`db/schema.ts`, migrations), `auth.ts` and `permissions.ts`, `proxy.ts`/CSP, the admin layout, menu, dashboard and global search, `deploy/`, `scripts/`, `.github/` and `CLAUDE.md`.
-- **Working across the line** is fine (a small fix in the other's area): open the PR as usual; the owner reviews it. Agree first before anything larger.
-- **New admin screens** (e.g. invoices) get their own folder under `app/admin/(staff)/(app)/` plus their own `lib/<name>.ts`, so two people rarely touch the same file. The menu (`AdminNav.tsx`) and dashboard are shared: keep edits there to one line per item.
-- **The database schema is split by area** (`db/schema/website.ts` Joan Marc, `db/schema/crm.ts` Sam, `db/schema/core.ts` shared); new ERP tables go in their own file, re-exported from `db/schema/index.ts`. Migrations stay in one shared sequence.
-- **Database changes are the main collision point.** Tell the other person before adding a migration, and rebase right before merging so the number is the next free one.
+Two apps in one repository sharing one database (`docs/split-plan.md`); `.github/CODEOWNERS` makes GitHub ask the right person to review:
+- **Joan Marc (`@jmarcadell4-maker`) — `apps/web`:** the public site (including how forms are *drawn* inside pages), and the website's admin: content, media, categories, settings, users, errors.
+- **Sam (`@s-sanchez-gremi`) — `apps/crm`:** CRM (contacts and leads), **forms** (builder, responses and the public submission API), project manager, tasks, the ERP registry and the client portal.
+- **Shared, both review:** `packages/*` (database, core, ui, forms), `db/migrations`, `e2e/`, `deploy/`, `scripts/`, `.github/`, `Dockerfile`, `CLAUDE.md`.
+- **The apps never import each other.** Anything both need goes in a package. The only calls between the running apps are listed in `docs/split-plan.md` (the website forwards `/api/forms/*` to the CRM app; the CRM app asks the website to refresh its cache after a form changes).
+- **Working across the line** is fine (a small fix in the other's app): open the PR as usual; the owner reviews it. Agree first before anything larger.
+- **New admin screens** get their own folder under the owning app's `app/admin/(app)/` plus their own `lib/<name>.ts`; the app's menu (`components/admin/AdminNav.tsx`) and dashboard are that app's own.
+- **Database changes are the main collision point.** Tell the other person before adding a migration, and rebase right before merging so the number is the next free one. Tables live in `packages/db/src/schema/{core,website,crm,erp}.ts`; the migration rule for independent releases is in `docs/split-plan.md` (additive only).
 
 ## Rules that prevent the usual collisions
 - **Migrations** (`db/migrations/NNNN_name.sql`): never edit one that is already on `main`. Take the next free number **after** rebasing on `main`; if two branches both added `0012_…`, the second one to merge renumbers its file (a unit test fails on duplicates or gaps).

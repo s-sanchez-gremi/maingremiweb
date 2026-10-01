@@ -5,7 +5,7 @@ import { asc } from "drizzle-orm";
 import { clients, forms, projects } from "@apex/db/schema";
 import { formStats } from "@apex/forms/admin-data";
 import type { FormSettings } from "@apex/forms/settings-fields";
-import { siteUrl } from "@/lib/urls";
+import { siteUrl } from "@apex/core/site-url";
 import { FormEditor } from "./FormEditor";
 
 const E = { ca: "", es: "", en: "" };

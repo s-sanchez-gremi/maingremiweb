@@ -2,7 +2,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import postgres from "postgres";
-import { E2E_DB } from "../playwright.config";
+import { E2E_DB, WEB_URL as WEB } from "@apex/e2e/constants"; // public pages are drawn by the website; the API, admin and leads live in the CRM app
 import { solve } from "@apex/forms/pow";
 
 const MAILPIT = "http://localhost:8025/api/v1";
@@ -83,7 +83,7 @@ test("build a form in the admin, publish it, submit it as a visitor: contact, le
   await expect(page.getByRole("status")).toContainText("Desat");
 
   // A visitor uses the shareable link.
-  await page.goto("/ca/form/contacte-e2e?utm_source=butlleti&utm_campaign=tardor");
+  await page.goto(WEB + "/ca/form/contacte-e2e?utm_source=butlleti&utm_campaign=tardor");
   await expect(page.getByRole("heading", { name: "Contacte e2e" })).toBeVisible();
   await page.getByLabel("Nom", { exact: false }).first().fill("Ana Puig");
   await page.getByLabel("Correu electrònic").fill("Ana@E2E.test");
@@ -118,7 +118,7 @@ test("multi-step form with conditional fields, validation, and no accessibility 
   const nivell = F("dropdown", { label: L("Nivell"), required: "yes", options: [{ label: L("Nivell I") }, { label: L("Nivell II") }] });
   const motiu = F("text", { label: L("Motiu"), required: "yes", showField: nivell.id, showOp: "equals", showValue: "Nivell II" });
   await seedForm("pas-a-pas", [nom, brk, nivell, motiu], { consent: L("Accepto les condicions") });
-  await page.goto("/ca/form/pas-a-pas");
+  await page.goto(WEB + "/ca/form/pas-a-pas");
   const axe = async (label: string) => {
     const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
     expect(r.violations.map((v) => `${v.id}: ${v.nodes[0]?.target}`), label).toEqual([]);
@@ -284,7 +284,7 @@ test("uploads are private and identified by content; staff download through sign
 test("newsletter opt-in is its own box, unticked by default, stored separately from consent", async ({ page }) => {
   const em = F("email", { label: L("Correu"), required: "yes", map: "email" });
   await seedForm("butlleti", [em], { destination: "responses_only", consent: L("Accepto la privacitat"), newsletter: { enabled: true, text: L("Vull rebre el butlletí") } });
-  await page.goto("/ca/form/butlleti");
+  await page.goto(WEB + "/ca/form/butlleti");
   const news = page.getByLabel("Vull rebre el butlletí");
   await expect(news).not.toBeChecked();
   await page.getByLabel(/^Correu/).fill("nl@e2e.test");
@@ -293,7 +293,7 @@ test("newsletter opt-in is its own box, unticked by default, stored separately f
   await expect(page.getByRole("status")).toContainText("Gràcies");
   expect(await count("newsletter_optins", sql`where email = 'nl@e2e.test'`)).toBe(0); // consenting to privacy is not subscribing
 
-  await page.goto("/ca/form/butlleti");
+  await page.goto(WEB + "/ca/form/butlleti");
   await page.getByLabel(/^Correu/).fill("nl2@e2e.test");
   await page.getByLabel(/Accepto la privacitat/).check();
   await page.getByLabel("Vull rebre el butlletí").check();
@@ -306,13 +306,13 @@ test("newsletter opt-in is its own box, unticked by default, stored separately f
 test("embeddable version, share link and browser security headers", async ({ page, request }) => {
   const nom = F("text", { label: L("Nom") });
   await seedForm("incrustat", [nom]);
-  const embed = await request.get("/embed/ca/form/incrustat");
+  const embed = await request.get(WEB + "/embed/ca/form/incrustat");
   expect(embed.status()).toBe(200);
   expect(embed.headers()["content-security-policy"] ?? "").not.toContain("frame-ancestors"); // other sites may frame it
   expect(embed.headers()["x-frame-options"]).toBeUndefined();
   expect(await embed.text()).toContain('<html lang="ca"');
 
-  expect((await request.get("/ca")).headers()["content-security-policy"]).toContain("frame-ancestors 'self'");
+  expect((await request.get(WEB + "/ca")).headers()["content-security-policy"]).toContain("frame-ancestors 'self'");
   const login = await request.get("/admin/login");
   expect(login.headers()["x-frame-options"]).toBe("DENY");
   expect(login.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
@@ -320,7 +320,7 @@ test("embeddable version, share link and browser security headers", async ({ pag
   expect(login.headers()["x-content-type-options"]).toBe("nosniff");
 
   await page.setViewportSize({ width: 375, height: 700 });
-  await page.goto("/embed/es/form/incrustat");
+  await page.goto(WEB + "/embed/es/form/incrustat");
   await page.waitForLoadState("networkidle");
   await expect(page.getByLabel("Nom")).toBeVisible();
   const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
@@ -336,9 +336,9 @@ test("a form inside a landing page tags the lead with that page and its theme", 
   const live = { title: "Jornada", slug: "jornada-form", sections, seo: {}, publishedAt: new Date().toISOString() };
   const [e] = await sql`insert into entries (type, theme) values ('page', 'esdeveniments') returning id`;
   await sql`insert into entry_translations (entry_id, locale, title, slug, sections, status, live) values (${e.id}, 'ca', 'Jornada', 'jornada-form', ${sql.json(sections as never)}, 'published', ${sql.json(live as never)})`;
-  await request.post("/api/cron/revalidate", { headers: { authorization: "Bearer e2e-cron-secret-value" } }); // rows were written straight to the database
+  await request.post(WEB + "/api/cron/revalidate", { headers: { authorization: "Bearer e2e-cron-secret-value" } }); // rows were written straight to the database
 
-  await page.goto("/ca/jornada-form");
+  await page.goto(WEB + "/ca/jornada-form");
   await page.getByLabel(/^Nom/).fill("Carla");
   await page.getByLabel(/^Correu/).fill("carla@e2e.test");
   await page.getByLabel("Accepto").check();

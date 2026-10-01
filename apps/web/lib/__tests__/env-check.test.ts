@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkEnv, shouldCheck } from "../env-check";
+import { checkEnv, shouldCheck } from "@apex/core/env-check";
 
 const good = {
   NODE_ENV: "production", APP_ENV: "production", DATABASE_URL: "postgres://apex_app:Zr8tQ2vLw9@db.internal:5432/apex?sslmode=require", SITE_URL: "https://apex.example",

@@ -10,8 +10,7 @@
     "db:migrate": "node --env-file=../../.env --import tsx db/migrate.mts",
     "test": "vitest run --passWithNoTests",
     "user:create": "node --env-file=../../.env --import tsx db/create-user.mts",
-    "seed:demo": "node --env-file=../../.env --import tsx db/seed-demo.mts",
-    "test:e2e": "playwright test"
+    "seed:demo": "node --env-file=../../.env --import tsx db/seed-demo.mts"
   },
   "dependencies": {
     "@apex/core": "workspace:*",
@@ -31,6 +30,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@apex/e2e": "workspace:*",
     "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.63.0",
     "@types/node": "^20",

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import postgres from "postgres";
-import { CRON_SECRET, E2E_DB } from "../playwright.config";
+import { CRON_SECRET, E2E_DB } from "@apex/e2e/constants";
 import { slugify } from "@apex/core/slug";
 
 async function login(page: Page, who: "admin" | "editor") {

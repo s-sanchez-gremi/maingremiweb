@@ -7,13 +7,13 @@
   },
   "scripts": {
     "prepare": "git config core.hooksPath .githooks || true",
-    "dev": "ln -sf ../../.env apps/web/.env && docker compose up -d && pnpm --filter web dev",
+    "dev": "ln -sf ../../.env apps/web/.env && ln -sf ../../.env apps/crm/.env && docker compose up -d && pnpm --parallel --filter web --filter crm dev",
     "db:migrate": "pnpm --filter web db:migrate",
     "db:backup": "./scripts/backup.sh",
     "db:restore": "./scripts/restore.sh",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
-    "build": "pnpm --filter web build",
+    "build": "pnpm --filter web build && pnpm --filter crm build",
     "verify": "./scripts/ci.sh",
     "verify:fast": "./scripts/ci.sh --fast"
   }

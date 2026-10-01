@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { removeTask, toggleTask } from "@/app/admin/(staff)/(app)/projects/actions";
+import { removeTask, toggleTask } from "@/app/admin/(app)/projects/actions";
 import { isOverdue } from "@/lib/projects";
 
 type T = { id: string; title: string; dueDate: string | null; doneAt: Date | null };

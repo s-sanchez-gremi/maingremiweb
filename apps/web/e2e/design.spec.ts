@@ -3,7 +3,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import postgres from "postgres";
-import { CRON_SECRET, E2E_DB } from "../playwright.config";
+import { CRON_SECRET, E2E_DB } from "@apex/e2e/constants";
 
 const WIDTHS = [320, 375, 768, 1024, 1440];
 const sec = (type: string, data: Record<string, unknown>) => ({ id: crypto.randomUUID(), type, data });
