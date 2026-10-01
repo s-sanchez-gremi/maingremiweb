@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { summary } from "@/lib/erp";
-import { formatEuros } from "@/lib/money";
+import { formatEuros } from "@apex/core/money";
 
 export default async function ErpHome({ searchParams }: { searchParams: Promise<{ year?: string }> }) {
   const year = Number((await searchParams).year) || new Date().getFullYear();

@@ -1,5 +1,5 @@
-import { createChallenge } from "@/lib/forms/pow";
-import { loadForm } from "@/lib/forms/http";
+import { createChallenge } from "@apex/forms/pow";
+import { loadForm } from "@apex/forms/http";
 
 export const dynamic = "force-dynamic";
 

@@ -4,10 +4,10 @@
 // Every change autosaves the DRAFT (never what is live) and reloads the preview. Keyboard users get ↑ ↓ buttons and
 // "add" buttons for everything that can be dragged.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FieldForm, type Options } from "@/components/admin/FieldForm";
+import { FieldForm, type Options } from "@apex/ui/components/FieldForm";
 import { blockByName, blockDefs, COLUMN_FIELDS, columnCount, styleFields } from "@/sections/blocks";
 import { UNSTYLED, sectionByName, sectionDefs } from "@/sections/registry";
-import type { Field } from "@/sections/fields";
+import type { Field } from "@apex/core/fields";
 import {
   duplicate, findBlock, insertBlock, insertSection, moveBlock, moveSection, newBlock, newSection, nudge, removeBlock, removeSection, setLayout,
   type SectionItem, type Target,

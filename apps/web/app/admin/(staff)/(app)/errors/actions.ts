@@ -2,9 +2,9 @@
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
-import { errorLog } from "@/db/schema";
+import { db } from "@apex/db";
+import { requireUser } from "@apex/core/auth";
+import { errorLog } from "@apex/db/schema";
 
 export async function resolveError(fd: FormData) {
   await requireUser("settings:write"); // admins only

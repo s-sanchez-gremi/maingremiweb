@@ -1,9 +1,9 @@
 // Blocks: the small pieces placed inside the columns of a "Columnes" section (visual page builder).
 // Same field language as sections, so validation and the admin form are generated. Add a block = one entry here
 // + its renderer in sections/render.tsx. Looks always come from the design tokens; editors never pick colours or fonts.
-import type { Field } from "./fields";
+import type { BlockDef, Field } from "@apex/core/fields";
 
-export type BlockDef = { name: string; label: string; fields: Field[] };
+export type { BlockDef };
 
 export const blockDefs = [
   { name: "heading", label: "Títol", fields: [

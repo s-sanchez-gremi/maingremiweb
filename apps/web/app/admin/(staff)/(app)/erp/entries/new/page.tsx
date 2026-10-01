@@ -1,7 +1,7 @@
 import { EntryForm } from "@/components/admin/EntryForm";
 import { loadOptions } from "@/lib/erp-entities";
-import { db } from "@/lib/db";
-import { members } from "@/db/schema";
+import { db } from "@apex/db";
+import { members } from "@apex/db/schema";
 import { asc } from "drizzle-orm";
 
 export default async function NewEntry({ searchParams }: { searchParams: Promise<{ kind?: string; error?: string }> }) {

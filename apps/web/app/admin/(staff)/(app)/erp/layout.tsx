@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireUser } from "@/lib/auth";
-import { can } from "@/lib/permissions";
+import { requireUser } from "@apex/core/auth";
+import { can } from "@apex/core/permissions";
 
 const tabs = [
   ["/admin/erp", "Resum"], ["/admin/erp/entries?kind=expense", "Despeses"], ["/admin/erp/entries?kind=income", "Ingressos"], ["/admin/erp/members", "Socis"], ["/admin/erp/fees", "Quotes"],

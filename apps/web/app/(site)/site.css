@@ -1,4 +1,4 @@
-/* Public site. All values come from styles/tokens.css. Editors never choose fonts, colours or layout. Mobile-first. */
+/* Public site. All values come from packages/ui/src/tokens.css. Editors never choose fonts, colours or layout. Mobile-first. */
 
 /* ---------- base ---------- */
 .site{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:var(--fs-base);line-height:var(--lh-body);-webkit-font-smoothing:antialiased;text-size-adjust:100%}

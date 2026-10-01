@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { asc, and, eq, isNull } from "drizzle-orm";
 import { EntryForm } from "@/components/admin/EntryForm";
 import { loadOptions } from "@/lib/erp-entities";
-import { db } from "@/lib/db";
-import { erpEntries, members } from "@/db/schema";
+import { db } from "@apex/db";
+import { erpEntries, members } from "@apex/db/schema";
 
 export default async function EditEntry({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string; error?: string }> }) {
   const { id } = await params;

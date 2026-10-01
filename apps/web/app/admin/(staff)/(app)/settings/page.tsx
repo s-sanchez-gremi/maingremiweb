@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
-import { can } from "@/lib/permissions";
+import { db } from "@apex/db";
+import { requireUser } from "@apex/core/auth";
+import { can } from "@apex/core/permissions";
 import { defaultSettings, settingsSchema } from "@/lib/settings-schema";
-import { entries, entryTranslations, settings } from "@/db/schema";
+import { entries, entryTranslations, settings } from "@apex/db/schema";
 import { SettingsEditor } from "./SettingsEditor";
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string; error?: string }> }) {

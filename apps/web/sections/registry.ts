@@ -1,8 +1,8 @@
 // The single source of truth for section types. To add a type: add one entry here
 // (and its renderer in sections/render.tsx). Validation and the admin form are generated.
 import { z } from "zod";
-import { shape, type Field } from "./fields";
-import { blockByName, layouts, styleFields } from "./blocks";
+import { shape, type Field } from "@apex/core/fields";
+import { blockByName, blockDefs, layouts, styleFields } from "./blocks";
 
 export type SectionDef = { name: string; label: string; fields: Field[] };
 
@@ -57,10 +57,10 @@ export const sectionDefs = [
   { name: "columns", label: "Columnes (constructor visual)", fields: [
     { name: "heading", label: "Títol de la secció (opcional)", kind: "text" },
     { name: "layout", label: "Columnes", kind: "select", options: layouts.map((l) => ({ value: l.value, label: l.label })) },
-    { name: "c1", label: "Columna 1", kind: "blocks" },
-    { name: "c2", label: "Columna 2", kind: "blocks" },
-    { name: "c3", label: "Columna 3", kind: "blocks" },
-    { name: "c4", label: "Columna 4", kind: "blocks" },
+    { name: "c1", label: "Columna 1", kind: "blocks", blocks: blockDefs },
+    { name: "c2", label: "Columna 2", kind: "blocks", blocks: blockDefs },
+    { name: "c3", label: "Columna 3", kind: "blocks", blocks: blockDefs },
+    { name: "c4", label: "Columna 4", kind: "blocks", blocks: blockDefs },
   ] },
   { name: "cardGrid", label: "Graella de targetes", fields: [
     { name: "heading", label: "Títol", kind: "text" },

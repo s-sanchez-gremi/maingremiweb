@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { sql } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { entryTranslations, errorLog, leads, tasks } from "@/db/schema";
-import { getUser } from "@/lib/auth";
-import { can } from "@/lib/permissions";
-import { isFresh, lastBeat } from "@/lib/heartbeat";
-import { outboxCounts } from "@/lib/outbox";
+import { db } from "@apex/db";
+import { entryTranslations, errorLog, leads, tasks } from "@apex/db/schema";
+import { getUser } from "@apex/core/auth";
+import { can } from "@apex/core/permissions";
+import { isFresh, lastBeat } from "@apex/core/heartbeat";
+import { outboxCounts } from "@apex/core/outbox";
 
 export default async function Dashboard() {
   const rows = await db.select({ status: entryTranslations.status, n: sql<number>`count(*)::int` })

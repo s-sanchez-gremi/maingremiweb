@@ -3,12 +3,12 @@ import { redirect } from "next/navigation";
 import { revalidateContent } from "@/lib/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
-import { can } from "@/lib/permissions";
+import { db } from "@apex/db";
+import { requireUser } from "@apex/core/auth";
+import { can } from "@apex/core/permissions";
 import { PublishError, publish, restoreVersion, unpublish } from "@/lib/publish";
-import { slugify } from "@/lib/slug";
-import { entries, entryTranslations, locales, type Locale } from "@/db/schema";
+import { slugify } from "@apex/core/slug";
+import { entries, entryTranslations, locales, type Locale } from "@apex/db/schema";
 import { sectionDefs } from "@/sections/registry";
 
 export async function createEntry(formData: FormData) {

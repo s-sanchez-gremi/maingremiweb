@@ -1,4 +1,4 @@
-import "@/styles/tokens.css";
+import "@apex/ui/tokens.css";
 import "../../(site)/site.css";
 
 // The visual editor's live preview: same look as the public site, staff only, never indexed.

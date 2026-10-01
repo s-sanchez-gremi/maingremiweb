@@ -2,7 +2,7 @@
 // A page is an ordered list of sections; a "columns" section holds blocks in c1..c4.
 import { COLUMN_FIELDS, blockByName, columnCount } from "@/sections/blocks";
 import { sectionByName } from "@/sections/registry";
-import type { Field } from "@/sections/fields";
+import type { Field } from "@apex/core/fields";
 
 export type Data = Record<string, unknown>;
 export type BlockItem = { id: string; type: string; data: Data };

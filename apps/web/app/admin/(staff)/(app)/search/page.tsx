@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { asc, eq, sql } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
-import { clients, projects } from "@/db/schema";
+import { db } from "@apex/db";
+import { requireUser } from "@apex/core/auth";
+import { clients, projects } from "@apex/db/schema";
 import { listLeads, statusLabel } from "@/lib/leads";
-import { matchAll } from "@/lib/search";
+import { matchAll } from "@apex/core/search";
 
 const LIMIT = 10;
 

@@ -1,6 +1,6 @@
 // Site-wide settings, described with the same field language as sections. The admin screen and validation are generated.
 import { z } from "zod";
-import { shape, type Field } from "@/sections/fields";
+import { shape, type Field } from "@apex/core/fields";
 
 const linkFields: Field[] = [
   { name: "label", label: "Text", kind: "ltext", required: true },

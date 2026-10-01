@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { contrast, readColorTokens } from "../contrast";
 
-const t = readColorTokens(readFileSync(join(process.cwd(), "styles/tokens.css"), "utf8"));
+const t = readColorTokens(readFileSync(join(process.cwd(), "../../packages/ui/src/tokens.css"), "utf8"));
 
 // Every text/background pairing the site actually uses. AA: 4.5 for normal text, 3 for large text and UI outlines.
 const text: [string, string, string][] = [

@@ -1,6 +1,6 @@
 // Visual page builder: library → live preview → inspector, drag and drop, brand styles, and the draft/live rule.
 import { expect, test, type Page } from "@playwright/test";
-import { slugify } from "../lib/slug";
+import { slugify } from "@apex/core/slug";
 
 async function login(page: Page) {
   await page.goto("/admin/login");

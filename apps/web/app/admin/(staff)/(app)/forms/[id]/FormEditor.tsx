@@ -1,11 +1,11 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { FieldForm, emptyData } from "@/components/admin/FieldForm";
-import { ListEditor } from "@/components/admin/ListEditor";
-import { formTypeByName, formTypeDefs, lt, type Item } from "@/lib/forms/fieldTypes";
-import { formSettingsFields, type FormSettings } from "@/lib/forms/settings-fields";
-import type { Field } from "@/sections/fields";
+import { FieldForm, emptyData } from "@apex/ui/components/FieldForm";
+import { ListEditor } from "@apex/ui/components/ListEditor";
+import { formTypeByName, formTypeDefs, lt, type Item } from "@apex/forms/fieldTypes";
+import { formSettingsFields, type FormSettings } from "@apex/forms/settings-fields";
+import type { Field } from "@apex/core/fields";
 import { removeForm, saveForm } from "../actions";
 
 type Initial = { id: string; name: string; slug: string; active: boolean; destination: "crm_lead" | "project" | "responses_only"; target: string; fields: Item[]; settings: FormSettings };

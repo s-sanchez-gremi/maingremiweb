@@ -2,9 +2,9 @@
 // Staff only; incomplete sections/blocks show as placeholders (lib/preview.ts). Never cached.
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { entries, entryTranslations, locales, type Locale } from "@/db/schema";
-import { requireUser } from "@/lib/auth";
+import { db } from "@apex/db";
+import { entries, entryTranslations, locales, type Locale } from "@apex/db/schema";
+import { requireUser } from "@apex/core/auth";
 import { getMedia } from "@/lib/content";
 import { lenientSections } from "@/lib/preview";
 import { collectMediaIds } from "@/sections/registry";

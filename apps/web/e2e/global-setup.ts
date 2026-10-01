@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import postgres from "postgres";
 import { hash } from "@node-rs/argon2";
-import { migrate } from "../db/migrator";
+import { migrate } from "@apex/db/migrator";
 import { E2E_DB } from "../playwright.config";
 
 export default async function globalSetup() {

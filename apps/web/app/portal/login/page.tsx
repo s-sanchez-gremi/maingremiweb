@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { loginBlocked, loginFailed, loginSucceeded } from "@/lib/auth";
+import { loginBlocked, loginFailed, loginSucceeded } from "@apex/core/auth";
 import { checkLogin } from "@/lib/portal";
 import { createPortalSession, getPortalUser } from "@/lib/portal-auth";
 

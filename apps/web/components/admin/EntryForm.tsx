@@ -1,7 +1,7 @@
-import { ConfirmButton } from "./ConfirmButton";
+import { ConfirmButton } from "@apex/ui/components/ConfirmButton";
 import { markPaidAction, saveEntryAction, voidEntryAction } from "@/app/admin/(staff)/(app)/erp/actions";
 import type { Options } from "@/lib/erp-entities";
-import { VAT_RATES, plainEuros } from "@/lib/money";
+import { VAT_RATES, plainEuros } from "@apex/core/money";
 
 export type EntryValues = {
   id?: string; kind: "expense" | "income"; occurredOn: string; description: string; supplierId: string; memberId: string; counterparty: string; categoryId: string; costCenterId: string;

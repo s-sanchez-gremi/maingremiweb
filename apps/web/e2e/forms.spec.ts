@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import postgres from "postgres";
 import { E2E_DB } from "../playwright.config";
-import { solve } from "../lib/forms/pow";
+import { solve } from "@apex/forms/pow";
 
 const MAILPIT = "http://localhost:8025/api/v1";
 const sql = postgres(E2E_DB, { max: 2 });

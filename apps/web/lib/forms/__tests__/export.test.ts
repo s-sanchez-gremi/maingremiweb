@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { cell, toCsv } from "../export";
-import { can } from "../../permissions";
+import { cell, toCsv } from "@apex/forms/export";
+import { can } from "@apex/core/permissions";
 
 const row = (answers: { id: string; type: string; label: string; value: unknown }[], over = {}) => ({
   createdAt: new Date("2026-09-30T10:00:00Z"), locale: "ca", sourcePath: "/ca/cursos", theme: "formacio", utm: { utm_source: "news" },

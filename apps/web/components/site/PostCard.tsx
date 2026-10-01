@@ -2,7 +2,7 @@ import type { PostCard as PostCardData, PublicMedia } from "@/lib/content-querie
 import { formatDate, ui, type Locale } from "@/lib/i18n";
 import { mediaSrcSet, mediaUrl } from "@/lib/media-url";
 import { entryPath } from "@/lib/urls";
-import { Card } from "@/components/ui/Card";
+import { Card } from "@apex/ui/components/Card";
 import { SmartLink } from "./SmartLink";
 
 export function PostCard({ post, media, locale }: { post: PostCardData; media: Record<string, PublicMedia>; locale: Locale }) {

@@ -4,7 +4,8 @@ import { Shell } from "@/components/site/Shell";
 import { SearchBox } from "@/components/site/SearchBox";
 import { SmartLink } from "@/components/site/SmartLink";
 import { isLocale, locales, ui } from "@/lib/i18n";
-import { searchEntries, terms } from "@/lib/search";
+import { terms } from "@apex/core/search";
+import { searchEntries } from "@/lib/site-search";
 import { entryPath } from "@/lib/urls";
 
 type Props = { params: Promise<{ locale: string }>; searchParams: Promise<{ q?: string | string[] }> };

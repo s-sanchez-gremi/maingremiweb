@@ -1,6 +1,6 @@
 import { desc } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { media } from "@/db/schema";
+import { db } from "@apex/db";
+import { media } from "@apex/db/schema";
 import { mediaUrl } from "@/lib/media";
 import { removeMedia, updateMedia } from "./actions";
 import { Uploader } from "./Uploader";

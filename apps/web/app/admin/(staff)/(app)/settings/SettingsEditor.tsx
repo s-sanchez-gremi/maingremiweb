@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { FieldForm, type Options } from "@/components/admin/FieldForm";
+import { FieldForm, type Options } from "@apex/ui/components/FieldForm";
 import { settingsFields } from "@/lib/settings-schema";
 import { saveSettings } from "./actions";
 

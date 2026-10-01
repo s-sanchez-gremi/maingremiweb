@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { collectMediaIds, sectionsSchema } from "../registry";
-import { isAllowedEmbed } from "../fields";
+import { isAllowedEmbed } from "@apex/core/fields";
 
 const id = "11111111-1111-4111-8111-111111111111";
 

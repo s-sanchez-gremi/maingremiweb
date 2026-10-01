@@ -1,4 +1,4 @@
-import { locales, defaultLocale, type Locale } from "@/db/schema";
+import { locales, defaultLocale, type Locale } from "@apex/db/schema";
 export { locales, defaultLocale, type Locale };
 
 export const isLocale = (v: string): v is Locale => (locales as readonly string[]).includes(v);
