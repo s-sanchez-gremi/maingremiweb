@@ -33,7 +33,7 @@ describe("visual builder operations", () => {
   });
   it("new blocks are empty but keep the page's shape; removing and duplicating give fresh ids", () => {
     const p = addBlock(page(), "button", { section: "C", col: "c2", index: 0 });
-    expect(findBlock(p, col(p, "c2")[0])!.block.data).toEqual({ label: "", url: "", variant: "primary" });
+    expect(findBlock(p, col(p, "c2")[0])!.block.data).toEqual({ label: "", url: "", variant: "primary", size: "m" });
     expect(col(removeBlock(page(), "b1"), "c1")).toEqual(["b2"]);
     const d = duplicate(page(), "C");
     expect(d).toHaveLength(4);
