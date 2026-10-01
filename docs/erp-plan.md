@@ -1,6 +1,10 @@
 # ERP plan: costs, purchases, subscriptions, courses and member fees
 
-Status: **proposal, v3** (after the team's answers: own Sage login, tiered fees billed annually or quarterly, paid by transfer or SEPA direct debit); nothing built. Owner: Sam. Roles and permissions are deliberately left open (section 6). The legal adviser should read section 7 before any money-related code.
+Status: **v4: build the registry backbone first, see the box below.** Earlier text: proposal v3 (after the team's answers: own Sage login, tiered fees billed annually or quarterly, paid by transfer or SEPA direct debit); nothing built. Owner: Sam. Roles and permissions are deliberately left open (section 6). The legal adviser should read section 7 before any money-related code.
+
+> ### Decision v4: a registry backbone, not a second accounting system
+> The team decided Apex should **only register data** and **Sage keeps doing all the main things** (accounting, invoices, tax, direct-debit files, bank reconciliation). So we build a small **registry**: suppliers, expenses and income entries, subscriptions, members with fee tiers and their fee charges, cost centers (courses/projects) and categories mapped to Sage accounts; with lists, search, simple totals and a **CSV export** for Sage. No approval workflows, no SEPA file, no bank import, no mandates or IBAN storage, no invoice issuing. Records can be edited and voided (Sage remains the source of truth); admin-only until roles are defined.
+> Phases **E3 collections engine, E6 SEPA remittance and E7 bank matching below are therefore NOT planned**; they stay here only as options if the team ever wants them. Phases E0-E2 and the registry parts of E4/E5/E8 are the backbone. Because Apex is only a registry, the legal duties for issuing and tax stay in Sage.
 
 ## 1. What the ERP is for (from the team)
 1. **Courses:** their costs and the payments received for them.
