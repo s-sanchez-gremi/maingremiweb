@@ -1,5 +1,5 @@
 import { EntryForm } from "@/components/admin/EntryForm";
-import { loadOptions } from "@/lib/erp-entities";
+import { loadOptions } from "@/lib/erp-options";
 import { db } from "@apex/db";
 import { members } from "@apex/db/schema";
 import { asc } from "drizzle-orm";
