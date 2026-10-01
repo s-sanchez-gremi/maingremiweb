@@ -17,7 +17,8 @@ command -v node >/dev/null || fail "Node.js is not installed. Install Node 22 or
 command -v docker >/dev/null || fail "Docker is not installed. Install Docker Desktop from https://www.docker.com/products/docker-desktop and run this again."
 docker info >/dev/null 2>&1 || fail "Docker is installed but not running. Open Docker Desktop, wait until it says it is running, and run this again."
 if ! command -v pnpm >/dev/null; then
-  corepack enable 2>/dev/null || fail "Could not enable pnpm. Run: sudo corepack enable   (then run this again)"
+  # Node 25+ no longer ships corepack, so fall back to installing pnpm with npm (same version as package.json "packageManager").
+  corepack enable 2>/dev/null || npm install -g pnpm@10.34.6 2>/dev/null || fail "Could not install pnpm. Run: sudo npm install -g pnpm   (then run this again)"
 fi
 echo "node $(node -v), $(docker --version), pnpm $(pnpm -v)"
 
