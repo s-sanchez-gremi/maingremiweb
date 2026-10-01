@@ -57,3 +57,4 @@ input[type=checkbox].ws .ws-cell { width: 18px; min-height: 0; margin: 9px 10px;
   .ws-content { padding: 18px 14px 60px; }
 }
 .ws-static { display: block; color: inherit; }
+.ws .ws-search input { width: 100%; box-sizing: border-box; border: 1px solid var(--field-border); border-radius: 6px; padding: 6px 9px; font: inherit; font-size: 13px; background: var(--bg); min-height: 32px; }

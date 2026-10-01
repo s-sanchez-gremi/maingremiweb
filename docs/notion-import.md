@@ -24,7 +24,7 @@ NOTION_DB_JOBSEEKERS=<id>          # Borsa de treball (optional, see "Job seeker
 pnpm --filter crm notion:import --dry-run          # runs everything, then rolls back, prints the report
 pnpm --filter crm notion:import                    # the real import, one transaction (all or nothing)
 ```
-Options: `--only companies,gala` (some areas), `--no-erp` (skip ERP members and fee tiers), `--overwrite` (replace values with Notion's; default only **fills blanks**, so edits made in Apex are kept).
+Options: `--min-tier 5` (a fee amount shared by at least this many member companies becomes a fee tier; one-off amounts stay in that member's notes), `--only companies,gala` (some areas), `--no-erp` (skip ERP members and fee tiers), `--overwrite` (replace values with Notion's; default only **fills blanks**, so edits made in Apex are kept).
 Safest first run: point `DATABASE_URL` at a throwaway database (`createdb apex_import_test`, `pnpm db:migrate`), dry-run, run for real there, look at the workspace, compare counts with Notion, then run against the real database. Re-running is safe: every imported record keeps its Notion page id (`external_ref`), so it updates instead of duplicating.
 
 ## 3. What goes where
@@ -43,3 +43,6 @@ Private individuals' data. The importer brings name, e-mail, phone and the page'
 
 ## 5. After the import
 Compare the report's counts with Notion (companies, people, events). Notion stays as the fallback until the team agrees to retire it. Fix anything odd directly in the workspace (it keeps a history of every change). Open points are recorded in `docs/records-engine-plan.md`.
+
+## 6. What the first dry run on the real workspace showed (2026-10-01)
+Companies: the main list ("Agremiats", 577 rows) plus "Empreses" (303) merge into 582 companies (298 pages merged by CIF); 11 have no CIF; 1 had an impossible founding year (left empty and counted). Fees: 133 different yearly amounts, only 16 shared by five or more companies, so 15 fee tiers are created and 164 custom amounts are kept in the members' notes. Gala: 535 people (many share one company mailbox, so people are matched on name **and** e-mail), 4 rows without a name skipped, about 45 % of attendees are not member companies and stay without a company link. Not yet imported: "Baixa agremiat" (134 former members), "Externes" (1001 non-members), Patrocinadors (131), Laboral, Bonificada, Borsa de treball (1601 pages, sensitive: see section 4). The **token is a secret**: keep it only in `.env`, give the integration read access only, and revoke it in Notion when the migration is finished.

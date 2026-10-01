@@ -8,7 +8,7 @@ import { queryDatabase, type Row } from "./notion";
 import { formatReport, type Report } from "./report";
 
 export type Sources = { companies?: string[]; gala?: string[]; visits?: string[]; labour?: string[]; training?: string[]; sponsors?: string[]; jobseekers?: string[] };
-export type Options = { db: typeof Db; read: (databaseId: string) => Promise<Row[]>; sources: Sources; dryRun: boolean; overwrite?: boolean; erp?: boolean; only?: (keyof Sources)[] };
+export type Options = { minTier?: number; db: typeof Db; read: (databaseId: string) => Promise<Row[]>; sources: Sources; dryRun: boolean; overwrite?: boolean; erp?: boolean; only?: (keyof Sources)[] };
 class Rollback extends Error {}
 
 export const readerFor = (token: string, fetchImpl?: typeof fetch) => async (id: string) => { const out: Row[] = []; for await (const r of queryDatabase(token, id, fetchImpl)) out.push(r); return out; };
@@ -19,7 +19,7 @@ export async function runImport(o: Options): Promise<{ reports: Report[]; text: 
   const want = (k: keyof Sources) => (o.only ? o.only.includes(k) : true) && (o.sources[k]?.length ?? 0) > 0;
   try {
     await o.db.transaction(async (tx) => {
-      const ctx = { db: tx as unknown as typeof Db, overwrite: o.overwrite, erp: o.erp };
+      const ctx = { db: tx as unknown as typeof Db, overwrite: o.overwrite, erp: o.erp, minTier: o.minTier };
       // reading happens inside the run so a Notion error aborts before anything is written
       let idmap = new Map<string, string>();
       if (want("companies")) { const r = await importCompanies(ctx, await readAll(o.read, o.sources.companies)); reports.push(r.report); idmap = r.idmap; }

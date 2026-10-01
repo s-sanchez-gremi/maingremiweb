@@ -6,33 +6,46 @@ import type { Ctx } from "./companies";
 import { bump, newReport } from "./report";
 import { first, isoDate, mask, normName, str, type Row } from "./notion";
 
-/** company id from a relation (Notion page ids already imported) or, failing that, from the company name typed as text. */
-async function companyFor(ctx: Ctx, idmap: Map<string, string>, relation: unknown, text: string) {
-  const viaRelation = Array.isArray(relation) ? (relation as string[]).map((r) => idmap.get(r)).find(Boolean) : undefined;
-  if (viaRelation) return viaRelation;
-  if (!text) return null;
-  const all = await ctx.db.select({ id: clients.id, name: clients.name }).from(clients).where(sql`lower(${clients.name}) = ${text.toLowerCase()}`).limit(1);
-  if (all[0]) return all[0].id;
-  const n = normName(text);
-  const rows = await ctx.db.select({ id: clients.id, name: clients.name }).from(clients);
-  return rows.find((r) => normName(r.name) === n)?.id ?? null;
+const LEGAL = /\b(s ?l ?u?|s ?a ?u?|s ?c ?p|s ?coop|c ?b|sociedad limitada|sociedad anonima)\b/g;
+/** a company name reduced to what identifies it: accents, case, punctuation and legal forms (SL, SA, SLU…) removed */
+export const canon = (s: string) => normName(s).replace(LEGAL, " ").replace(/\s+/g, " ").trim();
+
+/** Finds companies by relation (Notion page ids already imported) or by the name typed as text: exact first, then a unique containment match. */
+async function companyMatcher(ctx: Ctx, idmap: Map<string, string>) {
+  const all = await ctx.db.select({ id: clients.id, name: clients.name }).from(clients);
+  const byCanon = new Map<string, string[]>();
+  for (const c of all) { const k = canon(c.name); if (k) byCanon.set(k, [...(byCanon.get(k) ?? []), c.id]); }
+  const keys = [...byCanon.keys()];
+  return (relation: unknown, text: string): string | null => {
+    const viaRelation = Array.isArray(relation) ? (relation as string[]).map((r) => idmap.get(r)).find(Boolean) : undefined;
+    if (viaRelation) return viaRelation;
+    const k = canon(text);
+    if (k.length < 3) return null;
+    const exact = byCanon.get(k);
+    if (exact?.length === 1) return exact[0];
+    if (exact) return null; // several companies share the name: do not guess
+    if (k.length < 5) return null;
+    const near = keys.filter((x) => x.length >= 5 && (x.includes(k) || k.includes(x)));
+    return near.length === 1 && byCanon.get(near[0])!.length === 1 ? byCanon.get(near[0])![0] : null;
+  };
 }
 
 export async function importGala(ctx: Ctx, rows: Row[], idmap: Map<string, string>, eventName = "GALA GRÀFICA 2025", eventRef = "notion:gala") {
   const { db } = ctx;
   const report = newReport(`Gala (${eventName})`);
   report.read = rows.length;
+  const findCompany = await companyMatcher(ctx, idmap);
   let [ev] = await db.select().from(events).where(eq(events.externalRef, eventRef));
   if (!ev) { [ev] = await db.insert(events).values({ name: eventName, kind: "gala", status: "done", externalRef: eventRef }).returning(); bump(report, "event created"); }
   for (const r of rows) {
     const p = r.props;
     const name = first(p["Nom"], p["Persona"]);
-    if (!name || r.trashed) { report.skipped++; continue; }
+    if (!name || r.trashed) { report.skipped++; bump(report, "skipped: row has no name"); continue; }
     if (str(p["DNI"])) bump(report, "DNI values left out on purpose");
     const email = str(p["Email"]).toLowerCase();
-    const companyId = await companyFor(ctx, idmap, p["📜 Empreses"], str(p["Empresa"]));
+    const companyId = findCompany(p["📜 Empreses"], str(p["Empresa"]));
     if (!companyId && str(p["Empresa"])) bump(report, "attendees whose company was not found");
-    let person = (await db.select({ id: people.id }).from(people).where(email ? eq(people.email, email) : and(sql`lower(${people.name}) = ${name.toLowerCase()}`, companyId ? eq(people.companyId, companyId) : sql`true`)).limit(1))[0];
+    let person = (await db.select({ id: people.id }).from(people).where(and(sql`lower(${people.name}) = ${name.toLowerCase()}`, email ? eq(people.email, email) : companyId ? eq(people.companyId, companyId) : sql`true`)).limit(1))[0];
     if (!person) {
       person = (await db.insert(people).values({ name, email, companyId, source: "Notion · Gala 2025", externalRef: r.id }).onConflictDoNothing().returning({ id: people.id }))[0]
         ?? (await db.select({ id: people.id }).from(people).where(eq(people.externalRef, r.id)))[0];
@@ -40,7 +53,7 @@ export async function importGala(ctx: Ctx, rows: Row[], idmap: Map<string, strin
     }
     const notes = [str(p["Categoria"]) && `Categoria: ${str(p["Categoria"])}`, str(p["SEIENTS"]) && `Seients: ${str(p["SEIENTS"])}`, str(p["Fila"]) && `Fila: ${str(p["Fila"])}`, str(p["Observacions"]) && str(p["Observacions"])].filter(Boolean).join(" · ");
     const done = await db.insert(eventAttendance).values({ eventId: ev.id, personId: person.id, companyId, status: "confirmed", notes, externalRef: r.id }).onConflictDoNothing().returning({ id: eventAttendance.id });
-    if (done.length) { report.created++; if (report.samples.length < 5) report.samples.push(`${mask(name)} → ${eventName}`); } else report.skipped++;
+    if (done.length) { report.created++; if (report.samples.length < 5) report.samples.push(`${mask(name)} → ${eventName}`); } else { report.skipped++; bump(report, "skipped: same person already listed for this event"); }
   }
   return report;
 }

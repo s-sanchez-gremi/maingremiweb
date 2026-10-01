@@ -1,6 +1,6 @@
 # Plan: the "records engine", our own structured Notion for the CRM
 
-Status: **approved 2026-10-01; R1 in progress.** Owner: Sam (apps/crm). Decisions (2026-10-01): a personalised, structured CRM engine for our use case, definitions in code, **no wiki/free-form pages**; **Borsa de treball is included**; **Companies replaces Clients**.
+Status: **approved 2026-10-01; R1-R6 built (see CLAUDE.md "Records engine"); the real Notion import and retiring Notion/old screens are the remaining team steps.** Owner: Sam (apps/crm). Decisions (2026-10-01): a personalised, structured CRM engine for our use case, definitions in code, **no wiki/free-form pages**; **Borsa de treball is included**; **Companies replaces Clients**.
 
 ## 1. What it is (and is not)
 - **Is:** one generic engine in `apps/crm` that turns a short **entity definition** (fields, relations, which columns to show, how to search) into a complete set of screens: list (search, filters, sorting, paging, saved views as filters), record page (fields, linked records, notes, files, history), create/edit/delete, CSV export and import. Adding a data type = adding a definition, not building screens. This is the part of Notion we keep: *typed databases with relations and views*.

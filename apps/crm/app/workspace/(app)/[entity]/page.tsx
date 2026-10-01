@@ -59,6 +59,7 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
           <button type="submit">Filtra</button>
           <span className="ws-spacer" />
           {e.archivable && <Link className="ws-btn" href={href({ archived: sp.archived === "1" ? undefined : "1", page: undefined })}>{sp.archived === "1" ? "Actius" : "Arxivats"}</Link>}
+          <Link className="ws-btn" href={`${here}/import`}>Importa</Link>
           <a className="ws-btn" href={`${e.basePath}/export${href({ page: undefined }).replace(here, "")}`}>Exporta</a>
           <Link className="ws-btn primary" href={href({ new: "1", open: undefined })}>+ Nou</Link>
         </form>

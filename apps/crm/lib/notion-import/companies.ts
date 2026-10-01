@@ -6,7 +6,7 @@ import { clients, feeTiers, members, people } from "@apex/db/schema";
 import { bump, newReport, type Report } from "./report";
 import { first, mask, normName, normTaxId, num, str, type Row } from "./notion";
 
-export type Ctx = { db: typeof Db; overwrite?: boolean; erp?: boolean };
+export type Ctx = { db: typeof Db; overwrite?: boolean; erp?: boolean; minTier?: number };
 type Company = {
   ids: string[]; created: string; name: string; memberStatus: "member" | "former" | "prospect"; taxId: string; customerNumber: string;
   email: string; emailBilling: string; emailOther: string; phone: string; phoneOther: string; address: string; postalCode: string; city: string; province: string;
@@ -67,7 +67,16 @@ export async function importCompanies(ctx: Ctx, rows: Row[]) {
   const report: Report = newReport("Empreses (Agremiats)");
   report.read = rows.length;
   const merged = mergeCompanies(rows);
+  // values the database would refuse are left empty and counted (typos in Notion, e.g. a date typed into "Any fundació")
+  for (const c of merged) {
+    if (c.foundedYear !== null && !(Number.isInteger(c.foundedYear) && c.foundedYear >= 1500 && c.foundedYear <= 2200)) { c.foundedYear = null; bump(report, "invalid founding years left empty"); }
+    if (c.employees !== null && !(Number.isInteger(c.employees) && c.employees >= 0 && c.employees <= 10_000_000)) { c.employees = null; bump(report, "invalid employee counts left empty"); }
+  }
   const idmap = new Map<string, string>(); // Notion page id -> company id
+  // a fee amount shared by at least `minTier` member companies becomes a fee tier; one-off amounts stay in that member's notes
+  const minTier = ctx.minTier ?? 5;
+  const shared = new Map<number, number>();
+  for (const c of merged) if (c.amount && c.amount > 0 && (c.memberStatus === "member" || c.memberStatus === "former")) shared.set(c.amount, (shared.get(c.amount) ?? 0) + 1);
   const created: { c: Company; id: string }[] = [];
   bump(report, "pages merged as duplicates", rows.filter((r) => !r.trashed).length - merged.length);
   bump(report, "companies without CIF", merged.filter((c) => !c.taxId).length);
@@ -114,12 +123,14 @@ export async function importCompanies(ctx: Ctx, rows: Row[]) {
       const has = await db.select({ id: members.id }).from(members).where(eq(members.companyId, id)).limit(1);
       if (!has.length) {
         let tierId: string | null = null;
-        if (c.amount && c.amount > 0) {
+        let custom = "";
+        if (c.amount && c.amount > 0 && (shared.get(c.amount) ?? 0) < minTier) { custom = `Quota anual (Notion): ${euros(c.amount)} €`; bump(report, "custom fee amounts kept in notes"); }
+        else if (c.amount && c.amount > 0) {
           const tname = `Quota ${euros(c.amount)} €`;
           const [t] = await db.select({ id: feeTiers.id }).from(feeTiers).where(eq(feeTiers.name, tname));
           if (t) tierId = t.id; else { tierId = (await db.insert(feeTiers).values({ name: tname, annualCents: Math.round(c.amount * 100) }).returning({ id: feeTiers.id }))[0].id; bump(report, "fee tiers created"); }
         }
-        await db.insert(members).values({ name: c.name, taxId: c.taxId, email: c.email, phone: c.phone, companyId: id, status: c.memberStatus === "former" ? "left" : "active", tierId, notes: c.cuota && c.cuota !== "Corrent pagament" ? `Quota (Notion): ${c.cuota}` : "" });
+        await db.insert(members).values({ name: c.name, taxId: c.taxId, email: c.email, phone: c.phone, companyId: id, status: c.memberStatus === "former" ? "left" : "active", tierId, notes: [custom, c.cuota && c.cuota !== "Corrent pagament" ? `Quota (Notion): ${c.cuota}` : ""].filter(Boolean).join("\n") });
         bump(report, "ERP members created");
         if (c.cuota === "Impagament") bump(report, "marked unpaid in notes");
       }

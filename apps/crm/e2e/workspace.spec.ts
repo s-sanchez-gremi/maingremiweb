@@ -127,3 +127,47 @@ test("workspace: an event, who attends it, a sponsor and a visit", async ({ page
   await panel.getByRole("button", { name: "Crea" }).click();
   await expect(page.getByRole("heading", { name: "Visita e2e" })).toBeVisible();
 });
+
+test("workspace: CSV import (validate first), export, and search across databases", async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 800 });
+  await login(page);
+  await page.goto("/workspace/companies/import");
+  await expect(page.getByRole("heading", { name: "Importa empreses" })).toBeVisible();
+
+  const csv = (rows: string[]) => Buffer.from(["Nom;Estat;NIF/CIF;Població", ...rows].join("\r\n"));
+  const good = ["Importada Alfa SL;Agremiada;B70000001;Terrassa", "Importada Beta SL;No agremiada;B70000002;Girona"];
+
+  // a file with one bad row: validation says so and nothing is saved
+  await page.locator('input[type=file]').setInputFiles({ name: "empreses.csv", mimeType: "text/csv", buffer: csv([...good, "Mala SL;Inventada;B70000003;Lleida"]) });
+  await page.getByRole("button", { name: "Continua" }).click();
+  const result = page.getByRole("region", { name: "Resultat" });
+  await expect(result).toContainText("1 amb errors");
+  await expect(result).toContainText("Fila 4");
+
+  // fixed file: validate, then import for real
+  await page.locator('input[type=file]').setInputFiles({ name: "empreses.csv", mimeType: "text/csv", buffer: csv(good) });
+  await page.getByRole("button", { name: "Continua" }).click();
+  await expect(result).toContainText("Tot correcte");
+  await page.getByLabel("Només validar").uncheck();
+  await page.locator('input[type=file]').setInputFiles({ name: "empreses.csv", mimeType: "text/csv", buffer: csv(good) });
+  await page.getByRole("button", { name: "Continua" }).click();
+  await expect(result).toContainText("Importació feta");
+
+  // they are in the list (and the bad file left nothing behind); the export has them
+  await page.goto("/workspace/companies?q=Importada");
+  await expect(page.getByLabel(/^Nom · Importada Alfa SL/)).toBeVisible();
+  await expect(page.getByText("Mala SL")).toHaveCount(0);
+  const csvOut = await (await page.request.get("/workspace/companies/export?q=Importada")).text();
+  expect(csvOut).toContain("Importada Beta SL");
+
+  // one search over every database
+  await page.goto("/workspace/search?q=importada alfa");
+  await expect(page.getByRole("region", { name: "Empreses" })).toContainText("Importada Alfa SL");
+  await page.getByRole("searchbox", { name: /Cerca a tot/ }).fill("importada");
+  await page.getByRole("searchbox", { name: /Cerca a tot/ }).press("Enter");
+  await expect(page).toHaveURL(/\/workspace\/search\?q=importada/);
+
+  // the template has the headers
+  const tpl = await (await page.request.get("/workspace/companies/import/template")).text();
+  expect(tpl).toContain("NIF/CIF");
+});
