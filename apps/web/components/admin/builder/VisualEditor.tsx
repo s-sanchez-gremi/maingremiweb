@@ -27,6 +27,7 @@ export function VisualEditor({ entryId, locale, sections, onChange, options, sav
   const [selected, setSelected] = useState<string | null>(null);
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [state, setState] = useState<"saved" | "saving" | { error: string }>("saved");
+  const [blocked, setBlocked] = useState(false); // the browser refused to show the preview in the frame
   const first = useRef(true);
   // Desktop preview renders at a real desktop width and is scaled down to fit, so it shows the desktop layout.
   const box = useRef<HTMLDivElement>(null);
@@ -149,10 +150,19 @@ export function VisualEditor({ entryId, locale, sections, onChange, options, sav
             <button type="button" className="btn" aria-pressed={device === "desktop"} onClick={() => setDevice("desktop")}>Ordinador</button>
             <button type="button" className="btn" aria-pressed={device === "mobile"} onClick={() => setDevice("mobile")}>Mòbil</button>
           </div>
+          <a className="hint" href={`/admin/preview/${entryId}?locale=${locale}`} target="_blank" rel="noopener">Obre la vista prèvia en una pestanya nova</a>
           <span className="hint" aria-live="polite">{state === "saved" ? "Esborrany desat" : state === "saving" ? "Desant…" : state.error}</span>
         </div>
         <div className={`b-frame ${device}`} ref={box}>
+          {blocked && (
+            <div className="b-blocked" role="alert">
+              <p>El navegador no ha pogut mostrar la vista prèvia aquí.</p>
+              <p><button type="button" className="btn" onClick={() => location.reload()}>Torna a carregar l&apos;editor</button>{" "}
+                <a href={`/admin/preview/${entryId}?locale=${locale}`} target="_blank" rel="noopener">Obre-la en una pestanya nova</a> per veure què passa.</p>
+            </div>
+          )}
           <iframe ref={frame} title="Vista prèvia de la pàgina" src={`/admin/preview/${entryId}?locale=${locale}`}
+            onLoad={() => { try { setBlocked(!frame.current?.contentWindow?.location.pathname.startsWith("/admin/preview")); } catch { setBlocked(true); } }}
             style={device === "desktop" && fit.scale < 1 ? { width: DESKTOP, height: fit.h / fit.scale, transform: `scale(${fit.scale})`, transformOrigin: "0 0" } : undefined} />
         </div>
       </div>

@@ -11,9 +11,10 @@ async function login(page: Page) {
 }
 
 test("the preview is staff-only and only our own editor may frame it", async ({ page }) => {
+  // Without a session it shows a notice (a redirect to the never-framed login page would be a broken frame).
   const anon = await page.request.get("/admin/preview/00000000-0000-4000-8000-000000000000", { maxRedirects: 0 });
-  expect(anon.status()).toBe(307);
-  expect(anon.headers()["location"]).toContain("/admin/login");
+  expect(anon.status()).toBe(200);
+  expect(await anon.text()).toContain("La sessió ha caducat");
   await login(page);
   const editor = await page.request.get("/admin/content?type=page");
   expect(editor.headers()["x-frame-options"]).toBe("DENY");

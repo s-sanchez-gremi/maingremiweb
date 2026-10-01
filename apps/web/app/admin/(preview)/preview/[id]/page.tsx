@@ -1,10 +1,12 @@
 // Renders the DRAFT of one entry translation exactly like the public page, for the visual editor's iframe.
 // Staff only; incomplete sections/blocks show as placeholders (lib/preview.ts). Never cached.
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { db } from "@apex/db";
 import { entries, entryTranslations, locales, type Locale } from "@apex/db/schema";
-import { requireUser } from "@apex/core/auth";
+import { getUser } from "@apex/core/auth";
+import { can } from "@apex/core/permissions";
 import { getMedia } from "@/lib/content";
 import { lenientSections } from "@/lib/preview";
 import { collectMediaIds } from "@/sections/registry";
@@ -16,7 +18,10 @@ import { ui } from "@/lib/i18n";
 export const dynamic = "force-dynamic";
 
 export default async function Preview({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ locale?: string }> }) {
-  await requireUser("content:write");
+  // No redirect to the login page here: that page may never be framed, so inside the editor it would show as a
+  // broken frame. Say what happened instead.
+  const user = await getUser();
+  if (!can(user, "content:write")) return <Notice text="La sessió ha caducat. Torna a entrar a l'administració i obre la pàgina de nou." />;
   const { id } = await params;
   const sp = await searchParams;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
@@ -34,4 +39,8 @@ export default async function Preview({ params, searchParams }: { params: Promis
       <PreviewBridge />
     </Shell>
   );
+}
+
+function Notice({ text }: { text: string }) {
+  return <main className="wrap narrow"><p className="apex-preview-notice" role="alert">{text} <Link href="/admin/login" target="_top">Entra</Link></p></main>;
 }
