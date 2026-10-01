@@ -1,6 +1,6 @@
 // Everything the site stores in a visitor's browser, declared in ONE place. The banner, the preferences dialog and the
 // public "cookie list" section all read it, so the legal text can never drift from what the site really does.
-import type { Locale } from "@/db/schema";
+import type { Locale } from "@apex/db/schema";
 
 export type L3 = Record<Locale, string>;
 export type Category = "necessary" | "attribution" | "embeds";

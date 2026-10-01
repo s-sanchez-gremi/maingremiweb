@@ -64,6 +64,9 @@ Then as `deploy`: create `/srv/apex/production/.env` from `production.env.exampl
 (`chmod 600` both). Log the server in to the image registry once: `echo TOKEN | docker login ghcr.io -u USER --password-stdin`
 (a read-only package token).
 
+## 5b. DNS and two apps
+Two A records point at the server: `DOMAIN` (the website) and `CRM_DOMAIN` (e.g. `crm.example.com`, the CRM app and client portal); both get a certificate from Caddy. Set `CRM_DOMAIN`, `WEB_INTERNAL_URL=http://web:3000`, `CRM_URL` and `WEB_ADMIN_URL` in `.env` (see `production.env.example`). Put `ADMIN_ALLOWED_IPS` (office/VPN) in `.env` before the first login: it applies to both admins. Release one app only with `./deploy.sh <tag> web|crm` (or the workflow's *only* input).
+
 ## 6. GitHub
 Create the repository, push, and in **Settings → Environments** create `staging` and `production` (add **required reviewers** to production).
 For each, add secrets: `DEPLOY_HOST`, `DEPLOY_USER` (`deploy`), `DEPLOY_DIR` (`/srv/apex/production`), `DEPLOY_SSH_KEY` (private key of a
@@ -76,11 +79,15 @@ After that: **merging to `main` → CI → image → staging automatically**; **
 2. Scheduler (as `deploy`, `crontab -e`):
    ```
    * * * * *   curl -fsS -X POST -H "Authorization: Bearer $(grep ^CRON_SECRET /srv/apex/production/.env | cut -d= -f2)" https://DOMAIN/api/cron/tick >/dev/null
+   * * * * *   curl -fsS -X POST -H "Authorization: Bearer $(grep ^CRON_SECRET /srv/apex/production/.env | cut -d= -f2)" https://CRM_DOMAIN/api/cron/tick >/dev/null
    */5 * * * * cd /srv/apex/production && SITE_URL=https://DOMAIN ./warm.sh >/dev/null
    30 3 * * *  BACKUP_ENV=/srv/apex/production/backup.env /srv/apex/production/backup.sh
    0 4 1 * *   BACKUP_ENV=/srv/apex/production/backup.env /srv/apex/production/restore-drill.sh
    ```
-3. Acceptance checklist (tick each): `/api/health` is 200 · the site loads with a padlock · `curl -I` shows the security headers ·
+3. Monitoring: create TWO external uptime monitors, on `https://DOMAIN/api/health?deep=1` and on `https://CRM_DOMAIN/api/health?deep=1`, the two dead-man's-switch checks (`BACKUP_PING_URL` in `backup.env`, `DRILL_PING_URL`) and set `ALERT_EMAIL` in the app env (see DEPLOY.md, Monitoring).
+4. Acceptance checklist (tick each): `/api/health?deep=1` is 200 on both hosts · `https://CRM_DOMAIN/admin` answers 404 from outside the allow-list and `/portal/login` loads from anywhere · a form submitted on the public site reaches the CRM app (lead appears) · the site loads with a padlock · `curl -I` shows the security headers ·
    log in to the admin and change the password · upload an image and see it on a page (proves S3 public + private) ·
    submit a form: lead appears, both e-mails arrive · a file upload from a form is only downloadable from the admin ·
    run `backup.sh` once and `restore-drill.sh` once by hand and see **RESTORE DRILL PASSED** · save the backup passphrase somewhere outside the server.
+
+> GitHub side: until the staging server exists the release workflow only builds and publishes the image; the staging deploy is skipped. After adding the `DEPLOY_*` secrets to the `staging` environment, run `gh variable set STAGING_ENABLED --body true`.

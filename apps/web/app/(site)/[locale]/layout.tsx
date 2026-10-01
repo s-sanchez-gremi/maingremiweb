@@ -1,4 +1,4 @@
-import "@/styles/tokens.css";
+import "@apex/ui/tokens.css";
 import "../site.css";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";

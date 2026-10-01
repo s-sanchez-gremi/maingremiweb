@@ -1,0 +1,24 @@
+{
+  "name": "@apex/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "What every app needs: staff auth and permissions, storage (S3), mail + outbox, money, search helpers, file-type detection, the declarative field language, error log and heartbeat. Source package (apps compile it).",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@apex/db": "workspace:*",
+    "@aws-sdk/client-s3": "^3.1143.0",
+    "@aws-sdk/s3-request-presigner": "^3.1143.0",
+    "@node-rs/argon2": "^2.2.1",
+    "drizzle-orm": "^0.45.3",
+    "nodemailer": "^10.0.13",
+    "zod": "^4.6.5"
+  },
+  "peerDependencies": {
+    "next": "16.3.7"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.2"
+  }
+}

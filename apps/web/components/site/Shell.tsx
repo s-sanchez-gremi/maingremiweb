@@ -3,6 +3,7 @@ import { L, locales, ui, type Locale } from "@/lib/i18n";
 import { SmartLink } from "./SmartLink";
 import { NavDesktop, type NavEntry } from "./NavDesktop";
 import { SocialLinks } from "./Social";
+import { SearchBox } from "./SearchBox";
 
 export type Alt = { locale: Locale; href: string };
 
@@ -35,14 +36,19 @@ export async function Shell({ locale, alternates, children }: { locale: Locale; 
       </div>
       <header className="header">
         <div className="wrap">
-          <SmartLink href={home} className="logo">APEX</SmartLink>
+          <SmartLink href={home} className="logo">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/gremi-logo.png" alt="GREMI, Indústria i Comunicació Gràfica de Catalunya, des del 1491" width={600} height={349} />
+          </SmartLink>
           <NavDesktop items={nav} label="Principal" />
           <div className="header-actions">
+            <SearchBox locale={locale} />
             {buttons.map((b, i) => <SmartLink key={i} href={b.url} className={`btn${b.primary ? " primary" : ""}`}>{b.label}</SmartLink>)}
           </div>
           <details className="nav-mobile">
             <summary>{t.menu}</summary>
             <div className="panel">
+              <SearchBox locale={locale} />
               <ul>
                 {nav.map((n, i) => n.children.length === 0 ? (
                   <li key={i}><SmartLink href={n.url}>{n.label}</SmartLink></li>
@@ -71,7 +77,10 @@ export async function Shell({ locale, alternates, children }: { locale: Locale; 
         <div className="wrap">
           <div className="footer-grid">
             <div>
-              <SmartLink href={home} className="logo">APEX</SmartLink>
+              <SmartLink href={home} className="logo">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/brand/gremi-logo.png" alt="GREMI, Indústria i Comunicació Gràfica de Catalunya, des del 1491" width={600} height={349} />
+              </SmartLink>
               {L(s.footerText, locale) && <p className="about">{L(s.footerText, locale)}</p>}
             </div>
             {s.footerColumns.map((c, i) => (

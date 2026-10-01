@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { entries, entryTranslations, entryVersions } from "@/db/schema";
+import { db } from "@apex/db";
+import { entries, entryTranslations, entryVersions } from "@apex/db/schema";
 import { publish, publishDue, unpublish } from "../publish";
 
 async function makeEntry(over: Partial<typeof entryTranslations.$inferInsert> = {}) {
@@ -101,7 +101,7 @@ describe("draft vs live", () => {
 
 describe("alt text rule", () => {
   it("blocks publishing an image without alt text in that language, allows it once filled", async () => {
-    const { media } = await import("@/db/schema");
+    const { media } = await import("@apex/db/schema");
     const [m] = await db.insert(media).values({ key: "media/t-" + Math.random(), mime: "image/webp", filename: "portada.webp", alt: { es: "solo español" } }).returning();
     const id = await makeEntry({ sections: [{ id: "a", type: "image", data: { image: m.id, caption: "" } }] });
     await expect(publish(id, "ca")).rejects.toThrow(/alternatiu \(CA\).*portada/);

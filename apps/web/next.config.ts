@@ -3,6 +3,10 @@ import { resolve } from "node:path";
 
 const nextConfig: NextConfig = {
   agentRules: false,
+  // Workspace packages are plain TypeScript source (no build step): Next compiles them with the app.
+  transpilePackages: ["@apex/db", "@apex/core", "@apex/ui", "@apex/forms"],
+  // Staff upload project documents through a server action (max 10 MB file + form overhead); default is 1 MB.
+  experimental: { serverActions: { bodySizeLimit: "12mb" } },
   // Only when building the production Docker image: a self-contained server (monorepo root so workspace files are traced).
   ...(process.env.NEXT_STANDALONE ? { output: "standalone" as const, outputFileTracingRoot: resolve(process.cwd(), "../..") } : {}),
   // The e2e run builds into its own folder so its cache can never mix with dev or production data.

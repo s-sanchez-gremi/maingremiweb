@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import postgres from "postgres";
-import { CRON_SECRET, E2E_DB } from "../playwright.config";
-import { slugify } from "../lib/slug";
+import { CRON_SECRET, E2E_DB } from "@apex/e2e/constants";
+import { slugify } from "@apex/core/slug";
 
 async function login(page: Page, who: "admin" | "editor") {
   const password = who === "admin" ? process.env.E2E_ADMIN_PASSWORD! : process.env.E2E_EDITOR_PASSWORD!;
@@ -120,6 +120,37 @@ test("editors cannot manage users or settings", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Configuració" })).toHaveCount(0);
   expect((await page.goto("/admin/users"))?.status()).toBe(404);
   expect((await page.goto("/admin/settings"))?.status()).toBe(404);
+  expect((await page.goto("/admin/errors"))?.status()).toBe(404);
   await page.goto("/admin/content?type=post"); // but they can do their job
   await expect(page.getByRole("button", { name: "Nou article" })).toBeVisible();
+});
+
+test("admins see system status and the error log; the scheduler heartbeat drives the deep health check", async ({ page }) => {
+  await login(page, "admin");
+  await page.goto("/admin");
+  await expect(page.getByText("Estat del sistema")).toBeVisible();
+  await page.goto("/admin/errors");
+  await expect(page.getByRole("heading", { name: "Errors" })).toBeVisible();
+  await expect(page.getByText("No hi ha cap error obert.")).toBeVisible();
+  const tick = await page.request.post("/api/cron/tick", { headers: { authorization: `Bearer ${CRON_SECRET}` } });
+  expect(tick.ok()).toBe(true);
+  expect((await page.request.get("/api/health?deep=1")).status()).toBe(200);
+});
+
+test("a previous published version can be restored into the draft without touching the live page", async ({ page }) => {
+  await login(page, "admin");
+  await page.goto("/admin/content?type=post");
+  await page.getByRole("button", { name: "Nou article" }).click();
+  await page.waitForURL(/\/admin\/content\/[0-9a-f-]{36}/);
+  const v1 = `Versió uno ${Date.now()}`, v2 = `Versió dos ${Date.now()}`;
+  await page.getByLabel("Títol", { exact: true }).fill(v1);
+  await page.getByRole("button", { name: "Publica" }).click();
+  await expect(page.getByText("Publicat.")).toBeVisible();
+  await page.getByLabel("Títol", { exact: true }).fill(v2);
+  await page.getByRole("button", { name: "Publica" }).click();
+  await expect(page.getByText("Publicat.")).toBeVisible();
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Restaura" }).last().click(); // oldest version
+  await expect(page.getByText("Versió restaurada")).toBeVisible();
+  await expect(page.getByLabel("Títol", { exact: true })).toHaveValue(v1);
 });

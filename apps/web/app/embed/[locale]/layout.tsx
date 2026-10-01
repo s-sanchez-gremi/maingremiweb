@@ -1,4 +1,4 @@
-import "@/styles/tokens.css";
+import "@apex/ui/tokens.css";
 import "../../(site)/site.css";
 import { notFound } from "next/navigation";
 import { isLocale } from "@/lib/i18n";
