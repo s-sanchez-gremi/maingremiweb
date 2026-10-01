@@ -24,4 +24,4 @@ export function buildCsp(kind: Kind, o: { s3Origin?: string; dev?: boolean; http
   return d.join("; ");
 }
 
-export const kindOf = (firstSegment: string): Kind => (firstSegment === "admin" || firstSegment === "api" ? "admin" : firstSegment === "embed" ? "embed" : "public");
+export const kindOf = (firstSegment: string): Kind => (firstSegment === "admin" || firstSegment === "api" || firstSegment === "portal" ? "admin" : firstSegment === "embed" ? "embed" : "public");

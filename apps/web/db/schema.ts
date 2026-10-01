@@ -249,6 +249,34 @@ export const projectDocuments = pgTable("project_documents", {
   fileName: text("file_name"),
   mime: text(),
   size: integer(),
+  shared: boolean().notNull().default(false),
   createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const portalUsers = pgTable("portal_users", {
+  id: uuid().primaryKey().defaultRandom(),
+  clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+  email: text().notNull().unique(),
+  name: text().notNull().default(""),
+  passwordHash: text("password_hash"),
+  disabled: boolean().notNull().default(false),
+  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const portalSessions = pgTable("portal_sessions", {
+  id: text().primaryKey(),
+  portalUserId: uuid("portal_user_id").notNull().references(() => portalUsers.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const portalTokens = pgTable("portal_tokens", {
+  tokenHash: text("token_hash").primaryKey(),
+  portalUserId: uuid("portal_user_id").notNull().references(() => portalUsers.id, { onDelete: "cascade" }),
+  kind: text().$type<"invite" | "reset">().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { buildCsp, kindOf } from "@/lib/csp";
 
 const LOCALES = ["ca", "es", "en"];
-const KNOWN = ["admin", "api", "embed", "styleguide"];
+const KNOWN = ["admin", "api", "embed", "styleguide", "portal"];
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -20,7 +20,7 @@ export function proxy(req: NextRequest) {
   res.headers.set("Content-Security-Policy", buildCsp(kindOf(first), {
     s3Origin, dev: process.env.NODE_ENV !== "production", https: (process.env.SITE_URL ?? "").startsWith("https://"),
   }));
-  if (first === "admin" || first === "api") res.headers.set("X-Frame-Options", "DENY");
+  if (first === "admin" || first === "api" || first === "portal") res.headers.set("X-Frame-Options", "DENY");
   return res;
 }
 

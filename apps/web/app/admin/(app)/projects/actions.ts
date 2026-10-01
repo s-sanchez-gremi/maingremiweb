@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { projects, tasks } from "@/db/schema";
+import { setDocumentShared } from "@/lib/portal";
 import { ProjectError, addFile, addLink, addTask, deleteDocument, deleteProject, deleteTask, setTaskDone } from "@/lib/projects";
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -82,4 +83,10 @@ export async function removeDocument(fd: FormData) {
   const projectId = uuid(fd, "projectId");
   await deleteDocument(uuid(fd));
   redirect(`/admin/projects/${projectId}?saved=1`);
+}
+
+export async function toggleDocumentShared(fd: FormData) {
+  await requireUser("projects:write");
+  await setDocumentShared(uuid(fd), fd.get("share") === "1");
+  redirect(`/admin/projects/${uuid(fd, "projectId")}?saved=1`);
 }

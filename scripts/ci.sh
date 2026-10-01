@@ -17,6 +17,7 @@ step "lint"
 pnpm --filter web exec eslint .
 
 step "type check"
+rm -rf apps/web/.next-e2e apps/web/.next/types   # stale route types from earlier builds can disagree with the dev server's current ones (builds below recreate them)
 pnpm --filter web exec tsc --noEmit
 
 step "local services (Postgres, S3 mock, Mailpit)"

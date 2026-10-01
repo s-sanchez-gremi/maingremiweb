@@ -7,7 +7,7 @@ import { AttachedResponses } from "@/components/admin/AttachedResponses";
 import { clients, forms, projectDocuments, projects, submissions, users } from "@/db/schema";
 import { TaskRow } from "@/components/admin/TaskRow";
 import { listTasks } from "@/lib/projects";
-import { createDocument, createTask, removeDocument, removeProject, saveProject } from "../actions";
+import { createDocument, createTask, removeDocument, removeProject, saveProject, toggleDocumentShared } from "../actions";
 
 export default async function ProjectPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string; error?: string }> }) {
   const { id } = await params;
@@ -68,6 +68,12 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
                     {d.kind === "file" ? <a href={`/admin/projects/${id}/file/${d.id}`}>{d.title}</a> : <a href={d.url ?? "#"} target="_blank" rel="noopener noreferrer">{d.title}</a>}
                     <span className="hint"> · {d.kind === "file" ? `${d.fileName} (${Math.max(1, Math.round((d.size ?? 0) / 1024))} KB)` : "enllaç"}</span>
                   </span>
+                  {p.clientId && (
+                    <form action={toggleDocumentShared}>
+                      <input type="hidden" name="id" value={d.id} /><input type="hidden" name="projectId" value={id} /><input type="hidden" name="share" value={d.shared ? "0" : "1"} />
+                      <button className="btn" type="submit" aria-label={`${d.shared ? "Deixa de compartir" : "Comparteix amb el client"}: ${d.title}`}>{d.shared ? "✓ Visible pel client" : "Comparteix"}</button>
+                    </form>
+                  )}
                   <form action={removeDocument}><input type="hidden" name="id" value={d.id} /><input type="hidden" name="projectId" value={id} /><ConfirmButton className="btn link" message="Eliminar aquest document?">✕</ConfirmButton></form>
                 </div>
               ))}
