@@ -8,6 +8,7 @@
 *                                   @s-sanchez-gremi @jmarcadell4-maker
 /packages/                          @s-sanchez-gremi @jmarcadell4-maker
 /db/migrations/                     @s-sanchez-gremi @jmarcadell4-maker
+/db/grants.sql                      @s-sanchez-gremi @jmarcadell4-maker   # database permissions per app: a new table is classified here
 /e2e/                               @s-sanchez-gremi @jmarcadell4-maker
 /deploy/                            @s-sanchez-gremi @jmarcadell4-maker
 /scripts/                           @s-sanchez-gremi @jmarcadell4-maker
@@ -24,6 +25,8 @@
 # ---- apps/crm: Sam ----
 /apps/crm/                          @s-sanchez-gremi
 /packages/forms/                    @s-sanchez-gremi @jmarcadell4-maker   # the form component is drawn by the website: logic is Sam's, the look must match the site
-/packages/db/src/schema/crm.ts      @s-sanchez-gremi
+/packages/db/src/schema/crm.ts      @s-sanchez-gremi                      # includes the forms tables (forms, form_starts, newsletter_optins)
+/packages/db/src/schema/records.ts  @s-sanchez-gremi
+/packages/db/src/schema/events.ts   @s-sanchez-gremi
 /packages/db/src/schema/erp.ts      @s-sanchez-gremi
 /docs/erp-plan.md                   @s-sanchez-gremi

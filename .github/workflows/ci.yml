@@ -64,6 +64,7 @@ jobs:
           ./scripts/staging-drill.sh
           ./scripts/caddy-drill.sh
           ./scripts/backup-drill.sh
+          ./scripts/boundary-drill.sh
 
   audit:
     name: Known vulnerabilities in production dependencies

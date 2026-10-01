@@ -11,6 +11,18 @@ export function findMigrationsDir(from = process.cwd()): string {
   }
 }
 
+/** Applies db/grants.sql (database permissions per app). Needs the roles apex_web and apex_crm to exist. Run as the owner, after migrations. */
+export async function applyGrants(url: string, file = join(dirname(findMigrationsDir()), "grants.sql")) {
+  const sql = postgres(url, { max: 1, onnotice: () => {} });
+  try {
+    for (const role of ["apex_web", "apex_crm"]) {
+      const [r] = await sql`select 1 as ok from pg_roles where rolname = ${role}`;
+      if (!r) throw new Error(`Database role "${role}" does not exist: create it first (see deploy/ionos/README.md), or leave APPLY_GRANTS unset.`);
+    }
+    await sql.unsafe(readFileSync(file, "utf8"));
+  } finally { await sql.end(); }
+}
+
 export async function migrate(url: string, dir = findMigrationsDir()) {
   const sql = postgres(url, { max: 1, onnotice: () => {} });
   await sql`create table if not exists schema_migrations (name text primary key, applied_at timestamptz not null default now())`;

@@ -46,7 +46,15 @@ if grep -qx db <<<"$SERVICES"; then
 fi
 
 say "apply database migrations (release $TAG)"
-"${COMPOSE[@]}" run --rm --no-deps "${TARGETS[0]}" migrate
+# With one database user per app (db/grants.sql), the apps run as restricted users and CANNOT migrate. The owner's connection lives in
+# ./.env.migrate (MIGRATE_DATABASE_URL=...), a file only this script reads, so the owner's password never reaches an app container.
+MIGRATE_ARGS=()
+if [ -f .env.migrate ]; then
+  set -a; . ./.env.migrate; set +a
+  [ -n "${MIGRATE_DATABASE_URL:-}" ] || { echo ".env.migrate must define MIGRATE_DATABASE_URL"; exit 2; }
+  MIGRATE_ARGS=(-e "DATABASE_URL=$MIGRATE_DATABASE_URL" -e APPLY_GRANTS=1)   # re-apply the permissions after every migration
+fi
+"${COMPOSE[@]}" run --rm --no-deps ${MIGRATE_ARGS[@]+"${MIGRATE_ARGS[@]}"} "${TARGETS[0]}" migrate
 
 for svc in "${TARGETS[@]}"; do say "start $svc $TAG (was: $(prev "$svc" || true))"; done
 "${COMPOSE[@]}" up -d --remove-orphans

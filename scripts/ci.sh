@@ -14,6 +14,10 @@ step() { printf '\n\033[1m=== %s\033[0m\n' "$*"; }
 [ -f .env ] || cp .env.example .env
 ln -sf ../../.env apps/web/.env; ln -sf ../../.env apps/crm/.env
 
+step "app boundaries (apps/web and apps/crm never import each other; packages never import an app)"
+./scripts/check-boundaries.sh --selftest
+./scripts/check-boundaries.sh
+
 step "install (lockfile must be up to date)"
 pnpm install --frozen-lockfile
 
@@ -57,6 +61,8 @@ if [ "$FAST" = 0 ]; then
     ./scripts/caddy-drill.sh
     step "Backup drill (encrypted off-platform backup restores; a corrupt backup is caught)"
     ./scripts/backup-drill.sh
+    step "Boundary drill (database permissions per app, tested with the real restricted users)"
+    ./scripts/boundary-drill.sh
   fi
 fi
 printf '\n\033[1;32mALL CHECKS PASSED\033[0m\n'

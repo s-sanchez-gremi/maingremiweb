@@ -4,7 +4,12 @@ export const WEB_PORT = 3100;
 export const CRM_PORT = 3101;
 export const WEB_URL = `http://localhost:${WEB_PORT}`;
 export const CRM_URL = `http://localhost:${CRM_PORT}`;
-export const E2E_DB = "postgres://apex:apex@localhost:5432/apex_e2e";
+export const E2E_DB = "postgres://apex:apex@localhost:5432/apex_e2e";   // the OWNER: migrations and test setup only
+// The servers connect as the restricted per-app users of db/grants.sql, so every end-to-end test also proves the permissions are right.
+// E2E_OWNER_DB=1 runs them as the owner instead (to tell a permissions problem from a code problem).
+const owner = !!process.env.E2E_OWNER_DB;
+export const E2E_WEB_DB = owner ? E2E_DB : "postgres://apex_web:e2e-web-password@localhost:5432/apex_e2e";
+export const E2E_CRM_DB = owner ? E2E_DB : "postgres://apex_crm:e2e-crm-password@localhost:5432/apex_e2e";
 export const CRON_SECRET = "e2e-cron-secret-value";
 
 // Every test starts as a visitor who already answered the cookie banner ("reject all"), so the banner does not cover

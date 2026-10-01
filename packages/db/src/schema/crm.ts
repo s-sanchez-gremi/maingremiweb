@@ -1,8 +1,49 @@
-// BUSINESS-TOOLS tables (Sam): contacts and leads, submissions, clients, projects, tasks, project documents, client portal.
+// BUSINESS-TOOLS tables (Sam): forms (builder, form_starts, newsletter opt-ins), contacts and leads, submissions, clients, projects, tasks, project documents, client portal.
 // Add new ERP tables in their own file next to this one (e.g. erp.ts) and re-export it from index.ts.
-import { pgTable, uuid, text, timestamp, jsonb, date, integer, boolean, type AnyPgColumn } from "drizzle-orm/pg-core";
-import { users } from "./core";
-import { forms } from "./website";
+import { pgTable, uuid, text, timestamp, jsonb, date, integer, boolean, primaryKey, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { users, type Locale } from "./core";
+
+// ---- forms: owned by the CRM app (builder, responses, public submission pipeline); the website only reads `forms` ----
+type LText = Partial<Record<Locale, string>>;
+
+export type FormItem = { id: string; type: string; data: Record<string, unknown> };
+
+export type FormNotifications = { staffEmail?: boolean; staffAddresses?: string; confirmToSender?: boolean; confirmSubject?: LText; confirmBody?: LText };
+
+export const forms = pgTable("forms", {
+  id: uuid().primaryKey().defaultRandom(),
+  name: text().notNull(),
+  slug: text().notNull().unique(),
+  title: jsonb().$type<LText>().notNull().default({}),
+  active: boolean().notNull().default(true),
+  fields: jsonb().$type<FormItem[]>().notNull().default([]),
+  destination: text().$type<"crm_lead" | "project" | "responses_only">().notNull().default("crm_lead"),
+  targetProjectId: uuid("target_project_id"), // FK to projects is enforced in SQL (migration 0007); not declared here so the website file does not depend on the CRM file
+  targetClientId: uuid("target_client_id"),  // same for clients
+  notifications: jsonb().$type<FormNotifications>().notNull().default({}),
+  consent: jsonb().$type<LText>().notNull().default({}),
+  confirmation: jsonb().$type<LText>().notNull().default({}),
+  newsletter: jsonb().$type<{ enabled?: boolean; text?: LText }>().notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const formStarts = pgTable("form_starts", {
+  formId: uuid("form_id").notNull().references(() => forms.id, { onDelete: "cascade" }),
+  day: date().notNull(),
+  n: integer().notNull().default(0),
+}, (t) => [primaryKey({ columns: [t.formId, t.day] })]);
+
+export const newsletterOptins = pgTable("newsletter_optins", {
+  id: uuid().primaryKey().defaultRandom(),
+  email: text().notNull().unique(),
+  locale: text(),
+  formId: uuid("form_id").references(() => forms.id, { onDelete: "set null" }),
+  sourcePath: text("source_path").notNull().default(""),
+  consentText: text("consent_text").notNull(),
+  consentAt: timestamp("consent_at", { withTimezone: true }).notNull().defaultNow(),
+  syncedAt: timestamp("synced_at", { withTimezone: true }),
+});
 
 export const clients = pgTable("clients", {
   id: uuid().primaryKey().defaultRandom(),
