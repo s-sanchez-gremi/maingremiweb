@@ -2,10 +2,12 @@
 // Runs inside the editor's preview iframe (/admin/preview/...). It never changes content itself: it reports clicks and
 // drops to the editor (same origin only) and draws outlines / the drop line. All editing happens in the parent.
 import { useEffect } from "react";
+import { plainFromElement, richFromElement } from "@/lib/inline-edit";
 
 export type ToEditor =
   | { apex: "select"; id: string }
-  | { apex: "drop"; payload: string; target: { index: number } | { section: string; col: string; index: number } };
+  | { apex: "drop"; payload: string; target: { index: number } | { section: string; col: string; index: number } }
+  | { apex: "edit"; id: string; field: string; value: string };
 export type ToPreview = { apex: "selected"; id: string | null };
 
 const STYLES = `
@@ -16,6 +18,11 @@ const STYLES = `
 [data-block-id].apex-sel{outline-offset:4px}
 .apex-drop{position:absolute;height:4px;background:#D50032;border-radius:2px;pointer-events:none;z-index:9999;box-shadow:0 0 0 2px #fff}
 .apex-empty-col{min-height:80px;border:2px dashed rgba(138,135,128,.6);border-radius:8px;display:grid;place-items:center;color:#5C5A54;font:14px system-ui}
+[data-edit]{cursor:text}
+[data-edit]:hover{box-shadow:0 0 0 1px rgba(213,0,50,.35);border-radius:2px}
+[data-edit][contenteditable]{outline:2px solid #D50032;outline-offset:3px;border-radius:2px;cursor:text}
+[data-edit]:empty{min-height:1.2em}
+[data-edit]:empty::before{content:attr(data-ph);color:#8A8780;font-style:italic}
 .apex-empty-page{margin:48px auto;max-width:640px;padding:48px;border:2px dashed rgba(138,135,128,.6);border-radius:10px;text-align:center;color:#5C5A54;font:16px system-ui}
 `;
 const MIME = "application/x-apex";
@@ -97,6 +104,40 @@ export function PreviewBridge() {
       if (t) send({ apex: "drop", payload, target: t.target });
     };
 
+    // Typing directly on the page: a text marked data-edit becomes editable on press, and is sent to the editor when
+    // the editor leaves it (Enter on a one-line text, a click elsewhere, Tab). Escape cancels.
+    let editing: { el: HTMLElement; owner: HTMLElement; before: string; rich: boolean } | null = null;
+    const finish = (save: boolean) => {
+      if (!editing) return;
+      const { el, owner, before, rich } = editing;
+      editing = null;
+      const value = rich ? richFromElement(el) : plainFromElement(el);
+      el.removeAttribute("contenteditable");
+      owner.draggable = true;
+      if (!save) { location.reload(); return; }
+      const id = owner.dataset.blockId ?? owner.dataset.sectionId;
+      if (id && value !== before) send({ apex: "edit", id, field: el.dataset.edit!, value });
+    };
+    const onDown = (e: MouseEvent) => {
+      const el = (e.target as Element).closest?.("[data-edit]") as HTMLElement | null;
+      if (!el || editing?.el === el) return;
+      finish(true);
+      const owner = el.closest("[data-block-id],[data-section-id]") as HTMLElement | null;
+      if (!owner) return;
+      const rich = el.dataset.editKind === "rich";
+      owner.draggable = false; // a draggable parent would start a drag instead of placing the cursor
+      el.contentEditable = rich ? "true" : "plaintext-only";
+      editing = { el, owner, rich, before: rich ? richFromElement(el) : plainFromElement(el) };
+      if (!el.textContent) setTimeout(() => el.focus(), 0);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (!editing) return;
+      if (e.key === "Escape") { e.preventDefault(); finish(false); }
+      else if (e.key === "Enter" && !editing.rich) { e.preventDefault(); finish(true); }
+    };
+    const onFocusOut = (e: FocusEvent) => { if (editing && e.target === editing.el) finish(true); };
+    const onWindowBlur = () => finish(true); // a click in the editor around the preview
+
     const onClick = (e: MouseEvent) => {
       e.preventDefault(); // nothing in the preview navigates or submits
       const n = (e.target as Element).closest?.("[data-block-id],[data-section-id]") as HTMLElement | null;
@@ -109,6 +150,10 @@ export function PreviewBridge() {
     };
 
     document.addEventListener("click", onClick, true);
+    document.addEventListener("mousedown", onDown, true);
+    document.addEventListener("keydown", onKey, true);
+    document.addEventListener("focusout", onFocusOut, true);
+    window.addEventListener("blur", onWindowBlur);
     document.addEventListener("submit", (e) => e.preventDefault(), true);
     document.addEventListener("dragstart", onDragStart);
     document.addEventListener("dragover", onOver);
@@ -118,6 +163,10 @@ export function PreviewBridge() {
     window.parent.postMessage({ apex: "ready" }, location.origin);
     return () => {
       document.removeEventListener("click", onClick, true);
+      document.removeEventListener("mousedown", onDown, true);
+      document.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("focusout", onFocusOut, true);
+      window.removeEventListener("blur", onWindowBlur);
       document.removeEventListener("dragstart", onDragStart);
       document.removeEventListener("dragover", onOver);
       document.removeEventListener("drop", onDrop);

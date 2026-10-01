@@ -309,3 +309,27 @@
 .site .col .embed{aspect-ratio:auto;min-height:300px} /* narrow columns: the 16:9 box is too short for the consent facade */
 .site :is(.sx-bg-dark,.sx-bg-red) .embed{box-shadow:0 0 0 1px rgba(250,249,245,.35)}
 .site .sx-center .col>:is(.b-card,.b-image,.b-embed){align-self:stretch}
+/* More brand choices (visual builder, phase 13): sizes, emphasis, shadows and widths, all from the tokens. */
+.site .b-heading.xl{font-size:clamp(34px,6vw,60px);line-height:1.05}
+.site .b-heading.c-accent{color:var(--accent)}
+.site :is(.sx-bg-dark,.sx-bg-red) .b-heading.c-accent{color:var(--bg)}
+.site .b-text-l .prose{font-size:var(--fs-lg);line-height:1.6}
+.site .b-text-s .prose{font-size:var(--fs-sm)}
+.site .btn.dark{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.site .btn.dark:hover{background:var(--ink2);border-color:var(--ink2)}
+.site :is(.sx-bg-dark) .btn.dark{background:var(--bg);border-color:var(--bg);color:var(--ink)}
+.site .btn.lg{padding:16px 32px;font-size:var(--fs-lg)}
+.site .b-fig.rounded img,.site .b-fig.shadow img{border-radius:var(--r-lg)}
+.site .b-fig.shadow img{box-shadow:var(--shadow-card)}
+.site .card.look-shadow{border-color:transparent;box-shadow:var(--shadow-card)}
+.site .card.look-flat{border-color:transparent;background:transparent}
+.site .b-space{height:var(--sp-6)}
+.site .b-space.s{height:var(--sp-4)}
+.site .b-space.l{height:var(--sp-8)}
+.site .b-rule{border:0;border-top:1px solid var(--line);margin:var(--sp-2) 0;width:100%}
+.site .b-rule.accent{border-top:4px solid var(--accent);width:48px;border-radius:2px}
+.site :is(.sx-bg-dark,.sx-bg-red) .b-rule{border-top-color:rgba(250,249,245,.35)}
+.site .sx-bg-red .b-rule.accent{border-top-color:var(--bg)}
+.site .sx-w-narrow .wrap{max-width:760px}
+.site .sx-w-wide .wrap{max-width:1400px}
+.site .cols.v-center{align-items:center}

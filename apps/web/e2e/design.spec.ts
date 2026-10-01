@@ -44,7 +44,9 @@ test.beforeAll(async ({ request }) => {
     c1: [blk("heading", { text: "Un títol gran", size: "l" }), blk("text", { body: "Text amb **negreta** i un [enllaç](/ca/blog).\n\n- Un\n- Dos" }), blk("button", { label: "Inscriu-t'hi", url: "/ca/blog", variant: "primary" })],
     c2: [blk("heading", { text: "Un títol petit", size: "s" }), blk("button", { label: "Més informació", url: "/ca/blog", variant: "outline" }), blk("card", { label: "Curs", title: "Plegat i engomat", text: "16 setembre", image: "", linkUrl: "/ca/blog" })],
     c3: [blk("embed", { url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" })],
-    c4: [blk("text", { body: "Quarta columna." })] }), style: { bg, space: "m", align } });
+    c4: [blk("heading", { text: "Destacat", size: "xl", color: "accent" }), blk("divider", { look: "accent" }), blk("text", { body: "Quarta columna.", size: "l" }), blk("spacer", { size: "s" }),
+      blk("button", { label: "Gran", url: "/ca/blog", variant: "dark", size: "l" }), blk("divider", { look: "line" }), blk("text", { body: "Nota petita.", size: "s" }),
+      blk("card", { label: "Ombra", title: "Targeta", text: "Amb ombra", image: "", linkUrl: "", look: "shadow" })] }), style: { bg, space: "m", align, width: "narrow", valign: "center" } });
   await addEntry("page", live("Constructor", "constructor", [
     colsSec("auto", "2-1"), colsSec("beige", "1-1-1"), colsSec("dark", "1-1-1-1", "center"), colsSec("red", "1-2"), colsSec("white", "1"),
     { ...sec("cta", { heading: "Fes-te sòcia", text: "Uneix-te al gremi.", linkLabel: "Més informació", linkUrl: "/ca/blog" }), style: { bg: "red", space: "l", align: "left" } },

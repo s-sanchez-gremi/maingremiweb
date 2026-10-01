@@ -8,20 +8,24 @@ export type { BlockDef };
 export const blockDefs = [
   { name: "heading", label: "Títol", fields: [
     { name: "text", label: "Títol", kind: "text", required: true },
-    { name: "size", label: "Mida", kind: "select", options: [{ value: "m", label: "Mitjà" }, { value: "l", label: "Gran" }, { value: "s", label: "Petit" }] },
+    { name: "size", label: "Mida", kind: "select", options: [{ value: "m", label: "Mitjà" }, { value: "l", label: "Gran" }, { value: "xl", label: "Molt gran" }, { value: "s", label: "Petit" }] },
+    { name: "color", label: "Color", kind: "select", options: [{ value: "ink", label: "Negre" }, { value: "accent", label: "Vermell GREMI" }] },
   ] },
   { name: "text", label: "Text", fields: [
     // Same safe formatting as the Text section: paragraphs, **bold**, *italic*, [link](url), "- " lists.
     { name: "body", label: "Text", kind: "textarea", required: true },
+    { name: "size", label: "Mida", kind: "select", options: [{ value: "m", label: "Normal" }, { value: "l", label: "Gran (entradeta)" }, { value: "s", label: "Petit" }] },
   ] },
   { name: "image", label: "Imatge", fields: [
     { name: "image", label: "Imatge", kind: "image", required: true },
     { name: "caption", label: "Peu de foto", kind: "text" },
+    { name: "look", label: "Estil", kind: "select", options: [{ value: "plain", label: "Normal" }, { value: "rounded", label: "Cantonades arrodonides" }, { value: "shadow", label: "Arrodonida amb ombra" }] },
   ] },
   { name: "button", label: "Botó", fields: [
     { name: "label", label: "Text del botó", kind: "text", required: true },
     { name: "url", label: "Enllaç", kind: "link", required: true },
-    { name: "variant", label: "Estil", kind: "select", options: [{ value: "primary", label: "Vermell" }, { value: "outline", label: "Contorn" }] },
+    { name: "variant", label: "Estil", kind: "select", options: [{ value: "primary", label: "Vermell" }, { value: "outline", label: "Contorn" }, { value: "dark", label: "Negre" }] },
+    { name: "size", label: "Mida", kind: "select", options: [{ value: "m", label: "Normal" }, { value: "l", label: "Gran" }] },
   ] },
   { name: "embed", label: "Vídeo / Adobe", fields: [
     { name: "url", label: "Enllaç (YouTube o Adobe)", kind: "embed", required: true },
@@ -32,6 +36,13 @@ export const blockDefs = [
     { name: "text", label: "Text", kind: "text" },
     { name: "image", label: "Imatge", kind: "image" },
     { name: "linkUrl", label: "Enllaç", kind: "link" },
+    { name: "look", label: "Estil", kind: "select", options: [{ value: "border", label: "Amb vora" }, { value: "shadow", label: "Amb ombra" }, { value: "flat", label: "Sense vora" }] },
+  ] },
+  { name: "spacer", label: "Espai", fields: [
+    { name: "size", label: "Alçada", kind: "select", options: [{ value: "m", label: "Mitjà" }, { value: "s", label: "Petit" }, { value: "l", label: "Gran" }] },
+  ] },
+  { name: "divider", label: "Línia", fields: [
+    { name: "look", label: "Estil", kind: "select", options: [{ value: "line", label: "Línia fina" }, { value: "accent", label: "Barra vermella curta" }] },
   ] },
 ] as const satisfies readonly BlockDef[];
 
@@ -59,4 +70,6 @@ export const styleFields: Field[] = [
     { value: "m", label: "Normal" }, { value: "s", label: "Petit" }, { value: "l", label: "Gran" }, { value: "none", label: "Cap" },
   ] },
   { name: "align", label: "Alineació del text", kind: "select", options: [{ value: "left", label: "Esquerra" }, { value: "center", label: "Centre" }] },
+  { name: "width", label: "Amplada del contingut", kind: "select", options: [{ value: "normal", label: "Normal" }, { value: "narrow", label: "Estreta" }, { value: "wide", label: "Ampla" }] },
+  { name: "valign", label: "Columnes: alineació vertical", kind: "select", options: [{ value: "top", label: "A dalt" }, { value: "center", label: "Al mig" }] },
 ];

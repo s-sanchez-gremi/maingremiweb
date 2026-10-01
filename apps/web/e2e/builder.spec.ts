@@ -48,6 +48,26 @@ test("build a page visually: add, drag, edit, style, then publish", async ({ pag
   await expect(saved).toBeVisible();
   await expect(preview.getByRole("heading", { name: "Benvinguts al GREMI" })).toBeVisible();
 
+  // Type directly on the page: the title in the preview becomes editable; Enter saves it into the field.
+  await preview.getByRole("heading", { name: "Benvinguts al GREMI", exact: true }).click();
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.type("Benvinguts al Gremi");
+  await page.keyboard.press("Enter");
+  await expect(inspect.getByLabel("Títol *")).toHaveValue("Benvinguts al Gremi");
+  await expect(saved).toBeVisible();
+  await expect(preview.getByRole("heading", { name: "Benvinguts al Gremi", exact: true })).toBeVisible();
+
+  // A new text block is empty and editable in place; bold typed there is stored as the site's own markdown.
+  await lib.getByRole("button", { name: "Text", exact: true }).first().click();
+  await expect(saved).toBeVisible();
+  await preview.locator("[data-edit-kind=rich]").last().click();
+  await page.keyboard.type("Hola ");
+  await page.keyboard.press("ControlOrMeta+b");
+  await page.keyboard.type("món");
+  await inspect.getByRole("heading", { name: "Text", exact: true }).click(); // leaving the text saves it
+  await expect(inspect.getByLabel("Text *")).toHaveValue("Hola **món**");
+  await expect(saved).toBeVisible();
+
   // Drag a button from the library into the same column, below the heading.
   await lib.getByRole("button", { name: "Botó", exact: true }).dragTo(preview.locator("[data-col=c1]").first(), { targetPosition: { x: 20, y: 60 } });
   await expect(inspect.getByLabel("Text del botó *")).toBeVisible();
@@ -67,7 +87,9 @@ test("build a page visually: add, drag, edit, style, then publish", async ({ pag
   await page.getByRole("button", { name: "Publica", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "Publicat" })).toBeVisible();
   const body = await (await page.request.get(path)).text();
-  expect(body).toContain("Benvinguts al GREMI");
+  expect(body).toContain("Benvinguts al Gremi");
+  expect(body).toContain("<strong>món</strong>");
+  expect(body).not.toContain("data-edit"); // editor-only markup never reaches the public page
   expect(body).toContain("sx sx-bg-red");
   expect(body).toContain(">Fes-te sòcia<");
   expect(body).not.toContain("apex-sel"); // editor-only markup never reaches the public page
