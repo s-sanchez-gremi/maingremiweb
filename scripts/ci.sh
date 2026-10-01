@@ -10,6 +10,10 @@ FAST=0; DOCKER=1
 for a in "$@"; do case "$a" in --fast) FAST=1 ;; --no-docker) DOCKER=0 ;; *) echo "unknown option $a"; exit 2 ;; esac; done
 step() { printf '\n\033[1m=== %s\033[0m\n' "$*"; }
 
+# Each app reads its configuration from a .env next to it (a link to the root .env); make sure both exist.
+[ -f .env ] || cp .env.example .env
+ln -sf ../../.env apps/web/.env; ln -sf ../../.env apps/crm/.env
+
 step "install (lockfile must be up to date)"
 pnpm install --frozen-lockfile
 
