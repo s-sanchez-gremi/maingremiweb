@@ -1,7 +1,8 @@
 // The single source of truth for section types. To add a type: add one entry here
 // (and its renderer in sections/render.tsx). Validation and the admin form are generated.
 import { z } from "zod";
-import { shape, type Field } from "./fields";
+import { shape, type Field } from "@apex/core/fields";
+import { blockByName, blockDefs, layouts, styleFields } from "./blocks";
 
 export type SectionDef = { name: string; label: string; fields: Field[] };
 
@@ -53,6 +54,14 @@ export const sectionDefs = [
     { name: "heading", label: "Títol", kind: "text" },
     { name: "count", label: "Quantes", kind: "select", options: [{ value: "3", label: "3" }, { value: "6", label: "6" }, { value: "9", label: "9" }] },
   ] },
+  { name: "columns", label: "Columnes (constructor visual)", fields: [
+    { name: "heading", label: "Títol de la secció (opcional)", kind: "text" },
+    { name: "layout", label: "Columnes", kind: "select", options: layouts.map((l) => ({ value: l.value, label: l.label })) },
+    { name: "c1", label: "Columna 1", kind: "blocks", blocks: blockDefs },
+    { name: "c2", label: "Columna 2", kind: "blocks", blocks: blockDefs },
+    { name: "c3", label: "Columna 3", kind: "blocks", blocks: blockDefs },
+    { name: "c4", label: "Columna 4", kind: "blocks", blocks: blockDefs },
+  ] },
   { name: "cardGrid", label: "Graella de targetes", fields: [
     { name: "heading", label: "Títol", kind: "text" },
     { name: "cards", label: "Targetes", kind: "list", max: 12, fields: [
@@ -67,8 +76,13 @@ export const sectionDefs = [
 
 export const sectionByName = Object.fromEntries(sectionDefs.map((d) => [d.name, d as SectionDef]));
 
+/** Sections that cannot take a brand style (the page header has its own fixed look). */
+export const UNSTYLED = new Set(["header"]);
+export const styleSchema = z.object(shape(styleFields)).default({ bg: "auto", space: "m", align: "left" });
+export type SectionStyle = z.infer<typeof styleSchema>;
+
 const variants = sectionDefs.map((d) =>
-  z.object({ id: z.string().min(1), type: z.literal(d.name), data: z.object(shape(d.fields as unknown as Field[])) }),
+  z.object({ id: z.string().min(1), type: z.literal(d.name), data: z.object(shape(d.fields as unknown as Field[])), style: styleSchema }),
 );
 export const sectionSchema = z.discriminatedUnion("type", variants as unknown as [(typeof variants)[0], ...typeof variants]);
 export const sectionsSchema = z.array(sectionSchema).max(60);
@@ -82,6 +96,10 @@ export function collectMediaIds(sections: { type: string; data: Record<string, u
       const v = data?.[f.name];
       if (f.kind === "image" && typeof v === "string" && v) out.add(v);
       if (f.kind === "list" && Array.isArray(v)) v.forEach((item) => walk(f.fields, item as Record<string, unknown>));
+      if (f.kind === "blocks" && Array.isArray(v)) for (const b of v as { type: string; data: Record<string, unknown> }[]) {
+        const def = blockByName[b?.type];
+        if (def) walk(def.fields, b.data);
+      }
     }
   };
   for (const s of sections) {

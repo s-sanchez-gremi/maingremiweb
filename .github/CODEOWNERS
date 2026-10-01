@@ -1,0 +1,29 @@
+# Who reviews what. GitHub asks the owner of the changed files to review a pull request (the LAST matching line wins).
+# Two apps, one repository, one database (see docs/split-plan.md):
+#   @jmarcadell4-maker   = apps/web: the public site, form RENDERING inside pages, the CMS admin (content, media, categories, settings, users, errors)
+#   @s-sanchez-gremi     = apps/crm: CRM, forms (builder, responses, public submission API), projects, tasks, ERP, client portal
+# Everything shared (packages, database, auth, deploy, CI, e2e runner) needs BOTH people.
+
+# ---- shared / infrastructure: both review ----
+*                                   @s-sanchez-gremi @jmarcadell4-maker
+/packages/                          @s-sanchez-gremi @jmarcadell4-maker
+/db/migrations/                     @s-sanchez-gremi @jmarcadell4-maker
+/e2e/                               @s-sanchez-gremi @jmarcadell4-maker
+/deploy/                            @s-sanchez-gremi @jmarcadell4-maker
+/scripts/                           @s-sanchez-gremi @jmarcadell4-maker
+/.github/                           @s-sanchez-gremi @jmarcadell4-maker
+/Dockerfile                         @s-sanchez-gremi @jmarcadell4-maker
+/CLAUDE.md                          @s-sanchez-gremi @jmarcadell4-maker
+
+# ---- apps/web: Joan Marc ----
+/apps/web/                          @jmarcadell4-maker
+/packages/ui/src/tokens.css         @jmarcadell4-maker                    # the brand: colours, type, spacing
+/packages/db/src/schema/website.ts  @jmarcadell4-maker
+/docs/guia-editor.md                @jmarcadell4-maker
+
+# ---- apps/crm: Sam ----
+/apps/crm/                          @s-sanchez-gremi
+/packages/forms/                    @s-sanchez-gremi @jmarcadell4-maker   # the form component is drawn by the website: logic is Sam's, the look must match the site
+/packages/db/src/schema/crm.ts      @s-sanchez-gremi
+/packages/db/src/schema/erp.ts      @s-sanchez-gremi
+/docs/erp-plan.md                   @s-sanchez-gremi

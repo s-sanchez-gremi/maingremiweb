@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { sessions, users } from "@/db/schema";
-import { verifyPassword } from "../password";
-import { UserError, changeOwnPassword, createUser, deleteUser, resetPassword, setRole } from "../users";
+import { db } from "@apex/db";
+import { sessions, users } from "@apex/db/schema";
+import { verifyPassword } from "@apex/core/password";
+import { UserError, changeOwnPassword, createUser, deleteUser, resetPassword, setRole } from "@apex/core/users";
 
 const PW = "correct horse battery";
 const mk = (email: string, role: "admin" | "editor" = "editor") => createUser({ email, name: "", role, password: PW });

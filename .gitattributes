@@ -1,0 +1,8 @@
+# Always LF, on every machine: Windows checkouts would otherwise turn shell scripts and the Docker entrypoint into CRLF, which breaks them.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.woff2 binary

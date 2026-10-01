@@ -1,9 +1,9 @@
 // First-run admin: if (and only if) there are NO users yet and INITIAL_ADMIN_EMAIL / INITIAL_ADMIN_PASSWORD are set,
 // create that admin. Remove the variables afterwards (the password is only used once, and only while the table is empty).
 import { count } from "drizzle-orm";
-import { db } from "./db";
-import { users } from "@/db/schema";
-import { UserError, createUser } from "./users";
+import { db } from "@apex/db";
+import { users } from "@apex/db/schema";
+import { UserError, createUser } from "@apex/core/users";
 
 type Env = Record<string, string | undefined>;
 

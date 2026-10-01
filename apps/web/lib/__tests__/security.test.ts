@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildCsp, kindOf } from "../csp";
-import { clientIp } from "../forms/http";
+import { buildCsp, kindOf } from "@apex/core/csp";
+import { clientIp } from "@apex/forms/http";
 import { CONSENT_COOKIE, parseConsent, serializeConsent } from "../consent/state";
 import { declarations, categories } from "../consent/registry";
 
@@ -35,6 +35,11 @@ describe("Content-Security-Policy", () => {
     expect(pub).toContain("frame-ancestors 'self'");
     expect(buildCsp("embed", {})).not.toContain("frame-ancestors");
     expect([kindOf("admin"), kindOf("api"), kindOf("embed"), kindOf("ca")]).toEqual(["admin", "admin", "embed", "public"]);
+    // The visual editor frames its own preview; nothing else in the admin can frame or be framed.
+    expect([kindOf("admin", "content"), kindOf("admin", "preview"), kindOf("admin", "users"), kindOf("ca", "preview")]).toEqual(["editor", "preview", "admin", "public"]);
+    expect(buildCsp("editor", {})).toContain("frame-src 'self'");
+    expect(buildCsp("editor", {})).toContain("frame-ancestors 'none'");
+    expect(buildCsp("preview", {})).toContain("frame-ancestors 'self'");
   });
   it("only relaxes eval and websockets in development", () => {
     expect(buildCsp("public", { dev: true })).toContain("'unsafe-eval'");

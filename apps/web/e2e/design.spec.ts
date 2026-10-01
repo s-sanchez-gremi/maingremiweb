@@ -3,7 +3,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import postgres from "postgres";
-import { CRON_SECRET, E2E_DB } from "../playwright.config";
+import { CRON_SECRET, E2E_DB } from "@apex/e2e/constants";
 
 const WIDTHS = [320, 375, 768, 1024, 1440];
 const sec = (type: string, data: Record<string, unknown>) => ({ id: crypto.randomUUID(), type, data });
@@ -38,6 +38,17 @@ test.beforeAll(async ({ request }) => {
   ];
   const home = await addEntry("page", live("Inici", "inici", showcase));
   await addEntry("page", live("Formació", "formacio", showcase.slice(3)));
+  // Visual builder: columns with every block type, in each brand background.
+  const blk = (type: string, data: Record<string, unknown>) => ({ id: crypto.randomUUID(), type, data });
+  const colsSec = (bg: string, layout: string, align = "left") => ({ ...sec("columns", { heading: `Fons ${bg}`, layout,
+    c1: [blk("heading", { text: "Un títol gran", size: "l" }), blk("text", { body: "Text amb **negreta** i un [enllaç](/ca/blog).\n\n- Un\n- Dos" }), blk("button", { label: "Inscriu-t'hi", url: "/ca/blog", variant: "primary" })],
+    c2: [blk("heading", { text: "Un títol petit", size: "s" }), blk("button", { label: "Més informació", url: "/ca/blog", variant: "outline" }), blk("card", { label: "Curs", title: "Plegat i engomat", text: "16 setembre", image: "", linkUrl: "/ca/blog" })],
+    c3: [blk("embed", { url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" })],
+    c4: [blk("text", { body: "Quarta columna." })] }), style: { bg, space: "m", align } });
+  await addEntry("page", live("Constructor", "constructor", [
+    colsSec("auto", "2-1"), colsSec("beige", "1-1-1"), colsSec("dark", "1-1-1-1", "center"), colsSec("red", "1-2"), colsSec("white", "1"),
+    { ...sec("cta", { heading: "Fes-te sòcia", text: "Uneix-te al gremi.", linkLabel: "Més informació", linkUrl: "/ca/blog" }), style: { bg: "red", space: "l", align: "left" } },
+  ]));
   const L3 = (ca: string) => ({ ca, es: ca, en: ca });
   const settings = {
     homepage: home, phone: "+34 93 000 00 00", email: "info@apex.example",
@@ -57,7 +68,7 @@ test.beforeAll(async ({ request }) => {
   // The rows above were written straight to the database, so tell the app to drop anything it cached earlier.
   const r = await request.post("/api/cron/revalidate", { headers: { authorization: `Bearer ${CRON_SECRET}` } });
   expect(r.status()).toBe(200);
-  PAGES = ["/ca", "/es", "/ca/blog", "/ca/blog/categoria/empresa", "/ca/blog/article-1", "/ca/formacio", "/ca/no-existeix", "/styleguide"];
+  PAGES = ["/ca", "/es", "/ca/blog", "/ca/blog/categoria/empresa", "/ca/blog/article-1", "/ca/formacio", "/ca/constructor", "/ca/no-existeix", "/ca/search?q=conveni", "/ca/search?q=zzqqxx", "/ca/search", "/styleguide"];
 });
 
 const fmt = (v: { id: string; help: string; nodes: { target: unknown[]; failureSummary?: string }[] }[]) =>
@@ -70,6 +81,7 @@ async function settle(page: Page, path: string) {
 
 for (const width of WIDTHS) {
   test(`no accessibility violations or overflow at ${width}px`, async ({ page }) => {
+    test.setTimeout(150_000); // one test walks every public page
     await page.setViewportSize({ width, height: 900 });
     for (const path of PAGES) {
       await settle(page, path);
@@ -209,8 +221,12 @@ test.describe("navigation with dropdowns, header buttons and social links", () =
     await expect(page.getByRole("status")).toContainText("Desat");
 
     await page.goto("/ca");
-    await page.getByRole("navigation", { name: "Principal" }).getByRole("button", { name: "Recursos" }).click();
-    await expect(page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: "Guia de l'associat" })).toBeVisible();
+    const nav = page.getByRole("navigation", { name: "Principal" });
+    const recursos = nav.getByRole("button", { name: "Recursos" }), guia = nav.getByRole("link", { name: "Guia de l'associat" });
+    await expect(async () => { // a click before the page has hydrated does nothing (slow CI machines), so retry until the menu is open
+      if ((await recursos.getAttribute("aria-expanded")) !== "true") await recursos.click();
+      await expect(guia).toBeVisible({ timeout: 1500 });
+    }).toPass({ timeout: 20_000 });
 
     // A top-level item with neither a link nor a submenu is refused.
     await page.goto("/admin/settings");
@@ -223,4 +239,15 @@ test.describe("navigation with dropdowns, header buttons and social links", () =
     await page.getByRole("button", { name: "Desa" }).click();
     await expect(page.getByRole("status")).toContainText("necessita un enllaç");
   });
+});
+
+test("search: header box finds published content (accent-insensitive) and says so when nothing matches", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await settle(page, "/ca");
+  await page.locator(".header-actions").getByRole("searchbox", { name: "Cerca al web" }).fill("intelligencia artificial");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/ca\/search\?q=/);
+  await expect(page.getByRole("link", { name: "Com impacta la intel·ligència artificial al sector" })).toBeVisible();
+  await settle(page, "/ca/search?q=zzqqxx");
+  await expect(page.getByRole("status")).toContainText("No hem trobat res");
 });

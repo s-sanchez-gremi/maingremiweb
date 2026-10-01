@@ -1,0 +1,15 @@
+{
+  "name": "@apex/db",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The one database: Drizzle schema (core / website / crm / erp files), the lazy client and the SQL migration runner. Source package: apps compile it (transpilePackages).",
+  "exports": {
+    ".": "./src/client.ts",
+    "./schema": "./src/schema/index.ts",
+    "./migrator": "./src/migrator.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.3",
+    "postgres": "^3.4.9"
+  }
+}

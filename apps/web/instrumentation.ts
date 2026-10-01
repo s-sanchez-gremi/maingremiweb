@@ -2,3 +2,8 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") await (await import("./instrumentation-node")).run();
 }
+
+// Every unhandled error in a page, route or server action lands in our own error log (see lib/errors.ts).
+export async function onRequestError(err: unknown, request: { path: string }) {
+  if (process.env.NEXT_RUNTIME === "nodejs") await (await import("@apex/core/errors")).recordError(err, request.path);
+}

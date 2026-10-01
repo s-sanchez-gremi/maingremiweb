@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { categories, entries, entryTranslations, media, settings, users } from "@/db/schema";
+import { db } from "@apex/db";
+import { categories, entries, entryTranslations, media, settings, users } from "@apex/db/schema";
 import { publish } from "../publish";
 import { queryAllLive, queryAlternates, queryCategories, queryEntryBySlug, queryMedia, queryPosts, querySettings } from "../content-queries";
 

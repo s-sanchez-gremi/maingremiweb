@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# Builds the production image and proves it really works: migrates a FRESH database, starts, serves pages, refuses bad config.
+# Builds the production image and proves it really works for BOTH apps: migrates a FRESH database, starts the website and the CRM app
+# from the same image, serves pages, refuses bad config.
 # Needs the local services (docker compose up -d). Works on macOS and Linux (joins the compose network, publishes a port).
 # Usage: ./scripts/docker-smoke.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
 IMAGE="${IMAGE:-apex-smoke}"
 NAME=apex-smoke-$$
-PORT="${SMOKE_PORT:-3300}"
+CRM_NAME=apex-smoke-crm-$$
+PORT="${SMOKE_PORT:-3300}"; CRM_PORT=$((PORT + 1))
 DB=apex_smoke
-cleanup() { docker rm -f "$NAME" >/dev/null 2>&1 || true; }
+cleanup() { docker rm -f "$NAME" "$CRM_NAME" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
 NET=$(docker inspect "$(docker compose ps -q db)" --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}')
@@ -34,9 +36,14 @@ echo "== refuses to start with a placeholder secret (and exits, instead of runni
 set +e
 OUT=$(docker run --rm --network "$NET" "${ENVS[@]}" -e CRON_SECRET=change-me "$IMAGE" 2>&1); CODE=$?
 set -e
-if [ "$CODE" -ne 0 ] && grep -q "refusing to start" <<<"$OUT"; then echo "ok: refused (exit $CODE)"; else echo "FAIL: exit=$CODE"; echo "$OUT" | tail -5; exit 1; fi
+if [ "$CODE" -ne 0 ] && grep -q "refusing to start" <<<"$OUT"; then echo "ok: website refused (exit $CODE)"; else echo "FAIL: exit=$CODE"; echo "$OUT" | tail -5; exit 1; fi
 
-echo "== start (applies migrations to the fresh database first)"
+set +e
+OUT=$(docker run --rm --network "$NET" "${ENVS[@]}" -e CRON_SECRET=change-me "$IMAGE" start-crm 2>&1); CODE=$?
+set -e
+if [ "$CODE" -ne 0 ] && grep -q "refusing to start" <<<"$OUT"; then echo "ok: CRM app refused too (exit $CODE)"; else echo "FAIL: crm exit=$CODE"; echo "$OUT" | tail -5; exit 1; fi
+
+echo "== start the website (applies migrations to the fresh database first)"
 docker run -d --name "$NAME" --network "$NET" -p "$PORT:3000" "${ENVS[@]}" "$IMAGE" >/dev/null
 for i in $(seq 1 60); do curl -fsS "localhost:$PORT/api/health" >/dev/null 2>&1 && break; sleep 1; [ "$i" = 60 ] && { docker logs "$NAME" | tail -30; echo "FAIL: did not become healthy"; exit 1; }; done
 
@@ -70,4 +77,19 @@ LOGS="$(docker logs "$NAME" 2>&1)"
 if grep -qF "$ADMIN_PW" <<<"$LOGS"; then echo "FAIL: the admin password is in the logs"; exit 1; else echo "ok: the admin password is not in the logs"; fi
 echo "ok: container health: $(docker inspect -f '{{.State.Health.Status}}' "$NAME")"
 docker run --rm --network "$NET" "${ENVS[@]}" "$IMAGE" migrate >/dev/null && echo "ok: 'migrate' command runs and is idempotent"
+
+echo "== start the CRM app (same image, command start-crm; it never migrates)"
+docker run -d --name "$CRM_NAME" --network "$NET" -p "$CRM_PORT:3000" "${ENVS[@]}" "$IMAGE" start-crm >/dev/null
+for i in $(seq 1 60); do curl -fsS "localhost:$CRM_PORT/api/health" >/dev/null 2>&1 && break; sleep 1; [ "$i" = 60 ] && { docker logs "$CRM_NAME" | tail -30; echo "FAIL: the CRM app did not become healthy"; exit 1; }; done
+chk_crm() { local code; code=$(curl -s -o /dev/null -w "%{http_code}" "localhost:$CRM_PORT$1"); [ "$code" = "$2" ] || { echo "FAIL: crm $1 returned $code, expected $2"; docker logs "$CRM_NAME" | tail -20; exit 1; }; echo "ok: crm $1 -> $code"; }
+chk_crm /api/health 200
+chk_crm /admin/login 200
+chk_crm /portal/login 200
+chk_crm /robots.txt 200
+chk_crm /ca 404                           # the CRM app does not serve the public site
+chk_crm /api/forms/no-existeix/challenge 404
+CH="$(curl -sI "localhost:$CRM_PORT/admin/login")"
+grep -qi "x-frame-options: deny" <<<"$CH" && grep -qi "content-security-policy" <<<"$CH" && echo "ok: crm is not frameable and sends a Content-Security-Policy" || { echo "FAIL: crm security headers"; exit 1; }
+grep -qi "disallow: /" <<<"$(curl -s "localhost:$CRM_PORT/robots.txt")" && echo "ok: crm robots.txt disallows everything"
+echo "ok: crm container health: $(docker inspect -f '{{.State.Health.Status}}' "$CRM_NAME")"
 echo "SMOKE TEST PASSED"

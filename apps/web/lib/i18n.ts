@@ -1,4 +1,4 @@
-import { locales, defaultLocale, type Locale } from "@/db/schema";
+import { locales, defaultLocale, type Locale } from "@apex/db/schema";
 export { locales, defaultLocale, type Locale };
 
 export const isLocale = (v: string): v is Locale => (locales as readonly string[]).includes(v);
@@ -18,6 +18,7 @@ const dict = {
     legal: "Avís legal", privacy: "Política de privacitat", cookies: "Cookies", cookieSettings: "Configuració de cookies", rights: "Tots els drets reservats.",
     loadEmbed: "Carrega el contingut", embedNote: "Aquest contingut prové d'un servei extern. En carregar-lo acceptes la seva política de privacitat.", openExternal: "Obre'l al servei original",
     category: "Categoria", untitled: "Sense títol",
+    search: "Cerca", searchLabel: "Cerca al web", searchResults: "Resultats de la cerca", noResults: "No hem trobat res per a", searchHint: "Escriu una o més paraules (mínim 2 lletres).", typePost: "Notícia", typePage: "Pàgina",
   },
   es: {
     skip: "Saltar al contenido", menu: "Menú", language: "Idioma", portal: "Portal clientes", contact: "Contacto",
@@ -28,6 +29,7 @@ const dict = {
     legal: "Aviso legal", privacy: "Política de privacidad", cookies: "Cookies", cookieSettings: "Configuración de cookies", rights: "Todos los derechos reservados.",
     loadEmbed: "Cargar el contenido", embedNote: "Este contenido procede de un servicio externo. Al cargarlo aceptas su política de privacidad.", openExternal: "Abrir en el servicio original",
     category: "Categoría", untitled: "Sin título",
+    search: "Buscar", searchLabel: "Buscar en la web", searchResults: "Resultados de la búsqueda", noResults: "No hemos encontrado nada para", searchHint: "Escribe una o más palabras (mínimo 2 letras).", typePost: "Noticia", typePage: "Página",
   },
   en: {
     skip: "Skip to content", menu: "Menu", language: "Language", portal: "Client portal", contact: "Contact",
@@ -38,6 +40,7 @@ const dict = {
     legal: "Legal notice", privacy: "Privacy policy", cookies: "Cookies", cookieSettings: "Cookie settings", rights: "All rights reserved.",
     loadEmbed: "Load content", embedNote: "This content comes from an external service. Loading it means you accept its privacy policy.", openExternal: "Open on the original service",
     category: "Category", untitled: "Untitled",
+    search: "Search", searchLabel: "Search the site", searchResults: "Search results", noResults: "We found nothing for", searchHint: "Type one or more words (at least 2 letters).", typePost: "News", typePage: "Page",
   },
 } as const;
 

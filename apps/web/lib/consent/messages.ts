@@ -1,4 +1,4 @@
-import type { Locale } from "@/db/schema";
+import type { Locale } from "@apex/db/schema";
 
 const m = {
   ca: { title: "Cookies i privacitat", text: "Fem servir només l'emmagatzematge imprescindible perquè el web funcioni. Amb el teu permís, també podem recordar la campanya d'origen i carregar contingut extern (YouTube, Adobe).", acceptAll: "Acceptar-ho tot", rejectAll: "Rebutjar-ho tot", configure: "Configurar", dialogTitle: "Preferències de cookies", save: "Desa les preferències", always: "Sempre activades", close: "Tanca", cookieList: "Cookies i emmagatzematge que fem servir", colName: "Nom", colCategory: "Categoria", colPurpose: "Finalitat", colDuration: "Durada", colProvider: "Proveïdor", change: "Canvia les preferències", allowEmbeds: "Permet sempre el contingut extern" },
