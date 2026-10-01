@@ -8,6 +8,7 @@ inputs:
   ssh-key: { required: true }
   known-hosts: { description: Output of ssh-keyscan for the host (pins the server identity), required: true }
   image: { description: Image name without tag, required: true }
+  only: { description: "Which app to release: all, web (website + CMS) or crm (CRM, forms, ERP, portal)", required: false, default: all }
   compose-file: { description: Which compose file this environment uses (copied to compose.yml on the server), required: false, default: deploy/compose.yml }
 runs:
   using: composite
@@ -21,7 +22,9 @@ runs:
         DIR: ${{ inputs.dir }}
         IMAGE: ${{ inputs.image }}
         COMPOSE_SRC: ${{ inputs.compose-file }}
+        ONLY: ${{ inputs.only }}
       run: |
+        [[ "$ONLY" =~ ^(all|web|crm)$ ]] || { echo "::error::only must be all, web or crm"; exit 1; }
         [[ "$COMPOSE_SRC" =~ ^deploy/compose(\.staging)?\.yml$ ]] || { echo "::error::invalid compose file"; exit 1; }
         [[ "$TAG" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || { echo "::error::invalid image tag"; exit 1; }
         [[ "$DIR" =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo "::error::invalid deployment directory"; exit 1; }
@@ -43,8 +46,9 @@ runs:
         IMAGE: ${{ inputs.image }}
         TARGET: ${{ inputs.user }}@${{ inputs.host }}
         COMPOSE_SRC: ${{ inputs.compose-file }}
+        ONLY: ${{ inputs.only }}
       run: |
         OPTS=(-i "$HOME/.ssh/deploy_key" -o StrictHostKeyChecking=yes)
         scp "${OPTS[@]}" "$COMPOSE_SRC" "$TARGET:$DIR/compose.yml"
         scp "${OPTS[@]}" deploy/Caddyfile deploy/deploy.sh deploy/warm.sh deploy/backup.sh deploy/restore-drill.sh "$TARGET:$DIR/"
-        ssh "${OPTS[@]}" "$TARGET" "cd '$DIR' && chmod +x deploy.sh warm.sh backup.sh restore-drill.sh && APEX_IMAGE='$IMAGE' ./deploy.sh '$TAG'"
+        ssh "${OPTS[@]}" "$TARGET" "cd '$DIR' && chmod +x deploy.sh warm.sh backup.sh restore-drill.sh && APEX_IMAGE='$IMAGE' ./deploy.sh '$TAG' '$ONLY'"

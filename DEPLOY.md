@@ -40,12 +40,26 @@ The container **refuses to start** (exit code 1, clear message) on staging/produ
 
 Never commit real values. Generate each secret separately for each environment.
 
+## Two apps, one image
+The image holds **both** apps; a container's command picks one. They share the database and are released **independently**:
+
+| Service / command | What it is | Public address |
+|---|---|---|
+| `web` (`start-web`, the default) | website, CMS admin, form *rendering* | `SITE_DOMAIN` (admin restricted to `ADMIN_ALLOWED_IPS`) |
+| `crm` (`start-crm`) | CRM, forms builder + submission API, projects, ERP, client portal | `CRM_DOMAIN` (everything restricted to `ADMIN_ALLOWED_IPS` **except** `/portal`, assets, `robots.txt`, `/api/health`, `/api/cron/*`); `https://SITE_DOMAIN/api/forms/*` is routed here by Caddy |
+
+- Extra variables: `CRM_DOMAIN` (Caddy; needs its own DNS record), `WEB_INTERNAL_URL` (`http://web:3000`: the CRM app asks the website to refresh its cache after a form changes; shares `CRON_SECRET`), `CRM_URL` / `WEB_ADMIN_URL` (menu links). `CRM_INTERNAL_URL` is for development only; leave it unset in production (Caddy routes the forms API). Optional `DATABASE_URL_WEB` / `DATABASE_URL_CRM` give each app its own database user.
+- **`deploy.sh <tag> [all|web|crm]`**: migrations run once, before anything starts; each app waits for its own health check and **rolls back to its own previous version** without touching the other (`scripts/deploy-drill.sh` proves it). The release workflow's *Run workflow* has the same `only` choice.
+- **Migrations must work with the previous version of BOTH apps** (additive only; drop or rename in a later release), because one app can be a version behind the other.
+- Two schedulers: `/api/cron/tick` on **both** hosts (the website publishes scheduled content and sends mail; the CRM app sends mail and purges address hashes). Two uptime checks: `https://SITE_DOMAIN/api/health?deep=1` and `https://CRM_DOMAIN/api/health?deep=1`.
+
 ## Image commands
 ```
 docker build -t apex .
 docker run --env-file staging.env -e AUTO_MIGRATE=1 -p 3000:3000 apex      # start (staging: migrates first)
 docker run --env-file production.env apex migrate                          # apply pending migrations only, then exit
-docker run --env-file production.env -p 3000:3000 apex                     # start
+docker run --env-file production.env -p 3000:3000 apex                     # start the website (= start-web)
+docker run --env-file production.env -p 3001:3000 apex start-crm          # start the CRM app
 ```
 Health endpoints: `GET /api/health` (200 = up and the database answers, 503 otherwise; used by the container health check) and `GET /api/health?deep=1` (also requires the scheduler to have run in the last 10 minutes: **point the external uptime monitor here**).
 
@@ -60,6 +74,7 @@ Health endpoints: `GET /api/health` (200 = up and the database answers, 503 othe
 5. Add the scheduler lines:
    ```
    * * * * *   curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://DOMAIN/api/cron/tick
+   * * * * *   curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://CRM_DOMAIN/api/cron/tick
    */5 * * * * SITE_URL=https://DOMAIN /path/to/scripts/warm.sh
    ```
    and run `scripts/warm.sh` once after every deploy.

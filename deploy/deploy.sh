@@ -1,30 +1,42 @@
 #!/usr/bin/env bash
 # Runs ON THE SERVER, inside the environment directory (compose.yml, .env, Caddyfile next to it).
-#   ./deploy.sh <image-tag>
-# Steps: pull the image, apply pending database migrations, start the new version, wait until it is healthy,
-# warm the page cache. If the new version does not become healthy it is rolled back to the previous one automatically.
-# Migrations are forward-only and additive, so the previous app version keeps working against the migrated database.
+#   ./deploy.sh <image-tag> [all|web|crm]
+# The two apps (web = website + CMS, crm = CRM, forms, ERP, portal) come from ONE image but are released independently:
+# each has its own service, its own version (APEX_TAG_WEB / APEX_TAG_CRM), its own health check and its own rollback.
+# Steps: pull the image, apply pending database migrations (once, before anything starts), start the new version(s),
+# wait until each is healthy, warm the website cache. An app that does not become healthy is rolled back to ITS previous
+# version automatically; the other app is not touched. Migrations are forward-only and additive, so any app version
+# keeps working against the migrated database.
 set -euo pipefail
 cd "$(dirname "$0")"
-TAG="${1:?usage: deploy.sh <image-tag>}"
+TAG="${1:?usage: deploy.sh <image-tag> [all|web|crm]}"
+ONLY="${2:-all}"
 export COMPOSE_FILE="${COMPOSE_FILE:-compose.yml}"   # docker compose reads this itself (several files may be joined with ":")
 COMPOSE=(docker compose)
-STATE=.current-tag
-PREV="$(cat "$STATE" 2>/dev/null || true)"
 WAIT="${HEALTH_WAIT_SECONDS:-120}"
-export APEX_TAG="$TAG"
+case "$ONLY" in all) TARGETS=(web crm) ;; web) TARGETS=(web) ;; crm) TARGETS=(crm) ;; *) echo "second argument must be all, web or crm"; exit 2 ;; esac
+
+state() { echo ".current-tag-$1"; }
+prev() { cat "$(state "$1")" 2>/dev/null || true; }
+tagvar() { echo "APEX_TAG_$(tr a-z A-Z <<<"$1")"; }
+is_target() { local s; for s in "${TARGETS[@]}"; do [ "$s" = "$1" ] && return 0; done; return 1; }
+# New tag for the services being deployed; the others keep the version they run now (or the new one on a first deploy).
+for svc in web crm; do
+  v="$(tagvar "$svc")"
+  if is_target "$svc"; then export "$v=$TAG"; else cur="$(prev "$svc")"; export "$v=${cur:-$TAG}"; fi
+done
 
 say() { printf '\n== %s\n' "$*"; }
+cid() { "${COMPOSE[@]}" ps -q "$1" 2>/dev/null || true; }
 healthy() {
   local id status
-  id="$("${COMPOSE[@]}" ps -q app 2>/dev/null || true)"
-  [ -n "$id" ] || return 1
+  id="$(cid "$1")"; [ -n "$id" ] || return 1
   status="$(docker inspect -f '{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$id" 2>/dev/null || true)"
   [ "$status" = "running|healthy" ]
 }
-alive() { local id; id="$("${COMPOSE[@]}" ps -q app 2>/dev/null || true)"; [ -n "$id" ] && [ "$(docker inspect -f '{{.State.Status}}' "$id" 2>/dev/null)" = "running" ]; }
+alive() { local id; id="$(cid "$1")"; [ -n "$id" ] && [ "$(docker inspect -f '{{.State.Status}}' "$id" 2>/dev/null)" = "running" ]; }
 
-if [ "${PULL:-1}" = "1" ]; then say "pull $TAG"; "${COMPOSE[@]}" pull app; fi
+if [ "${PULL:-1}" = "1" ]; then say "pull $TAG"; "${COMPOSE[@]}" pull "${TARGETS[@]}"; fi
 
 # A stack that carries its own database (staging) must have it running before migrating; the managed-database stack has no "db" service.
 SERVICES="$("${COMPOSE[@]}" config --services)"   # captured, not piped: `| grep -q` can die of SIGPIPE under pipefail
@@ -34,35 +46,40 @@ if grep -qx db <<<"$SERVICES"; then
 fi
 
 say "apply database migrations (release $TAG)"
-"${COMPOSE[@]}" run --rm --no-deps app migrate
+"${COMPOSE[@]}" run --rm --no-deps "${TARGETS[0]}" migrate
 
-say "start $TAG (was: ${PREV:-nothing})"
+for svc in "${TARGETS[@]}"; do say "start $svc $TAG (was: $(prev "$svc" || true))"; done
 "${COMPOSE[@]}" up -d --remove-orphans
 
 say "wait for health (up to ${WAIT}s)"
-ok=0
-for i in $(seq 1 "$WAIT"); do
-  if healthy; then ok=1; break; fi
-  # a container that already exited will never become healthy: stop waiting
-  if ! alive && [ "$i" -gt 5 ]; then break; fi
-  sleep 1
+failed=()
+for svc in "${TARGETS[@]}"; do
+  ok=0
+  for i in $(seq 1 "$WAIT"); do
+    if healthy "$svc"; then ok=1; break; fi
+    # a container that already exited will never become healthy: stop waiting
+    if ! alive "$svc" && [ "$i" -gt 5 ]; then break; fi
+    sleep 1
+  done
+  if [ "$ok" = "1" ]; then echo "$TAG" > "$(state "$svc")"; say "healthy: $svc $TAG is live"; else failed+=("$svc"); fi
 done
 
-if [ "$ok" != "1" ]; then
-  echo "!! $TAG did not become healthy. Last log lines:"; "${COMPOSE[@]}" logs --tail 30 app || true
-  if [ -n "$PREV" ] && [ "$PREV" != "$TAG" ]; then
-    say "rolling back to $PREV"
-    export APEX_TAG="$PREV"
-    "${COMPOSE[@]}" up -d --remove-orphans
-    echo "rolled back to $PREV"
-  else
-    echo "no previous version to roll back to"
-  fi
+if [ "${#failed[@]}" -gt 0 ]; then
+  for svc in "${failed[@]}"; do
+    echo "!! $svc $TAG did not become healthy. Last log lines:"; "${COMPOSE[@]}" logs --tail 30 "$svc" || true
+    p="$(prev "$svc" || true)"
+    if [ -n "$p" ] && [ "$p" != "$TAG" ]; then
+      say "rolling back $svc to $p"
+      export "$(tagvar "$svc")=$p"   # (the variable, not its value)
+      echo "rolled back $svc to $p"
+    else
+      echo "no previous version of $svc to roll back to"
+    fi
+  done
+  "${COMPOSE[@]}" up -d --remove-orphans   # only the services whose tag changed are recreated
   exit 1
 fi
 
-echo "$TAG" > "$STATE"
-say "healthy: $TAG is live"
 if [ -x ./warm.sh ] && [ -n "${SITE_URL:-$(grep -E '^SITE_URL=' .env 2>/dev/null | cut -d= -f2-)}" ]; then
   SITE_URL="${SITE_URL:-$(grep -E '^SITE_URL=' .env | cut -d= -f2-)}" ./warm.sh || echo "warm-up reported problems (not fatal)"
 fi
