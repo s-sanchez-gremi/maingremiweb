@@ -14,6 +14,16 @@
 
 A local hook (`.githooks/pre-push`, installed by `pnpm install`) refuses pushes to `main`. GitHub's own branch protection is not available on a private repo on the free plan, so these rules are by agreement; turning on "require a pull request + status checks" is the first thing to do if the plan is upgraded.
 
+## Who owns what
+One app and one database, two areas (`.github/CODEOWNERS` makes GitHub ask the right person to review):
+- **Joan Marc (`@jmarcadell4-maker`) — the website:** the public site, and the admin of the website itself: content, media, categories, forms builder, settings, users, errors.
+- **Sam (`@s-sanchez-gremi`) — the business tools:** CRM (contacts and leads), project manager (clients, projects, tasks), client portal, and the future ERP/invoicing.
+- **Shared, both review:** the database (`db/schema.ts`, migrations), `auth.ts` and `permissions.ts`, `proxy.ts`/CSP, the admin layout, menu, dashboard and global search, `deploy/`, `scripts/`, `.github/` and `CLAUDE.md`.
+- **Working across the line** is fine (a small fix in the other's area): open the PR as usual; the owner reviews it. Agree first before anything larger.
+- **New admin screens** (e.g. invoices) get their own folder under `app/admin/(staff)/(app)/` plus their own `lib/<name>.ts`, so two people rarely touch the same file. The menu (`AdminNav.tsx`) and dashboard are shared: keep edits there to one line per item.
+- **The database schema is split by area** (`db/schema/website.ts` Joan Marc, `db/schema/crm.ts` Sam, `db/schema/core.ts` shared); new ERP tables go in their own file, re-exported from `db/schema/index.ts`. Migrations stay in one shared sequence.
+- **Database changes are the main collision point.** Tell the other person before adding a migration, and rebase right before merging so the number is the next free one.
+
 ## Rules that prevent the usual collisions
 - **Migrations** (`db/migrations/NNNN_name.sql`): never edit one that is already on `main`. Take the next free number **after** rebasing on `main`; if two branches both added `0012_…`, the second one to merge renumbers its file (a unit test fails on duplicates or gaps).
 - **Lockfile** (`pnpm-lock.yaml`): on a conflict, take `main`'s version and run `pnpm install` again; never hand-edit.

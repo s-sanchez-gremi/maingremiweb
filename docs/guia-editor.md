@@ -94,13 +94,23 @@ Dins de cada article o pàgina, al panell lateral, hi ha els idiomes (CA, ES, EN
 - El client **només veu** el nom i l'estat dels seus projectes i els **documents que tu comparteixis**. Dins d'un projecte, cada document té un botó **Comparteix**: fins que no el premis, el client no el veu. Les notes, les tasques i les respostes de formularis mai no es mostren al client.
 - El portal és a `/portal` (adreça que pots enviar als clients).
 
-## 8. Què només fan els administradors
+## 8. Gestió (només administradors, de moment)
+
+A **Gestió** s'hi **registra** el que passa amb els diners; la comptabilitat, les factures i els impostos continuen a **Sage**.
+- **Primer, la base:** a *Categories* (amb el compte de Sage de cada una), *Centres de cost* (un curs, un projecte o «general»), *Proveïdors* i *Trams* de quota.
+- **Despeses i ingressos:** *Nova despesa* / *Nou ingrés*. Escriu la base (sense IVA, per exemple `1.234,56`) i tria l'IVA: el total es calcula sol. Pots adjuntar la factura en PDF. *Marca com a pagat* quan es pagui. *Anul·la* deixa el registre fora dels llistats i totals (queda guardat).
+- **Socis i quotes:** dona d'alta cada soci amb el seu tram i si paga anual o trimestral. A *Quotes*, escriu el període (`2026` o `2026-T1`), mira la previsualització i prem **Genera les quotes**: es crea un ingrés pendent per soci (mai dos cops el mateix període). Quan Sage emeti la factura, escriu-ne el número a l'ingrés.
+- **Subscripcions:** quan arriba la factura d'una subscripció, prem **Registra la renovació**: es crea la despesa i la data de renovació avança.
+- **Resum:** totals de l'any, per centre de cost i per categoria, el que queda per pagar/cobrar i les renovacions properes.
+- **Exportar a Sage:** als llistats, **Exporta (CSV per a Sage)** baixa el que estàs veient (amb el compte de Sage a cada línia).
+
+## 9. Què només fan els administradors
 
 - **Usuaris**: crear-ne, canviar el rol (administrador o editor), restablir contrasenyes i eliminar.
 - **Configuració**: menú principal, peu de pàgina, botons de la capçalera (per exemple, *Campus virtual*), xarxes socials, dades de contacte, enllaços legals, SEO per defecte i pàgina d'inici.
 - **Errors**: problemes inesperats del web (vegeu l'apartat següent).
 
-## 9. Si alguna cosa no va bé
+## 10. Si alguna cosa no va bé
 
 - **Tauler → Estat del sistema** (administradors) diu si les tasques programades funcionen, si hi ha correus pendents o fallits i quants errors oberts hi ha.
 - **Un article programat no ha sortit:** mira l'estat del sistema. Si diu *Aturades*, avisa qui manté el servidor.
@@ -108,11 +118,11 @@ Dins de cada article o pàgina, al panell lateral, hi ha els idiomes (CA, ES, EN
 - **Has publicat una cosa per error:** obre-la i prem **Passa a esborrany**: deixa de ser visible al web. Si vols recuperar una versió anterior, al panell lateral hi ha **Versions publicades**: prem **Restaura** i es copia a l'esborrany (no canvia el web fins que tornis a publicar). Es guarden les últimes 10.
 - **El web no respon:** mira-ho des d'un altre dispositiu i avisa qui manté el servidor. Les pàgines ja visitades continuen servint-se encara que falli la base de dades.
 
-## 10. Cercador
+## 11. Cercador
 
 El web té un cercador a la capçalera (i al menú del mòbil). Només troba contingut **publicat**, en l'idioma que s'està veient, i no distingeix accents ni majúscules. Un esborrany mai no hi surt.
 
-## 11. Consells de seguretat
+## 12. Consells de seguretat
 
 - Mai no comparteixis la teva contrasenya. Cada persona té el seu usuari.
 - Surt (**Surt**) si fas servir un ordinador compartit.
