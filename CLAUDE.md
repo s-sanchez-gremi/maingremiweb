@@ -2,6 +2,12 @@
 
 This file orients Claude Code (or any engineer) starting the Apex project. It summarizes the plan and mockups already agreed with the client; treat it as the source of truth until superseded by code or a written decision.
 
+## Git workflow (team decision: 2 people, Claude merges)
+- **Never commit or push to `main` directly.** Every change, however small, goes on its own branch created from the latest `main` (`git fetch origin main && git checkout -b <branch> origin/main`).
+- **One branch per task/person.** Two people work in parallel, so never commit on someone else's branch unless asked; never rewrite history (rebase, amend, force-push) on a branch already pushed.
+- **Merging is done by Claude** through a pull request to `main`: only when CI is green and there is no conflict. If `main` moved, merge `main` into the branch first (merge commit, not rebase), re-run checks, then merge the PR. If both branches changed the same logic, ask before choosing.
+- After a branch is merged, follow-up work starts on a fresh branch from `main`; a merged branch is never reused.
+
 ## What Apex is
 
 Three parts, one shared backend:
