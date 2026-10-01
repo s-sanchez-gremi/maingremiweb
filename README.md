@@ -6,6 +6,11 @@ Public site + custom CMS + form/lead pipeline. Build guide: `CLAUDE.md`. Plan: `
 Node 22+, pnpm, Docker (local Postgres, S3-compatible mock, Mailpit), `pg_dump`/`pg_restore` for backups.
 
 ## Run locally
+One command (Mac/Linux; needs Node 22+ and Docker Desktop running). Safe to re-run after every `git pull`:
+```
+./scripts/local-setup.sh       # installs, starts Docker services, migrates, demo content, asks for a first admin, starts the app
+```
+Then open http://localhost:3000/ca (site) and http://localhost:3000/admin. By hand instead:
 ```
 cp .env.example .env
 pnpm install
