@@ -6,6 +6,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks || true",
     "dev": "ln -sf ../../.env apps/web/.env && docker compose up -d && pnpm --filter web dev",
     "db:migrate": "pnpm --filter web db:migrate",
     "db:backup": "./scripts/backup.sh",
