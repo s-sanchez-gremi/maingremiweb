@@ -2,7 +2,7 @@
 import { pgTable, uuid, text, timestamp, date, integer, bigint } from "drizzle-orm/pg-core";
 import { users } from "./core";
 import { clients, people } from "./crm";
-import { suppliers } from "./erp";
+import { costCenters, suppliers } from "./erp";
 
 export const events = pgTable("events", {
   id: uuid().primaryKey().defaultRandom(),
@@ -56,6 +56,52 @@ export const visits = pgTable("visits", {
   ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
   summary: text().notNull().default(""),
   followUpOn: date("follow_up_on"),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  externalRef: text("external_ref"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ---- R5: remaining Notion areas (migration 0016) ----
+
+export const labourCases = pgTable("labour_cases", {
+  id: uuid().primaryKey().defaultRandom(),
+  title: text().notNull(),
+  companyId: uuid("company_id").references(() => clients.id, { onDelete: "set null" }),
+  status: text().notNull().default("open"),
+  openedOn: date("opened_on"),
+  summary: text().notNull().default(""),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  externalRef: text("external_ref"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const trainingCourses = pgTable("training_courses", {
+  id: uuid().primaryKey().defaultRandom(),
+  name: text().notNull(),
+  status: text().notNull().default("planned"),
+  startsOn: date("starts_on"),
+  endsOn: date("ends_on"),
+  hours: integer(),
+  participants: integer(),
+  companyId: uuid("company_id").references(() => clients.id, { onDelete: "set null" }),
+  costCenterId: uuid("cost_center_id").references(() => costCenters.id, { onDelete: "set null" }),
+  notes: text().notNull().default(""),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  externalRef: text("external_ref"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const jobSeekers = pgTable("job_seekers", {
+  id: uuid().primaryKey().defaultRandom(),
+  name: text().notNull(),
+  email: text().notNull().default(""),
+  phone: text().notNull().default(""),
+  profile: text().notNull().default(""),
+  status: text().notNull().default("active"),
+  registeredOn: date("registered_on"),
+  consentOn: date("consent_on"),
+  keepUntil: date("keep_until"),
+  notes: text().notNull().default(""),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   externalRef: text("external_ref"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

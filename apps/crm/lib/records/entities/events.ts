@@ -1,6 +1,6 @@
 // Events and who attended, sponsors, and visits to companies (R4). Attendance is its own table so a person's page shows
 // every event they went to, and an event's page shows everyone invited, through the engine's two-way links.
-import { eventAttendance, events, sponsors, visits } from "@apex/db/schema";
+import { eventAttendance, events, jobSeekers, labourCases, sponsors, trainingCourses, visits } from "@apex/db/schema";
 import type { Entity } from "../entity";
 import type { Field } from "../fieldTypes";
 
@@ -57,5 +57,38 @@ export const eventEntities: Entity[] = [
       f("ownerId", "Responsable", "relation", { to: "users", filter: true }), f("followUpOn", "Seguiment el", "date"), f("summary", "Resum", "textarea", { wide: true }),
     ],
     summary: (r) => `${r.subject}${r.visitedOn ? ` · ${r.visitedOn}` : ""}`,
+  },
+  {
+    key: "labour", title: "Casos laborals", crumb: "Laboral", perm, table: labourCases, basePath: "/workspace/labour", detail: true, archivable: true,
+    search: ["title", "summary"], sort: "openedOn", sortDir: "desc",
+    fields: [
+      f("title", "Assumpte", "text", { required: true }), f("companyId", "Empresa", "relation", { to: "companies", filter: true }), f("status", "Estat", "select", { filter: true, choices: [["open", "Obert"], ["closed", "Tancat"]] }),
+      f("openedOn", "Obert el", "date"), f("summary", "Resum", "textarea", { wide: true }),
+    ],
+    summary: (r) => `${r.title}`,
+  },
+  {
+    key: "training", title: "Formació bonificada", crumb: "Formació", perm, table: trainingCourses, basePath: "/workspace/training", detail: true, archivable: true,
+    search: ["name", "notes"], sort: "startsOn", sortDir: "desc",
+    fields: [
+      f("name", "Curs", "text", { required: true }), f("status", "Estat", "select", { filter: true, choices: [["planned", "Previst"], ["running", "En curs"], ["done", "Fet"], ["cancelled", "Cancel·lat"]] }),
+      f("startsOn", "Inici", "date"), f("endsOn", "Fi", "date"), f("hours", "Hores", "number"), f("participants", "Participants", "number"),
+      f("companyId", "Empresa", "relation", { to: "companies" }), f("costCenterId", "Centre de cost (ERP)", "relation", { to: "cost-centers" }), f("notes", "Notes", "textarea", { wide: true }),
+    ],
+    summary: (r) => `${r.name}`,
+    hint: "Enllaça el curs amb un centre de cost de la Gestió per veure què costa i què ingressa.",
+  },
+  {
+    // Private individuals: admin-only until the team decides the roles; consent and retention dates are first-class fields.
+    key: "job-seekers", title: "Borsa de treball", crumb: "Borsa de treball", perm: "erp:write", table: jobSeekers, basePath: "/workspace/job-seekers", detail: true, archivable: true,
+    search: ["name", "email", "profile"], sort: "keepUntil",
+    fields: [
+      f("name", "Nom", "text", { required: true }), f("email", "Correu", "email"), f("phone", "Telèfon", "phone"),
+      f("status", "Estat", "select", { filter: true, choices: [["active", "Actiu"], ["placed", "Col·locat"], ["withdrawn", "Retirat"]] }),
+      f("registeredOn", "Alta", "date"), f("consentOn", "Consentiment el", "date"), f("keepUntil", "Conservar fins", "date"),
+      f("profile", "Perfil", "textarea", { wide: true }), f("notes", "Notes", "textarea", { wide: true }),
+    ],
+    summary: (r) => `${r.name}`,
+    hint: "Dades de persones físiques: anota quan van consentir i fins quan es poden conservar (ordena per «Conservar fins» per esborrar a temps). L'assessor legal fixa el termini.",
   },
 ];

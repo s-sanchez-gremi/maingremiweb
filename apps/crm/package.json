@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "eslint",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "notion:import": "node --env-file=../../.env --import tsx scripts/notion-import.mts"
   },
   "dependencies": {
     "@apex/core": "workspace:*",

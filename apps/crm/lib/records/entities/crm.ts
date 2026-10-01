@@ -10,14 +10,14 @@ const base = { perm: "leads:write", crumb: "CRM" } as const;
 export const crmEntities: Entity[] = [
   {
     ...base, key: "companies", title: "Empreses", table: clients, basePath: "/workspace/companies", detail: true, archivable: true,
-    search: ["name", "taxId", "customerNumber", "email", "emailBilling", "city", "activity"],
+    search: ["name", "taxId", "customerNumber", "email", "emailBilling", "city", "province", "activity"],
     fields: [
       f("name", "Nom", "text", { required: true }),
       f("memberStatus", "Estat", "select", { filter: true, choices: [["member", "Agremiada"], ["former", "Exagremiada"], ["prospect", "No agremiada"]] }),
       f("taxId", "NIF/CIF", "text"), f("customerNumber", "Núm. de client", "text"),
-      f("email", "Correu", "email"), f("emailBilling", "Correu de facturació", "email"), f("emailOther", "Altre correu", "email"),
+      f("email", "Correu", "email"), f("emailBilling", "Correu de notificacions", "email"), f("emailOther", "Correu de newsletter", "email"),
       f("phone", "Telèfon", "phone"), f("phoneOther", "Altre telèfon", "phone"), f("website", "Web", "url"),
-      f("address", "Adreça", "text"), f("postalCode", "Codi postal", "text"), f("city", "Població", "text", { filter: false }),
+      f("address", "Adreça", "text"), f("postalCode", "Codi postal", "text"), f("city", "Població", "text"), f("province", "Província", "text", { filter: true }),
       f("activity", "Activitat", "text"), f("services", "Serveis", "textarea", { wide: true }),
       f("employees", "Empleats", "number"), f("foundedYear", "Any de fundació", "number"),
       f("getsMagazine", "Rep la revista", "checkbox", { filter: true }),
