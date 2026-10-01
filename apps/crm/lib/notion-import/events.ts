@@ -7,7 +7,7 @@ import { bump, newReport } from "./report";
 import { canon, first, isoDate, mask, str, type Row } from "./notion";
 
 /** Finds companies by relation (Notion page ids already imported) or by the name typed as text: exact first, then a unique containment match. */
-async function companyMatcher(ctx: Ctx, idmap: Map<string, string>) {
+export async function companyMatcher(ctx: Ctx, idmap: Map<string, string>) {
   const all = await ctx.db.select({ id: clients.id, name: clients.name }).from(clients);
   const byCanon = new Map<string, string[]>();
   for (const c of all) { const k = canon(c.name); if (k) byCanon.set(k, [...(byCanon.get(k) ?? []), c.id]); }
