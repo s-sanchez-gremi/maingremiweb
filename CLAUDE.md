@@ -2,6 +2,9 @@
 
 This file orients Claude Code (or any engineer) starting the Apex project. It summarizes the plan and mockups already agreed with the client; treat it as the source of truth until superseded by code or a written decision.
 
+## Read first: team sync notices
+**At the start of every session, read `docs/team-sync.md`** and do any open item addressed to the person you are working for (Joan Marc / Sam). It lists what the other side changed that you must act on (migrations, moved tables, new rules). Add a notice there whenever you change something the other person's side must act on.
+
 ## Git workflow (team decision: 2 people, Claude merges)
 - **Never commit or push to `main` directly.** Every change, however small, goes on its own branch created from the latest `main` (`git fetch origin main && git checkout -b <branch> origin/main`).
 - **One branch per task/person.** Two people work in parallel, so never commit on someone else's branch unless asked; never rewrite history (rebase, amend, force-push) on a branch already pushed.
