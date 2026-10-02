@@ -8,6 +8,9 @@ Guia curta per a qui escriu i publica al web. No cal saber programar. Si alguna 
 2. La contrasenya té com a mínim 12 caràcters. Pots canviar-la a **El meu compte**.
 3. Si t'equivoques diverses vegades, el sistema t'atura uns minuts. Espera i torna-ho a provar.
 
+### La barra d'edició a la web
+Mentre tinguis la sessió iniciada, a dalt de tot de la web pública hi veuràs una barra fosca (com la de WordPress): **Edita aquesta pàgina** obre l'editor de la pàgina o l'article que estàs mirant, en el mateix idioma; també hi ha **Tauler**, **+ Nova pàgina**, **+ Nou article** i **Surt** (tanca la sessió i et deixa a la mateixa pàgina). Si la pàgina té canvis desats que encara no has publicat, hi surt "Canvis sense publicar". Els visitants no la veuen mai. Si no la veus, entra una vegada a l'administració.
+
 ## 2. Com funciona: esborrany i web en directe
 
 - Tot el que escrius es guarda com a **esborrany**. **Guardar no canvia el web públic.**

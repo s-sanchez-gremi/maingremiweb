@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@apex/db";
 import { users } from "@apex/db/schema";
 import { createSession, loginBlocked, loginFailed, loginSucceeded, verifyPassword } from "@apex/core/auth";
+import { setStaffHint } from "@/lib/staff-hint";
 
 async function login(formData: FormData) {
   "use server";
@@ -15,6 +16,7 @@ async function login(formData: FormData) {
   if (!user || !ok) { loginFailed(email); redirect("/admin/login?error=invalid"); }
   loginSucceeded(email);
   await createSession(user.id);
+  await setStaffHint();
   redirect("/admin");
 }
 
