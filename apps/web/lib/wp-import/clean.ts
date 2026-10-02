@@ -112,6 +112,7 @@ export function htmlToParts(html: string): Part[] {
     }
     if (text !== undefined || whole === "<") { add(decode(text ?? "<")); continue; }
     if (!name) continue;
+    if (!close && !VOID.has(name) && !whole.endsWith("/>") && isHidden(rawAttrs)) { drop = name; dropDepth = 1; continue; } // injected spam hides here
     if (!close && DROP.has(name)) {
       if (name === "iframe") {
         const src = attrs(rawAttrs).src ?? "";
@@ -168,30 +169,41 @@ export const linksIn = (body: string) => [...body.matchAll(/\[[^\]\n]+\]\(([^)\s
 const SPAM = /\b(casino|viagra|cialis|levitra|porn\w*|xxx|escort\w*|payday|loans?|bitcoin|crypto\w*|forex|betting|apuestas|gambling|lottery|pharmacy|pills|replica|essay|hookup|dating|weight loss|keto|slots?|jackpot|louis vuitton|nike air|kredit|onlyfans|sportsbook|1xbet)\b/i;
 const FOREIGN_SCRIPT = /[Ѐ-ӿ֐-ۿ฀-๿぀-ヿ㐀-鿿가-힯]/;
 const HIDDEN = /style\s*=\s*["'][^"']*(display\s*:\s*none|visibility\s*:\s*hidden|font-size\s*:\s*0|(left|top)\s*:\s*-\d{3,}|height\s*:\s*0|opacity\s*:\s*0)/i;
+const HIDDEN_ATTR = /(^|\s)hidden(\s|=|$)|aria-hidden\s*=\s*["']?true/i;
+/** An element the browser would not show: hacks hide their links this way, so its whole content is dropped. */
+export const isHidden = (rawAttrs: string) => HIDDEN.test(rawAttrs) || HIDDEN_ATTR.test(rawAttrs);
 const HANDLER = /<[a-z][^>]*\son[a-z]+\s*=/i;
 
 export type Warning = { level: "alta" | "mitjana"; text: string };
 
-/** What looks suspicious in an item. "alta" items are left out of the import unless a person ticks them. */
-export function warnings(o: { title: string; html: string; site: string; modified?: string; since?: string; knownAuthor: boolean }): Warning[] {
+/** What looks suspicious in an item. "alta" items are left out of the import unless a person ticks them.
+ * Spam and odd alphabets are judged on what will actually be imported (`parts`), so a real page whose injected,
+ * hidden spam block is dropped by the cleaner is not held back; code and hidden blocks that were removed are
+ * reported as "mitjana" so a person still sees them. */
+export function warnings(o: { title: string; html: string; parts: Part[]; site: string; modified?: string; since?: string; knownAuthor: boolean }): Warning[] {
   const w: Warning[] = [];
-  const hrefs = [...o.html.matchAll(/href\s*=\s*["']([^"']+)["']/gi)].map((m) => decode(m[1]));
-  const text = `${o.title} ${plain(o.html)} ${hrefs.join(" ")}`;
-  if (/<script\b/i.test(o.html)) w.push({ level: "alta", text: "Conté codi <script>" });
-  if (HANDLER.test(o.html) || /javascript:/i.test(o.html)) w.push({ level: "alta", text: "Conté codi dins d'atributs (on…= / javascript:)" });
-  if (HIDDEN.test(o.html)) w.push({ level: "alta", text: "Té text o enllaços amagats" });
+  const kept = o.parts.flatMap((p) => (p.t === "text" ? [p.body] : p.t === "embed" ? [p.url] : [p.alt, p.src]));
+  const hrefs = o.parts.flatMap((p) => (p.t === "text" ? linksIn(p.body) : []));
+  const text = `${o.title} ${kept.join(" ")}`;
   const spam = text.match(SPAM);
   if (spam) w.push({ level: "alta", text: `Paraula típica de spam: «${spam[0]}»` });
   if (FOREIGN_SCRIPT.test(text)) w.push({ level: "alta", text: "Text en un alfabet estrany (rus, xinès, japonès…)" });
-  for (const m of o.html.matchAll(/<iframe\b([^>]*)>/gi)) {
-    if (!embedUrl(attrs(m[1]).src ?? "")) { w.push({ level: "alta", text: `Iframe d'un altre web: ${host(attrs(m[1]).src ?? "") || "?"}` }); break; }
-  }
   if (o.since && o.modified && o.modified.slice(0, 10) >= o.since) w.push({ level: "alta", text: `Modificat el ${o.modified.slice(0, 10)}, després del ${o.since}` });
+  if (/<script\b/i.test(o.html)) w.push({ level: "mitjana", text: "Tenia codi <script> (s'ha tret)" });
+  if (HANDLER.test(o.html) || /javascript:/i.test(o.html)) w.push({ level: "mitjana", text: "Tenia codi dins d'atributs (s'ha tret)" });
+  const hidden = [...o.html.matchAll(/<[a-z][a-z0-9]*\b((?:[^>"']|"[^"]*"|'[^']*')*)>/gi)].some((m) => isHidden(m[1]));
+  if (hidden) {
+    const domains = [...new Set([...o.html.matchAll(/href\s*=\s*["']([^"']+)["']/gi)].map((m) => host(decode(m[1]))).filter((h) => h && !sameSite(h, o.site) && !hrefs.some((k) => host(k) === h)))];
+    w.push({ level: "mitjana", text: `Tenia text o enllaços amagats (s'han tret)${domains.length ? `: ${domains.slice(0, 3).join(", ")}` : ""}` });
+  }
+  for (const m of o.html.matchAll(/<iframe\b([^>]*)>/gi)) {
+    if (!embedUrl(attrs(m[1]).src ?? "")) { w.push({ level: "mitjana", text: `Tenia un iframe d'un altre web (s'ha tret): ${host(attrs(m[1]).src ?? "") || "?"}` }); break; }
+  }
   if (!o.knownAuthor) w.push({ level: "mitjana", text: "Autor desconegut" });
   const ext = [...new Set(hrefs.map(host).filter((h) => h && !sameSite(h, o.site)))];
   if (ext.length) w.push({ level: "mitjana", text: `Enllaços a altres webs: ${ext.slice(0, 8).join(", ")}${ext.length > 8 ? "…" : ""}` });
   if (new RegExp(SHORTCODE.source).test(o.html)) w.push({ level: "mitjana", text: "Tenia codis de maquetació [ … ] (s'han tret)" });
-  if (!plain(o.html)) w.push({ level: "mitjana", text: "Sense text" });
+  if (!kept.join("").trim()) w.push({ level: "mitjana", text: "Sense contingut després de netejar" });
   return w;
 }
 

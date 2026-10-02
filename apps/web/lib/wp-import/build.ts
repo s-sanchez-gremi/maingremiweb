@@ -62,8 +62,8 @@ export function loadExport(dir: string, since?: string): Export {
       const group = `${kind}-${Math.min(r.id, ...Object.values(r.translations ?? {}).filter((n) => typeof n === "number"))}`;
       const termIds = (r.categories ?? []).map((id) => catById.get(id)).filter((c): c is Term => !!c && !/^(uncategori[sz]ed|sense-categoria|sin-categoria)$/.test(c.slug));
       const fm = r.featured_media ? mediaById.get(r.featured_media) : undefined;
-      const w = warnings({ title, html, site, modified: r.modified, since, knownAuthor: !users.length || userIds.has(r.author ?? -1) });
       const parts = htmlToParts(html);
+      const w = warnings({ title, html, parts, site, modified: r.modified, since, knownAuthor: !users.length || userIds.has(r.author ?? -1) });
       for (const p of parts) if (p.t === "image") {
         p.src = absolute(p.src, site);
         if (files[originalImage(p.src)]?.file) p.src = originalImage(p.src);

@@ -49,17 +49,24 @@ describe("wp import: cleaning", () => {
 });
 
 describe("wp import: signs of a hacked page", () => {
-  const levels = (html: string, extra = {}) => warnings({ ...base, html, ...extra }).map((w) => `${w.level}:${w.text.split(" ")[0]}`);
+  const check = (html: string, extra = {}) => warnings({ ...base, html, parts: htmlToParts(html), ...extra });
+  const levels = (html: string, extra = {}) => check(html, extra).map((w) => `${w.level}:${w.text.split(" ")[0]}`);
 
-  it("flags code, hidden links, spam words, foreign scripts and late edits as high", () => {
-    expect(levels(`<p>ok</p><script>x</script>`)).toContain("alta:Conté");
-    expect(levels(`<div style="display:none"><a href="https://casino.example">x</a></div>`).filter((w) => w.startsWith("alta"))).toHaveLength(2);
+  it("drops an injected hidden block and only reports it, so the real page is kept", () => {
+    const html = `<p>El gremi des del 1491.</p><div style="position:absolute; left:-9999px"><a href="https://vegasnow-casino-online.com">casino online</a></div><span hidden>slots</span>`;
+    expect(htmlToParts(html)).toEqual([{ t: "text", body: "El gremi des del 1491." }]);
+    expect(check(html)).toEqual([{ level: "mitjana", text: "Tenia text o enllaços amagats (s'han tret): vegasnow-casino-online.com" }]);
+  });
+
+  it("holds back visible spam, foreign alphabets and late edits", () => {
     expect(levels(`<p>Cheap viagra here</p>`)).toContain("alta:Paraula");
+    expect(levels(`<p>Visit <a href="https://best-casino.example">this</a></p>`)).toContain("alta:Paraula");
     expect(levels(`<p>激安 ブランド</p>`)).toContain("alta:Text");
     expect(levels(`<p>ok</p>`, { modified: "2026-09-01T10:00:00", since: "2026-08-15" })).toContain("alta:Modificat");
   });
 
-  it("flags external links and unknown authors as medium only, and a normal page not at all", () => {
+  it("reports removed code, foreign iframes, external links and unknown authors as medium only", () => {
+    expect(levels(`<p>ok</p><script>x</script><iframe src="https://evil.example"></iframe>`)).toEqual(["mitjana:Tenia", "mitjana:Tenia"]);
     expect(levels(`<p><a href="https://www.boe.es/x">BOE</a></p>`, { knownAuthor: false })).toEqual(["mitjana:Autor", "mitjana:Enllaços"]);
     expect(levels(`<p>Curs de <a href="https://www.gremi.net/formacio">formació</a></p>`)).toEqual([]);
   });
