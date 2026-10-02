@@ -1,10 +1,10 @@
-// ONE scheduler call, every minute: releases due scheduled publications, sends/retries queued emails, drops old
-// address hashes. Idempotent and safe to call more often. Secured by the same bearer secret as the other cron routes.
+// ONE scheduler call, every minute: releases due scheduled publications, sends/retries queued emails, drops old resolved errors.
+// (Old address hashes of form submissions are purged by the CRM app's own tick: that table is the CRM's.)
+// Idempotent and safe to call more often. Secured by the same bearer secret as the other cron routes.
 import { revalidateContent } from "@/lib/cache";
 import { purgeOldErrors } from "@apex/core/errors";
 import { beat } from "@apex/core/heartbeat";
 import { cronAuthorized } from "@apex/core/cron-auth";
-import { purgeIpHashes } from "@apex/forms/admin-data";
 import { processOutbox } from "@apex/core/outbox";
 import { publishDue } from "@/lib/publish";
 
@@ -15,7 +15,6 @@ async function handle(req: Request) {
   const published = await publishDue();
   if (published.length) revalidateContent();
   const mail = await processOutbox();
-  await purgeIpHashes();
   await purgeOldErrors();
   await beat();
   return Response.json({ published: published.length, emails: mail });

@@ -38,6 +38,7 @@ COPY --from=build /app/apps/crm/.next/static ./apps/crm/.next/static
 COPY --from=build /app/apps/web/public ./apps/web/public
 COPY --from=build /app/migrate.mjs ./migrate.mjs
 COPY db/migrations ./db/migrations
+COPY db/grants.sql ./db/grants.sql
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x docker-entrypoint.sh && chown -R node:node /app
 USER node

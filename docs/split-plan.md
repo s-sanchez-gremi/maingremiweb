@@ -1,6 +1,6 @@
 # Plan: split the app into "website + CMS" and "CRM + internal tools"
 
-Status: **S1 (shared packages), S2 (CRM app) and S3 (image, deploy, Caddy hosts, drills) done; S4 (database users) and S5 (final docs) pending.** Owner: Sam. Needs a read from Joan Marc (it moves shared code), then a short freeze (section 8).
+Status: **S1 (shared packages), S2 (CRM app) and S3 (image, deploy, Caddy hosts, drills) done; S4 (database users, boundary checks) and S5 (docs, ownership) done.** The permissions are in `db/grants.sql` (next to the migrations, not `packages/db/`), applied by the migrate step with `APPLY_GRANTS=1`. Owner: Sam. Needs a read from Joan Marc (it moves shared code), then a short freeze (section 8).
 
 ## 1. Goal
 Two apps in the **same repository and the same Postgres database**, so that a mistake, a bad release or an outage in one area cannot break the other:
