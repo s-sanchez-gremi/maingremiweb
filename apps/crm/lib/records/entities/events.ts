@@ -1,6 +1,6 @@
 // Events and who attended, sponsors, and visits to companies (R4). Attendance is its own table so a person's page shows
 // every event they went to, and an event's page shows everyone invited, through the engine's two-way links.
-import { eventAttendance, events, jobSeekers, labourCases, sponsors, trainingCourses, visits } from "@apex/db/schema";
+import { eventAttendance, events, jobSeekers, labourCases, mailingContacts, sponsors, trainingCourses, visits } from "@apex/db/schema";
 import type { Entity } from "../entity";
 import type { Field } from "../fieldTypes";
 
@@ -116,5 +116,20 @@ export const eventEntities: Entity[] = [
     ],
     summary: (r) => `${r.name}`,
     hint: "Dades de persones físiques: anota quan van consentir i fins quan es poden conservar (ordena per «Conservar fins» per esborrar a temps). L'assessor legal fixa el termini.",
+  },
+  {
+    // Registry of the two Notion mailing lists. Consent is unknown until verified: admin-only, nothing is sent from here.
+    key: "mailing-lists", title: "Llistes de correu", crumb: "Llistes de correu", perm: "erp:write", table: mailingContacts, basePath: "/workspace/mailing-lists", archivable: true,
+    search: ["email", "name", "origin"], sort: "email",
+    fields: [
+      f("email", "Correu", "email", { required: true }), f("name", "Nom", "text"),
+      f("list", "Llista", "select", { required: true, filter: true, choices: [["newsletter", "Newsletter"], ["school", "Escola"]] }),
+      f("status", "Estat", "select", { filter: true, choices: [["active", "Actiu"], ["unsubscribed", "Baixa"], ["bounced", "Retornat"]] }),
+      f("origin", "Origen", "text", { filter: true }), f("tags", "Etiquetes", "tags", { filter: true }),
+      f("consentOn", "Consentiment el", "date"), f("notes", "Notes", "textarea", { wide: true }),
+    ],
+    summary: (r) => `${r.email}`,
+    views: [{ key: "newsletter", label: "Newsletter", filters: { list: "newsletter" } }, { key: "school", label: "Escola", filters: { list: "school" } }, { key: "noconsent", label: "Sense consentiment", missing: ["consentOn"] }],
+    hint: "Còpia de les llistes de Notion. El consentiment no es coneix: anota'l quan l'assessor legal fixi la base legal. Des d'aquí no s'envia res.",
   },
 ];
