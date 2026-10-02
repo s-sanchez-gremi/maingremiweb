@@ -9,18 +9,20 @@ import { can } from "@apex/core/permissions";
 import { AutoSelect } from "@/components/workspace/AutoSelect";
 import { Board, type BoardCard } from "@/components/workspace/Board";
 import { BulkBar } from "@/components/workspace/BulkBar";
+import { Chart } from "@/components/workspace/Chart";
 import { Cell } from "@/components/workspace/Cell";
 import { ColumnsMenu } from "@/components/workspace/ColumnsMenu";
 import { GroupToggle } from "@/components/workspace/GroupToggle";
 import { virtualCols } from "@/components/workspace/virtual";
 import { Icon } from "@/components/workspace/icons";
-import { Input, queryOf, type RecordParams } from "@/components/records/RecordScreen";
+import { Input, queryOf, resolveMe, type RecordParams } from "@/components/records/RecordScreen";
 import { RecordDetail } from "@/components/records/RecordDetail";
 import { saveRecordAction } from "@/lib/records/actions";
 import { loadComputed } from "@/lib/records/computed";
-import { choiceKey, countRecords, filterFields, groupCounts, listRecords, PAGE_SIZE, relationChoices, sortFields } from "@/lib/records/engine";
+import { choiceKey, countRecords, facets, filterFields, groupCounts, listRecords, PAGE_SIZE, relationChoices, sortFields } from "@/lib/records/engine";
 import { FIELD_TYPES, type Field } from "@/lib/records/fieldTypes";
 import { screenEntity } from "@/lib/records/registry";
+import { toneOf } from "@/lib/records/tones";
 
 type Params = RecordParams & { open?: string; new?: string; view?: string; by?: string; s?: string; group?: string; tab?: string };
 const BOARD_MAX = 200; // a board shows this many cards at most (filter to narrow); the table pages through everything
@@ -30,20 +32,26 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
   const e = screenEntity((await params).entity);
   if (!e || !can(user, e.perm)) notFound();
   const sp = await searchParams;
-  const q = queryOf(e, sp);
+  const q = queryOf(e, sp, user.id);
   // Board view: one column per choice of a select field (the status by default).
   const selects = e.fields.filter((f) => f.type === "select");
   const by = selects.find((f) => f.name === sp.by) ?? selects.find((f) => /status/i.test(f.name)) ?? selects[0];
   const board = sp.view === "board" && !!by;
-  const [{ rows, total, page, pages }, choices] = await Promise.all([listRecords(e, q, board ? { limit: BOARD_MAX } : {}), relationChoices(e)]);
+  const groupableAll = (e.groupBy ?? selects.map((f) => f.name)).map((n) => e.fields.find((f) => f.name === n)!).filter(Boolean);
+  const chart = sp.view === "chart" && groupableAll.length > 0;
+  const table = !board && !chart;
+  const [{ rows, total, page, pages }, choices] = await Promise.all([listRecords(e, q, board ? { limit: BOARD_MAX } : chart ? { limit: 1 } : {}), relationChoices(e)]);
   const computed = await loadComputed(e, rows.map((r) => r.id));
   const openId = sp.open && /^[0-9a-f-]{36}$/.test(sp.open) ? sp.open : null;
   const openComputed = openId ? computed[openId] ?? (await loadComputed(e, [openId]))[openId] : undefined;
   const baseQ = { archived: q.archived };
-  const tabCounts = e.views ? await Promise.all([countRecords(e, baseQ), ...e.views.map((v) => countRecords(e, { ...baseQ, filters: v.filters, missing: v.missing }))]) : [];
-  const groupable = (e.groupBy ?? e.fields.filter((f) => f.type === "select").map((f) => f.name)).map((n) => e.fields.find((f) => f.name === n)!).filter(Boolean);
-  const groupField = !board ? groupable.find((f) => f.name === q.group) : undefined;
+  const tabCounts = e.views ? await Promise.all([countRecords(e, baseQ), ...e.views.map((v) => countRecords(e, { ...baseQ, filters: resolveMe(v.filters, user.id), missing: v.missing, match: v.match }))]) : [];
+  const groupable = groupableAll;
+  const groupField = table ? groupable.find((f) => f.name === q.group) : undefined;
   const gCounts = groupField ? await groupCounts(e, { ...q, group: undefined, page: undefined }, groupField.name) : new Map<string, number>();
+  const facetOpts: Record<string, { value: string; label: string }[]> = Object.fromEntries(await Promise.all(filterFields(e).filter((f) => f.type === "text").map(async (f) => [f.name, await facets(e, f.name)] as const)));
+  const chartBy = chart ? groupableAll.find((f) => f.name === sp.by) ?? groupableAll[0] : undefined;
+  const chartCounts = chartBy ? await groupCounts(e, { ...q, group: undefined, page: undefined }, chartBy.name) : new Map<string, number>();
   const inviteEvents = e.bulk?.invite
     ? (await db.select({ id: events.id, name: events.name, on: events.startsOn }).from(events).where(ne(events.status, "cancelled")).orderBy(desc(events.startsOn)).limit(40)).map((x) => ({ value: x.id, label: `${x.name}${x.on ? ` · ${x.on}` : ""}` }))
     : undefined;
@@ -79,7 +87,7 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
     return <span className="ws-mono" data-t={h % 4} aria-hidden>{ini || "·"}</span>;
   };
   const BIG = 60; // a relation with more choices than this is edited in the side panel, not in a table cell
-  const optsOf = (f: Field) => (f.type === "relation" ? choices[choiceKey(f)] ?? [] : (f.choices ?? []).map(([value, label]) => ({ value, label })));
+  const optsOf = (f: Field) => (f.type === "text" ? facetOpts[f.name] ?? [] : f.type === "relation" ? choices[choiceKey(f)] ?? [] : (f.choices ?? []).map(([value, label]) => ({ value, label })));
   const raw = (f: Field, v: unknown) => (f.type === "checkbox" ? (v ? "on" : "") : f.type === "relation" || f.type === "select" ? String(v ?? "") : FIELD_TYPES[f.type].show(v, f));
   const filters = filterFields(e);
   const sortable = new Set(sortFields(e).map((f) => f.name));
@@ -114,6 +122,13 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
     if (last && last.key === k) last.rows.push(r); else groups.push({ key: k, label: groupLabel(groupField, k), rows: [r] });
   }
 
+  const chartBars = chartBy
+    ? [...chartCounts.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => ({
+        key: k, label: groupLabel(chartBy, k), n, tone: chartBy.type === "select" ? toneOf(k) : undefined,
+        href: k && filterFields(e).some((f) => f.name === chartBy.name) ? href({ view: undefined, by: undefined, [`f_${chartBy.name}`]: k, page: undefined }) : undefined,
+      }))
+    : [];
+
   return (
     <div className={`ws-split${opening || sp.new ? " open" : ""}`}>
       <section className="ws-content">
@@ -128,25 +143,31 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
           {e.search && (
             <span className="ws-field">
               <Icon name="search" size={14} />
-              <input type="search" name="q" defaultValue={sp.q} placeholder={`Cerca a ${e.title.toLowerCase()}`} aria-label={`Cerca ${e.title.toLowerCase()}`} />
+              <input key={`q:${sp.q ?? ""}`} type="search" name="q" defaultValue={sp.q} placeholder={`Cerca a ${e.title.toLowerCase()}`} aria-label={`Cerca ${e.title.toLowerCase()}`} />
             </span>
           )}
           {filters.map((f) => (
-            <AutoSelect key={f.name} name={`f_${f.name}`} defaultValue={sp[`f_${f.name}`] ?? ""} aria-label={f.label} data-on={sp[`f_${f.name}`] ? "" : undefined}>
+            <AutoSelect key={`${f.name}:${sp[`f_${f.name}`] ?? ""}`} name={`f_${f.name}`} defaultValue={sp[`f_${f.name}`] ?? ""} aria-label={f.label} data-on={sp[`f_${f.name}`] ? "" : undefined}>
               <option value="">{f.label}</option>
               {(f.type === "checkbox" ? [{ value: "1", label: "Sí" }, { value: "0", label: "No" }] : optsOf(f).filter((o) => o.value !== "")).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </AutoSelect>
           ))}
           {board && <input type="hidden" name="view" value="board" />}
           {sp.tab && <input type="hidden" name="tab" value={sp.tab} />}
-          {!board && groupable.length > 0 && (
-            <AutoSelect name="group" defaultValue={groupField?.name ?? ""} aria-label="Agrupa per" data-on={groupField ? "" : undefined}>
+          {table && groupable.length > 0 && (
+            <AutoSelect key={`group:${groupField?.name ?? ""}`} name="group" defaultValue={groupField?.name ?? ""} aria-label="Agrupa per" data-on={groupField ? "" : undefined}>
               <option value="">Agrupa</option>
               {groupable.map((f) => <option key={f.name} value={f.name}>Agrupa per {f.label.toLowerCase()}</option>)}
             </AutoSelect>
           )}
+          {chart && <input type="hidden" name="view" value="chart" />}
+          {chart && groupableAll.length > 1 && (
+            <AutoSelect key={`chart-by:${chartBy!.name}`} name="by" defaultValue={chartBy!.name} aria-label="Agrupa per">
+              {groupableAll.map((f) => <option key={f.name} value={f.name}>Per {f.label.toLowerCase()}</option>)}
+            </AutoSelect>
+          )}
           {board && selects.length > 1 && (
-            <AutoSelect name="by" defaultValue={by!.name} aria-label="Agrupa per">
+            <AutoSelect key={`board-by:${by!.name}`} name="by" defaultValue={by!.name} aria-label="Agrupa per">
               {selects.map((f) => <option key={f.name} value={f.name}>Agrupa per {f.label.toLowerCase()}</option>)}
             </AutoSelect>
           )}
@@ -155,7 +176,7 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
           <button type="submit" className="sr-only">Filtra</button>
           {(sp.q || filters.some((f) => sp[`f_${f.name}`])) && <Link className="ws-clear" href={href({ q: undefined, page: undefined, ...Object.fromEntries(filters.map((f) => [`f_${f.name}`, undefined])) })}>Neteja</Link>}
           <span className="ws-spacer" />
-          {!board && (
+          {table && (
             <nav className="ws-pager" aria-label="Pàgines">
               <span>{((page - 1) * PAGE_SIZE + 1).toLocaleString("ca-ES")}–{Math.min(page * PAGE_SIZE, total).toLocaleString("ca-ES")} de {total.toLocaleString("ca-ES")}</span>
               {pages > 1 && <>
@@ -164,11 +185,12 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
               </>}
             </nav>
           )}
-          {!board && <ColumnsMenu entity={e.key} options={colOptions} visible={visibleKeys} isDefault={isDefault} />}
-          {by && (
+          {table && <ColumnsMenu entity={e.key} options={colOptions} visible={visibleKeys} isDefault={isDefault} sets={e.columnSets} />}
+          {(by || groupableAll.length > 0) && (
             <nav className="ws-seg" aria-label="Vista">
-              <Link href={href({ view: undefined, by: undefined })} aria-current={board ? undefined : "page"}><Icon name="table" size={14} /><span className="ws-lbl">Taula</span></Link>
-              <Link href={href({ view: "board", page: undefined })} aria-current={board ? "page" : undefined}><Icon name="board" size={14} /><span className="ws-lbl">Tauler</span></Link>
+              <Link href={href({ view: undefined, by: undefined })} aria-current={table ? "page" : undefined}><Icon name="table" size={14} /><span className="ws-lbl">Taula</span></Link>
+              {by && <Link href={href({ view: "board", by: board ? sp.by : undefined, page: undefined })} aria-current={board ? "page" : undefined}><Icon name="board" size={14} /><span className="ws-lbl">Tauler</span></Link>}
+              {groupableAll.length > 0 && <Link href={href({ view: "chart", by: chart ? sp.by : undefined, page: undefined })} aria-current={chart ? "page" : undefined}><Icon name="chart" size={14} /><span className="ws-lbl">Gràfic</span></Link>}
             </nav>
           )}
           <details className="ws-menu">
@@ -188,9 +210,13 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
             {e.views.map((v, i) => <Link key={v.key} href={href({ tab: v.key, page: undefined })} aria-current={sp.tab === v.key ? "page" : undefined}>{v.label}<small>{tabCounts[i + 1]?.toLocaleString("ca-ES")}</small></Link>)}
           </nav>
         )}
-        {!board && <BulkBar entity={e.key} exportPath={`${e.basePath}/export`} selects={bulkSelects} events={inviteEvents} archivable={e.archivable} />}
+        {table && <BulkBar entity={e.key} exportPath={`${e.basePath}/export`} selects={bulkSelects} events={inviteEvents} archivable={e.archivable} />}
 
-        {board && by ? (
+        {chart && chartBy ? (
+          <div className="ws-chartwrap">
+            <Chart label={`${e.title} per ${chartBy.label.toLowerCase()}`} bars={chartBars} total={total} />
+          </div>
+        ) : board && by ? (
           <div className="ws-boardwrap">
             <Board entity={e.key} field={by.name} fieldLabel={by.label} openId={opening} columns={boardColumns} cards={boardCards} />
             {total > rows.length && <p className="ws-hint">Es mostren les primeres {rows.length} de {total}. Filtra o cerca per veure’n d’altres.</p>}

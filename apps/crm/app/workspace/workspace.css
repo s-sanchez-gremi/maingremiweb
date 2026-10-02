@@ -392,3 +392,25 @@ tr:hover .ws-open, .ws-open:focus-visible, tr[aria-selected] .ws-open { opacity:
 .ws .ws-first input.ws-sel { margin: 0 4px 0 0; flex: none; }
 .ws-table th.ws-primary > a, .ws-table th.ws-primary > span { padding-left: 54px; }
 .ws .ws-table th.ws-primary input.ws-sel-all { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); margin: 0; }
+
+
+/* ---------- Column presets and the chart view ---------- */
+.ws-presets { display: flex; flex-wrap: wrap; gap: 4px; padding: 2px 4px 8px; border-bottom: 1px solid var(--ws-hair); margin-bottom: 4px; }
+.ws .ws-cols .ws-presets button { all: unset; cursor: pointer; margin: 0; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); } .ws .ws-cols .ws-presets button:hover { background: var(--bg2); text-decoration: none; }
+.ws .ws-cols .ws-presets button[aria-pressed="true"] { background: var(--ws-tint); box-shadow: inset 0 0 0 1px var(--accent); color: var(--accent-hover); font-weight: 600; }
+.ws-chartwrap { flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0 -14px; padding: 14px 14px 20px; border-top: 1px solid var(--ws-hair); }
+.ws-chart { margin: 0; max-width: 860px; }
+.ws-chart figcaption { font-size: 13px; font-weight: 600; margin: 0 0 10px; } .ws-chart figcaption span { font-weight: 400; color: var(--text2); margin-left: 8px; }
+.ws-chart ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.ws-chart li > a, .ws-chart li > div { display: grid; grid-template-columns: minmax(120px, 230px) minmax(0, 1fr) 84px; gap: 12px; align-items: center; padding: 4px 8px; border-radius: 8px; color: inherit; text-decoration: none; font-size: 13.5px; }
+.ws-chart li > a:hover { background: var(--ws-hover); } .ws-chart li > a:focus-visible { outline: 0; box-shadow: var(--ws-ring); }
+.ws-bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-bar-track { display: block; height: 14px; border-radius: 4px; background: color-mix(in srgb, var(--ink) 4%, transparent); overflow: hidden; }
+.ws-bar-track i { display: block; height: 100%; border-radius: 4px; background: color-mix(in srgb, var(--accent) 70%, var(--surface)); transition: width .3s var(--ws-ease); }
+.ws-bar-track i[data-tone="good"] { background: color-mix(in srgb, var(--ok) 70%, var(--surface)); } .ws-bar-track i[data-tone="info"] { background: color-mix(in srgb, var(--info) 70%, var(--surface)); }
+.ws-bar-track i[data-tone="warn"] { background: color-mix(in srgb, var(--warn) 65%, var(--surface)); } .ws-bar-track i[data-tone="bad"] { background: color-mix(in srgb, var(--danger) 70%, var(--surface)); }
+.ws-bar-track i[data-tone="muted"] { background: color-mix(in srgb, var(--ink) 30%, var(--surface)); }
+.ws-bar-n { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; } .ws-bar-n small { font-weight: 400; color: var(--text2); margin-left: 6px; font-size: 12px; }
+@media (max-width: 900px) { .ws-chartwrap { margin: 0 -14px; overflow: visible; } .ws-chart li > a, .ws-chart li > div { grid-template-columns: 110px minmax(0, 1fr) 70px; gap: 8px; } }
+.ws .ws-content .ws-chart li a { color: inherit; }
+.ws-cols > div { left: 0; right: auto; max-width: calc(100vw - 24px); }

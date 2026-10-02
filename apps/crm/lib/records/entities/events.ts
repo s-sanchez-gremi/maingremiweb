@@ -56,6 +56,11 @@ export const eventEntities: Entity[] = [
       f("kind", "Tipus", "select", { filter: true, choices: VISIT_KINDS }), f("status", "Estat", "select", { filter: true, choices: EVENT_STATUS }),
       f("ownerId", "Responsable", "relation", { to: "users", filter: true }), f("followUpOn", "Seguiment el", "date"), f("summary", "Resum", "textarea", { wide: true }),
     ],
+    views: [
+      { key: "mine", label: "Les meves", filters: { ownerId: "@me" } },
+      { key: "planned", label: "Previstes", filters: { status: "planned" } },
+      { key: "done", label: "Fetes", filters: { status: "done" } },
+    ],
     summary: (r) => `${r.subject}${r.visitedOn ? ` · ${r.visitedOn}` : ""}`,
   },
   {

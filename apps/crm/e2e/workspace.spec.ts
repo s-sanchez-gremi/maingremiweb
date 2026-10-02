@@ -265,3 +265,44 @@ test("workspace: companies tabs with counts, grouping, columns, and bulk actions
   expect(csv).toContain("Massiva Alfa SL");
   expect(csv).not.toContain("Massiva Beta SL");
 });
+
+test("workspace: chart view, filters on text fields, column presets, and a per-person tab", async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 800 });
+  await login(page);
+  const panel = page.getByRole("complementary", { name: "Fitxa" });
+  for (const name of ["Grafica Alfa SL", "Grafica Beta SL"]) {
+    await page.goto("/workspace/companies?new=1");
+    await panel.getByLabel("Nom", { exact: true }).fill(name);
+    await panel.getByLabel("Província").fill("Zzprov");
+    await panel.getByRole("button", { name: "Crea" }).click();
+    await expect(page.getByRole("heading", { name })).toBeVisible();
+  }
+
+  // a chart of companies per province; a bar leads to the table filtered to that province
+  await page.goto("/workspace/companies?view=chart&by=province");
+  const bar = page.getByRole("link", { name: /Zzprov/ });
+  await expect(bar).toContainText("2");
+  await bar.click();
+  await expect(page).toHaveURL(/f_province=Zzprov/);
+  await expect(page.getByLabel(/^Nom · Grafica Alfa SL/)).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Província" })).toHaveValue("Zzprov");
+
+  // the province filter is a menu of the values that exist, with counts
+  await page.goto("/workspace/companies");
+  await expect(page.getByRole("combobox", { name: "Província" }).locator("option", { hasText: "Zzprov (2)" })).toHaveCount(1);
+
+  // a column preset swaps the columns in one click
+  await page.goto("/workspace/companies?q=Grafica Alfa");
+  await expect(page.getByRole("columnheader", { name: "Adreça" })).toHaveCount(0);
+  await page.getByText("Columnes", { exact: false }).first().click();
+  await page.getByRole("button", { name: "Adreça", exact: true }).click();
+  await expect(page.getByRole("columnheader", { name: "Adreça" })).toBeVisible();
+  await page.getByRole("button", { name: "Resum", exact: true }).click(); // the menu stays open after a refresh
+  await expect(page.getByRole("columnheader", { name: "Ubicació" })).toBeVisible();
+
+  // visits have a tab of the signed-in person's own (none yet)
+  await page.goto("/workspace/visits");
+  await page.getByRole("navigation", { name: "Vistes" }).getByRole("link", { name: /^Les meves/ }).click();
+  await expect(page).toHaveURL(/tab=mine/);
+  await expect(page.getByText("Cap resultat")).toBeVisible();
+});

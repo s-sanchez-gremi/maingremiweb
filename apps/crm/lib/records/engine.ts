@@ -14,6 +14,7 @@ export type Row = Record<string, unknown> & { id: string };
 export type ListQuery = {
   archived?: boolean; q?: string; filters?: Record<string, string>; sort?: string; dir?: "asc" | "desc"; page?: number;
   missing?: string[];   // fields that must be blank (a "Sense CIF" tab)
+  match?: Record<string, string>; // field ~ regular expression (from a tab definition)
   group?: string;       // list rows grouped: this field sorts first (select fields in the order of their choices)
   ids?: string[];       // only these records (export of a selection)
 };
@@ -23,7 +24,7 @@ type Cols = Record<string, never>;
 const cols = (e: Entity) => e.table as unknown as Cols;
 
 /** Only these fields can be filtered on (select, relation, checkbox); anything else in the query string is ignored. */
-export const filterFields = (e: Entity) => e.fields.filter((f) => f.filter && (f.type === "select" || f.type === "relation" || f.type === "checkbox"));
+export const filterFields = (e: Entity) => e.fields.filter((f) => f.filter && (f.type === "select" || f.type === "relation" || f.type === "checkbox" || f.type === "text"));
 export const sortFields = (e: Entity) => e.fields.filter((f) => f.type !== "textarea");
 
 function where(e: Entity, q: ListQuery): SQL | undefined {
@@ -36,6 +37,7 @@ function where(e: Entity, q: ListQuery): SQL | undefined {
     parts.push(f.type === "checkbox" ? eq(t[f.name], v === "1") : eq(t[f.name], v));
   }
   for (const name of q.missing ?? []) if (e.fields.some((f) => f.name === name)) parts.push(or(isNull(t[name]), eq(t[name], "")));
+  for (const [name, re] of Object.entries(q.match ?? {})) if (e.fields.some((f) => f.name === name)) parts.push(sql`${t[name]} ~ ${re}`);
   if (q.ids?.length) parts.push(inArray(t.id, q.ids));
   if (e.archivable) parts.push(q.archived ? isNotNull(t.archivedAt) : isNull(t.archivedAt));
   const live = parts.filter((p): p is SQL => !!p);
@@ -64,6 +66,13 @@ export async function groupCounts(e: Entity, q: ListQuery, field: string) {
   const out = new Map<string, number>();
   for (const r of rows) out.set(r.v === null || r.v === undefined ? "" : String(r.v), (out.get(r.v === null || r.v === undefined ? "" : String(r.v)) ?? 0) + Number(r.n));
   return out;
+}
+
+/** The values a text field takes, with how many records have each (the options of a filter on a text field such as province). */
+export async function facets(e: Entity, field: string, limit = 60) {
+  const t = cols(e);
+  const rows = await db.select({ v: t[field], n: count() }).from(e.table).where(and(isNotNull(t[field]), sql`${t[field]} <> ''`, e.archivable ? isNull(t.archivedAt) : undefined)).groupBy(t[field]).orderBy(desc(count())).limit(limit);
+  return rows.map((r) => ({ value: String(r.v), label: `${r.v} (${Number(r.n).toLocaleString("ca-ES")})` }));
 }
 
 export async function countRecords(e: Entity, q: ListQuery) {
