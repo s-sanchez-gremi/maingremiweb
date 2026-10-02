@@ -13,8 +13,12 @@ const client = () =>
     credentials: { accessKeyId: process.env.S3_ACCESS_KEY ?? "", secretAccessKey: process.env.S3_SECRET_KEY ?? "" },
   }));
 
-export async function putObject(key: string, body: Buffer, contentType: string) {
-  await client().send(new PutObjectCommand({ Bucket: bucket(), Key: key, Body: body, ContentType: contentType, CacheControl: "public, max-age=31536000, immutable" }));
+/** `filename` (plain ASCII) is what a browser names the file when it is saved. */
+export async function putObject(key: string, body: Buffer, contentType: string, filename?: string) {
+  await client().send(new PutObjectCommand({
+    Bucket: bucket(), Key: key, Body: body, ContentType: contentType, CacheControl: "public, max-age=31536000, immutable",
+    ContentDisposition: filename ? `inline; filename="${filename.replace(/[^\w.\-]+/g, "_")}"` : undefined,
+  }));
 }
 
 export async function deletePrefix(prefix: string) {

@@ -2,10 +2,13 @@ import { redirect } from "next/navigation";
 import { destroySession, requireUser } from "@apex/core/auth";
 import { can } from "@apex/core/permissions";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { StaffHint } from "@/components/admin/StaffHint";
+import { clearStaffHint } from "@/lib/staff-hint";
 
 async function logout() {
   "use server";
   await destroySession();
+  await clearStaffHint();
   redirect("/admin/login");
 }
 
@@ -24,6 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
       <div className="main">{children}</div>
+      <StaffHint />
     </div>
   );
 }

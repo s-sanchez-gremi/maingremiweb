@@ -22,5 +22,6 @@ export async function removeMedia(formData: FormData) {
   await requireUser("media:write");
   try { await deleteMedia(String(formData.get("id"))); }
   catch (e) { if (e instanceof MediaError) redirect("/admin/media?error=" + encodeURIComponent(e.message)); throw e; }
+  revalidateContent(); // its shareable link stops working at once
   redirect("/admin/media");
 }

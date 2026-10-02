@@ -8,6 +8,9 @@ Guia curta per a qui escriu i publica al web. No cal saber programar. Si alguna 
 2. La contrasenya té com a mínim 12 caràcters. Pots canviar-la a **El meu compte**.
 3. Si t'equivoques diverses vegades, el sistema t'atura uns minuts. Espera i torna-ho a provar.
 
+### La barra d'edició a la web
+Mentre tinguis la sessió iniciada, a dalt de tot de la web pública hi veuràs una barra fosca (com la de WordPress): **Edita aquesta pàgina** obre l'editor de la pàgina o l'article que estàs mirant, en el mateix idioma; també hi ha **Tauler**, **+ Nova pàgina**, **+ Nou article** i **Surt** (tanca la sessió i et deixa a la mateixa pàgina). Si la pàgina té canvis desats que encara no has publicat, hi surt "Canvis sense publicar". Els visitants no la veuen mai. Si no la veus, entra una vegada a l'administració.
+
 ## 2. Com funciona: esborrany i web en directe
 
 - Tot el que escrius es guarda com a **esborrany**. **Guardar no canvia el web públic.**
@@ -59,10 +62,12 @@ Només hi ha el format bàsic, i és a propòsit:
 
 ## 4. Imatges i fitxers
 
-1. A **Fitxers**, puja la imatge o el PDF (màxim 15 MB). No s'accepten SVG.
-2. El sistema la redueix i la optimitza sol. No cal preparar-la.
-3. **El text alternatiu és obligatori en cada idioma.** Descriu què es veu, en una frase, per a qui no pot veure la imatge. Sense ell, no es pot publicar la pàgina.
-4. Un fitxer que s'està fent servir en alguna pàgina no es pot esborrar.
+1. A **Biblioteca de mitjans**, arrossega els fitxers a la zona de pujada (o tria'ls de l'ordinador). S'accepten imatges (JPG, PNG, WebP, GIF), PDF, Word, Excel i PowerPoint, fins a 15 MB cada un. No s'accepten SVG.
+2. El sistema redueix i optimitza les imatges sol (les guarda en WebP, fins a 1.600 px d'ample). No cal preparar-les.
+3. Cada fitxer té un **enllaç públic** (per exemple `https://…/fitxers/1a2b3c4d/circular.pdf`). Prem **Copia l'enllaç** i enganxa'l en un correu, un missatge o el text d'una pàgina. **Qualsevol persona amb l'enllaç el pot obrir**: no hi pengis documents interns ni amb dades personals.
+4. Si elimines un fitxer, els enllaços que hagis enviat deixen de funcionar.
+5. **El text alternatiu és obligatori en cada idioma.** Descriu què es veu, en una frase, per a qui no pot veure la imatge. Sense ell, no es pot publicar la pàgina.
+6. Un fitxer que s'està fent servir en alguna pàgina (com a imatge o amb el seu enllaç) no es pot esborrar.
 
 ## 5. Traduccions
 
