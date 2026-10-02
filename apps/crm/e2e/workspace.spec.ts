@@ -349,3 +349,35 @@ test("workspace: tags on sponsors (edit in the table, filter by tab, chart) and 
   await expect(page.getByRole("navigation", { name: "Vistes" }).getByRole("link", { name: /^Impagaments/ })).toBeVisible();
   expect(await page.getByLabel(/^Quota · Impagadora e2e SL/).getAttribute("data-tone")).toBe("bad");
 });
+
+test("workspace: a company logo can be uploaded, shows instead of the initials, and can be removed", async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 800 });
+  await login(page);
+  const panel = page.getByRole("complementary", { name: "Fitxa" });
+  await page.goto("/workspace/companies?new=1");
+  await panel.getByLabel("Nom", { exact: true }).fill("Amb Logo SL");
+  await panel.getByRole("button", { name: "Crea" }).click();
+  await expect(page.getByRole("heading", { name: "Amb Logo SL" })).toBeVisible();
+
+  // a text file is refused; a real PNG becomes the logo
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  await panel.getByLabel("Imatge del logotip").setInputFiles({ name: "x.png", mimeType: "image/png", buffer: Buffer.from("no és una imatge") });
+  await panel.getByRole("button", { name: "Puja" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "ha de ser una imatge" })).toBeVisible();
+  await panel.getByLabel("Imatge del logotip").setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: png });
+  await panel.getByRole("button", { name: "Puja" }).click();
+  await expect(panel.locator("img.ws-logo.lg")).toBeVisible();
+  const id = new URL(page.url()).searchParams.get("open")!;
+  const res = await page.request.get(`/workspace/companies/${id}/logo`);
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"]).toBe("image/webp");
+  await page.goto("/workspace/companies?q=Amb Logo");
+  await expect(page.locator("img.ws-logo").first()).toBeVisible();
+
+  // removed: back to the initials, and the image is gone
+  await page.goto(`/workspace/companies?open=${id}`);
+  page.once("dialog", (d) => d.accept());
+  await panel.getByRole("button", { name: "Treu el logotip" }).click();
+  await expect(panel.locator("img.ws-logo")).toHaveCount(0);
+  expect((await page.request.get(`/workspace/companies/${id}/logo`)).status()).toBe(404);
+});

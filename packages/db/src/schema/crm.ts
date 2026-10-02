@@ -48,6 +48,7 @@ export const newsletterOptins = pgTable("newsletter_optins", {
 export const clients = pgTable("clients", {
   id: uuid().primaryKey().defaultRandom(),
   name: text().notNull(),
+  logoKey: text("logo_key"),
   feeStatus: text("fee_status").$type<"paid" | "overdue" | "unknown">().notNull().default("unknown"),
   email: text().notNull().default(""),
   phone: text().notNull().default(""),

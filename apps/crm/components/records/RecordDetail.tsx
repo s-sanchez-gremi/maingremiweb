@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Icon } from "@/components/workspace/icons";
 import { virtualCols } from "@/components/workspace/virtual";
 import { ConfirmButton } from "@apex/ui/components/ConfirmButton";
-import { addNoteAction, archiveAction, deleteFileAction, deleteNoteAction, deleteRecordAction, saveRecordAction, uploadFileAction } from "@/lib/records/actions";
+import { addNoteAction, archiveAction, deleteFileAction, deleteNoteAction, deleteRecordAction, removeLogoAction, saveRecordAction, uploadFileAction, uploadLogoAction } from "@/lib/records/actions";
 import type { Entity } from "@/lib/records/entity";
 import { getRecord, relationChoices } from "@/lib/records/engine";
 import { linkedRecords, listFiles, listHistory, listNotes } from "@/lib/records/features";
@@ -158,7 +158,10 @@ export async function RecordDetail({ entity: e, id, sp, workspace, tab, tabHref,
   return (
     <>
       <div className="sheet-head">
-        <span className="ws-mono lg" aria-hidden>{ini}</span>
+        {e.logo && r[e.logo]
+          // eslint-disable-next-line @next/next/no-img-element
+          ? <img className="ws-logo lg" src={`/workspace/${e.key}/${id}/logo`} alt="" width={38} height={38} />
+          : <span className="ws-mono lg" aria-hidden>{ini}</span>}
         <div className="peek-head">
           <h2 className="peek-title">{title}</h2>
           <p className="ws-eyebrow">{e.headline?.sub(r) || e.title}</p>
@@ -182,7 +185,17 @@ export async function RecordDetail({ entity: e, id, sp, workspace, tab, tabHref,
       </nav>
       <div className="body" style={{ display: "grid", gap: 12 }}>
         {flash}
-        {current === "resum" && <>{dataSection}{linksLine}</>}
+        {current === "resum" && <>{dataSection}{linksLine}{e.logo && (
+          <section className="card" aria-label="Logotip">
+            <h3>Logotip</h3>
+            <form action={uploadLogoAction} className="ws-logo-form">
+              {hidden}
+              <input type="file" name="file" required accept=".png,.jpg,.jpeg,.webp,.gif" aria-label="Imatge del logotip" />
+              <button className="btn" type="submit">{r[e.logo] ? "Canvia" : "Puja"}</button>
+            </form>
+            {r[e.logo] ? <form action={removeLogoAction}>{hidden}<ConfirmButton className="btn link" message="Treure el logotip?">Treu el logotip</ConfirmButton></form> : <p className="hint">PNG, JPG, WebP o GIF, màx. 5 MB. Es mostra en comptes de les inicials.</p>}
+          </section>
+        )}</>}
         {linked.filter((l) => `${l.entity.key}.${l.field}` === current).map(linkedSection)}
         {current === "notes" && notesSection}
         {current === "files" && filesSection}

@@ -24,7 +24,7 @@ export async function runImport(o: Options): Promise<{ reports: Report[]; text: 
   const want = (k: keyof Sources) => (o.only ? o.only.includes(k) : true) && (o.sources[k]?.length ?? 0) > 0;
   try {
     await o.db.transaction(async (tx) => {
-      const ctx = { db: tx as unknown as typeof Db, overwrite: o.overwrite, erp: o.erp, minTier: o.minTier };
+      const ctx = { db: tx as unknown as typeof Db, overwrite: o.overwrite, erp: o.erp, minTier: o.minTier, dryRun: o.dryRun };
       // reading happens inside the run so a Notion error aborts before anything is written
       let idmap = new Map<string, string>();
       if (want("companies")) { const r = await importCompanies(ctx, await readAll(o.read, o.sources.companies)); reports.push(r.report); idmap = r.idmap; }

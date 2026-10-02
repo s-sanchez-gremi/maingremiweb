@@ -2,7 +2,7 @@
 // The token is an internal-integration secret from the environment (NOTION_TOKEN); this file never writes to Notion.
 
 export type Flat = string | number | boolean | string[] | null;
-export type Row = { id: string; createdTime: string; trashed: boolean; title: string; titleKey: string; props: Record<string, Flat> };
+export type Row = { id: string; createdTime: string; trashed: boolean; title: string; titleKey: string; props: Record<string, Flat>; files?: Record<string, { name: string; url: string }[]> };
 
 type Prop = { type: string; [k: string]: unknown };
 const plain = (parts: unknown) => (Array.isArray(parts) ? parts.map((p: { plain_text?: string }) => p.plain_text ?? "").join("") : "");
@@ -40,7 +40,15 @@ export function flattenProp(p: Prop): Flat {
 export function toRow(page: { id: string; created_time?: string; in_trash?: boolean; archived?: boolean; properties: Record<string, Prop> }): Row {
   const titleKey = Object.entries(page.properties).find(([, v]) => v.type === "title")?.[0] ?? "";
   const props = Object.fromEntries(Object.entries(page.properties).map(([k, v]) => [k, flattenProp(v)]));
-  return { id: page.id, createdTime: page.created_time ?? "", trashed: !!(page.in_trash || page.archived), title: str(props[titleKey]), titleKey, props };
+  // files carry short-lived download links (about an hour): kept apart from the plain values, used by the logo step
+  const files: NonNullable<Row["files"]> = {};
+  for (const [k, v] of Object.entries(page.properties)) {
+    if (v.type !== "files" || !Array.isArray(v.files)) continue;
+    const list = (v.files as { name?: string; type?: string; file?: { url?: string }; external?: { url?: string } }[])
+      .map((f) => ({ name: f.name ?? "", url: (f.type === "external" ? f.external?.url : f.file?.url) ?? "" })).filter((f) => f.url);
+    if (list.length) files[k] = list;
+  }
+  return { id: page.id, createdTime: page.created_time ?? "", trashed: !!(page.in_trash || page.archived), title: str(props[titleKey]), titleKey, props, ...(Object.keys(files).length ? { files } : {}) };
 }
 
 /** Every page of a database, following the pagination cursor. `fetchImpl` is injectable for tests. */

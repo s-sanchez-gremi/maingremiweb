@@ -6,18 +6,24 @@ import { clients, feeTiers, members, people } from "@apex/db/schema";
 import { bump, newReport, type Report } from "./report";
 import { canon, first, mask, normName, normTaxId, num, str, type Row } from "./notion";
 
-export type Ctx = { db: typeof Db; overwrite?: boolean; erp?: boolean; minTier?: number };
+import { importLogos } from "./logos";
+
+export type Ctx = { db: typeof Db; overwrite?: boolean; erp?: boolean; minTier?: number; dryRun?: boolean };
 type Company = {
   ids: string[]; created: string; name: string; memberStatus: "member" | "former" | "prospect"; taxId: string; customerNumber: string;
   email: string; emailBilling: string; emailOther: string; phone: string; phoneOther: string; address: string; postalCode: string; city: string; province: string;
   website: string; activity: string; services: string; employees: number | null; foundedYear: number | null; getsMagazine: boolean;
-  contact: string; parentIds: string[]; cuota: string; amount: number | null;
+  contact: string; parentIds: string[]; cuota: string; amount: number | null; logoUrl: string;
 };
 
 const STATUS: Record<string, Company["memberStatus"]> = { agremiat: "member", coagremiat: "member", matriu: "member", "antic agremiat": "former", "no agremiat": "prospect" };
 const RANK = { member: 3, former: 2, prospect: 1 } as const;
 // Notion keeps a placeholder "0" in empty phone cells: anything with fewer than 5 digits is not a phone number.
 const phone = (v: unknown) => { const t = typeof v === "number" ? String(v) : str(v as string); return t.replace(/\D/g, "").length >= 5 ? t : ""; };
+
+const IMAGE = /\.(png|jpe?g|webp|gif|svg|avif)(\?|$)/i;
+/** The first image among the files of the logo column ("Logotip" in Agremiats, "LOGOTIP" in Empreses). */
+export const logoOf = (r: Row) => Object.entries(r.files ?? {}).find(([k]) => k.toLowerCase() === "logotip")?.[1].find((f) => IMAGE.test(f.name) || IMAGE.test(f.url))?.url ?? "";
 
 export function toCompany(r: Row): Company | null {
   const p = r.props;
@@ -33,6 +39,7 @@ export function toCompany(r: Row): Company | null {
     website: str(p["web"]), activity: str(p["Descripció activitat"]), services, employees: num(p["num treballadors"]) ?? num(p["treballadors"]),
     foundedYear: num(p["Any fundació"]), getsMagazine: str(p["revista"]).toLowerCase() === "si", contact: str(p["Att"]),
     parentIds: Array.isArray(p["Matriu agremiat"]) ? (p["Matriu agremiat"] as string[]) : [], cuota: str(p["Cuota"]), amount: num(p["Import"]),
+    logoUrl: logoOf(r),
   };
 }
 
@@ -148,5 +155,6 @@ export async function importCompanies(ctx: Ctx, rows: Row[], opts: { forceStatus
       }
     }
   }
+  await importLogos(ctx, created.map(({ c, id }) => ({ id, logoUrl: c.logoUrl })), report);
   return { report, idmap };
 }
