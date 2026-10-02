@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@apex/core/auth";
 import { can } from "@apex/core/permissions";
+import { AutoSelect } from "@/components/workspace/AutoSelect";
 import { Cell } from "@/components/workspace/Cell";
+import { Icon } from "@/components/workspace/icons";
 import { Input, queryOf, type RecordParams } from "@/components/records/RecordScreen";
 import { RecordDetail } from "@/components/records/RecordDetail";
 import { saveRecordAction } from "@/lib/records/actions";
@@ -41,27 +43,33 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
       <section className="ws-content">
         <header className="ws-head">
           <h1>{e.title}</h1>
-          <span className="ws-count">{total}</span>
+          <span className="ws-count" title={`${total} ${total === 1 ? "element" : "elements"}`}>{total.toLocaleString("ca-ES")}</span>
         </header>
         {e.hint && <p className="ws-hint">{e.hint}</p>}
         {sp.saved && !opening && <p role="status" className="msg ok">Desat.</p>}
         {sp.error && !opening && !sp.new && <p role="alert" className="msg err">{sp.error}</p>}
         <form method="get" className="ws-toolbar" aria-label="Filtres">
-          {e.search && <input type="search" name="q" defaultValue={sp.q} placeholder="Cerca…" aria-label={`Cerca ${e.title.toLowerCase()}`} />}
+          {e.search && (
+            <span className="ws-field">
+              <Icon name="search" size={15} />
+              <input type="search" name="q" defaultValue={sp.q} placeholder="Cerca" aria-label={`Cerca ${e.title.toLowerCase()}`} />
+            </span>
+          )}
           {filters.map((f) => (
-            <select key={f.name} name={`f_${f.name}`} defaultValue={sp[`f_${f.name}`] ?? ""} aria-label={f.label}>
-              <option value="">{f.label}: tots</option>
+            <AutoSelect key={f.name} name={`f_${f.name}`} defaultValue={sp[`f_${f.name}`] ?? ""} aria-label={f.label} data-on={sp[`f_${f.name}`] ? "" : undefined}>
+              <option value="">{f.label}</option>
               {(f.type === "checkbox" ? [{ value: "1", label: "Sí" }, { value: "0", label: "No" }] : optsOf(f)).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            </AutoSelect>
           ))}
           {sp.archived === "1" && <input type="hidden" name="archived" value="1" />}
           <input type="hidden" name="sort" value={sortKey} /><input type="hidden" name="dir" value={dir} />
-          <button type="submit">Filtra</button>
+          <button type="submit" className="sr-only">Filtra</button>
+          {(sp.q || filters.some((f) => sp[`f_${f.name}`])) && <Link className="ws-clear" href={href({ q: undefined, page: undefined, ...Object.fromEntries(filters.map((f) => [`f_${f.name}`, undefined])) })}>Neteja</Link>}
           <span className="ws-spacer" />
-          {e.archivable && <Link className="ws-btn" href={href({ archived: sp.archived === "1" ? undefined : "1", page: undefined })}>{sp.archived === "1" ? "Actius" : "Arxivats"}</Link>}
-          <Link className="ws-btn" href={`${here}/import`}>Importa</Link>
-          <a className="ws-btn" href={`${e.basePath}/export${href({ page: undefined }).replace(here, "")}`}>Exporta</a>
-          <Link className="ws-btn primary" href={href({ new: "1", open: undefined })}>+ Nou</Link>
+          {e.archivable && <Link className="ws-btn" href={href({ archived: sp.archived === "1" ? undefined : "1", page: undefined })}><Icon name="archive" size={14} />{sp.archived === "1" ? "Actius" : "Arxivats"}</Link>}
+          <Link className="ws-btn" href={`${here}/import`}><Icon name="upload" size={14} />Importa</Link>
+          <a className="ws-btn" href={`${e.basePath}/export${href({ page: undefined }).replace(here, "")}`}><Icon name="download" size={14} />Exporta</a>
+          <Link className="ws-btn primary" href={href({ new: "1", open: undefined })}><Icon name="plus" size={14} />Nou</Link>
         </form>
 
         <div className="ws-tablewrap">
@@ -81,13 +89,13 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} aria-selected={opening === r.id || undefined}>
-                  <td className="ws-open-col">{e.detail ? <Link className="ws-open" href={href({ open: r.id, new: undefined })} aria-label={`Obre ${e.summary(r)}`}>↗</Link> : null}</td>
-                  {e.fields.map((f) => (
-                    <td key={f.name}><Cell entity={e.key} id={r.id} name={f.name} type={f.type} value={raw(f, r[f.name])} options={f.type === "relation" && optsOf(f).length > BIG ? undefined : optsOf(f)} display={f.type === "relation" ? optsOf(f).find((o) => o.value === raw(f, r[f.name]))?.label : undefined} required={f.required} label={`${f.label} · ${e.summary(r)}`} /></td>
+                  <td className="ws-open-col">{e.detail ? <Link className="ws-open" href={href({ open: r.id, new: undefined })} aria-label={`Obre ${e.summary(r)}`}><Icon name="expand" size={14} /></Link> : null}</td>
+                  {e.fields.map((f, i) => (
+                    <td key={f.name} className={`${i === 0 ? "ws-primary" : ""} ${["number", "money", "percent"].includes(f.type) ? "ws-num" : ""}`.trim() || undefined}><Cell entity={e.key} id={r.id} name={f.name} type={f.type} value={raw(f, r[f.name])} options={f.type === "relation" && optsOf(f).length > BIG ? undefined : optsOf(f)} display={f.type === "relation" ? optsOf(f).find((o) => o.value === raw(f, r[f.name]))?.label : undefined} required={f.required} label={`${f.label} · ${e.summary(r)}`} /></td>
                   ))}
                 </tr>
               ))}
-              {rows.length === 0 && <tr><td colSpan={e.fields.length + 1} className="ws-empty">No hi ha cap element. Afegeix-ne un amb «+ Nou».</td></tr>}
+              {rows.length === 0 && <tr><td colSpan={e.fields.length + 1} className="ws-empty"><Icon name={e.key} size={28} /><strong>{sp.q || filters.some((f) => sp[`f_${f.name}`]) ? "Cap resultat" : "Encara no hi ha res"}</strong><span>{sp.q || filters.some((f) => sp[`f_${f.name}`]) ? "Prova amb una altra cerca o neteja els filtres." : "Afegeix el primer element amb «Nou»."}</span></td></tr>}
             </tbody>
           </table>
         </div>
@@ -102,7 +110,7 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
 
       {(opening || sp.new) && (
         <aside className="ws-peek" aria-label="Fitxa">
-          <Link className="ws-close" href={href({ open: undefined, new: undefined, saved: undefined, error: undefined })} aria-label="Tanca">✕</Link>
+          <Link className="ws-close" href={href({ open: undefined, new: undefined, saved: undefined, error: undefined })} aria-label="Tanca"><Icon name="close" size={16} /></Link>
           {sp.new ? (
             <div className="peek-body">
               <h2 className="peek-title">Nou: {e.title.toLowerCase()}</h2>

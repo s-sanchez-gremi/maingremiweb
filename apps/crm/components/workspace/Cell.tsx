@@ -2,6 +2,8 @@
 // One table cell, edited in place: it saves itself when you leave it (or change a choice) and shows ✓ or the error.
 import { useState, useTransition } from "react";
 import { saveCellAction } from "@/lib/records/actions";
+import { Icon } from "./icons";
+
 
 type Opt = { value: string; label: string };
 export function Cell({ entity, id, name, type, value, options, display, required, label }: {
@@ -29,7 +31,7 @@ export function Cell({ entity, id, name, type, value, options, display, required
   else if (type === "select" || type === "relation") {
     const blank = type === "relation" ? !required : !required && v === ""; // fixed choices only offer "—" while still empty
     input = (
-      <select {...common} value={v} onChange={(e) => { setV(e.target.value); save(e.target.value); }}>
+      <select {...common} data-empty={v === "" ? "" : undefined} value={v} onChange={(e) => { setV(e.target.value); save(e.target.value); }}>
         {blank && <option value="">—</option>}
         {(options ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -37,5 +39,5 @@ export function Cell({ entity, id, name, type, value, options, display, required
   } else if (type === "date") input = <input {...common} type="date" value={v} onChange={(e) => setV(e.target.value)} onBlur={() => save(v)} />;
   else if (type === "textarea") input = <textarea {...common} rows={1} value={v} onChange={(e) => setV(e.target.value)} onBlur={() => save(v)} />;
   else input = <input {...common} type="text" inputMode={type === "money" || type === "percent" ? "decimal" : type === "number" ? "numeric" : undefined} value={v} onChange={(e) => setV(e.target.value)} onBlur={() => save(v)} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />;
-  return <span className="ws-cellwrap">{input}{state === "ok" && <span className="ws-ok" aria-hidden>✓</span>}{state === "err" && <span className="ws-bad" role="alert">{msg}</span>}</span>;
+  return <span className="ws-cellwrap">{input}{state === "ok" && <span className="ws-ok" aria-hidden><Icon name="check" size={13} /></span>}{state === "err" && <span className="ws-bad" role="alert">{msg}</span>}</span>;
 }

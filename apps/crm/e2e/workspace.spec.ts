@@ -14,7 +14,7 @@ test("workspace: create in the side panel, edit cells in place, open the record"
   await page.goto("/workspace");
   await expect(page).toHaveURL(/\/workspace\/[a-z-]+$/);
   await page.goto("/workspace/suppliers");
-  await page.getByRole("link", { name: "+ Nou" }).click();
+  await page.getByRole("link", { name: "Nou", exact: true }).click();
   await page.getByRole("complementary", { name: "Fitxa" }).getByLabel("Nom").fill("Workspace Test SL");
   await page.getByRole("button", { name: "Crea" }).click();
   await expect(page).toHaveURL(/open=[0-9a-f-]{36}/);
