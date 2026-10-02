@@ -1,6 +1,6 @@
 // The records engine's data layer: list (search, filters, sort, paging), load, save, delete, relation choices and CSV,
 // for any Entity. Plain SQL through Drizzle; the entity's table decides the columns.
-import { and, asc, count, desc, eq, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
 import { db } from "@apex/db";
 import { matchAll } from "@apex/core/search";
 import type { Entity } from "./entity";
@@ -11,7 +11,12 @@ import { entityByKey } from "./registry";
 
 export const PAGE_SIZE = 50;
 export type Row = Record<string, unknown> & { id: string };
-export type ListQuery = { archived?: boolean; q?: string; filters?: Record<string, string>; sort?: string; dir?: "asc" | "desc"; page?: number };
+export type ListQuery = {
+  archived?: boolean; q?: string; filters?: Record<string, string>; sort?: string; dir?: "asc" | "desc"; page?: number;
+  missing?: string[];   // fields that must be blank (a "Sense CIF" tab)
+  group?: string;       // list rows grouped: this field sorts first (select fields in the order of their choices)
+  ids?: string[];       // only these records (export of a selection)
+};
 export type Choices = Record<string, { value: string; label: string }[]>;
 
 type Cols = Record<string, never>;
@@ -30,6 +35,8 @@ function where(e: Entity, q: ListQuery): SQL | undefined {
     if (v === undefined || v === "") continue;
     parts.push(f.type === "checkbox" ? eq(t[f.name], v === "1") : eq(t[f.name], v));
   }
+  for (const name of q.missing ?? []) if (e.fields.some((f) => f.name === name)) parts.push(or(isNull(t[name]), eq(t[name], "")));
+  if (q.ids?.length) parts.push(inArray(t.id, q.ids));
   if (e.archivable) parts.push(q.archived ? isNotNull(t.archivedAt) : isNull(t.archivedAt));
   const live = parts.filter((p): p is SQL => !!p);
   return live.length ? and(...live) : undefined;
@@ -39,7 +46,29 @@ function order(e: Entity, q: ListQuery) {
   const t = cols(e);
   const col = sortFields(e).find((f) => f.name === q.sort)?.name ?? e.sort ?? "name";
   const dir = q.dir ?? (col === (e.sort ?? "name") ? e.sortDir : undefined) ?? "asc";
-  return [dir === "desc" ? desc(t[col]) : asc(t[col]), asc(t.id)];
+  const main = [dir === "desc" ? desc(t[col]) : asc(t[col]), asc(t.id)];
+  const g = e.fields.find((f) => f.name === q.group && f.type !== "textarea");
+  if (!g) return main;
+  const first = g.type === "select" && g.choices?.length
+    ? sql`array_position(ARRAY[${sql.join(g.choices.map(([v]) => sql`${v}`), sql`, `)}]::text[], ${t[g.name]}::text)`
+    : asc(t[g.name]);
+  return [first, ...main];
+}
+
+/** How many records each value of `field` has (for the group headers); blank values are counted under "". */
+export async function groupCounts(e: Entity, q: ListQuery, field: string) {
+  const f = e.fields.find((x) => x.name === field);
+  if (!f) return new Map<string, number>();
+  const t = cols(e);
+  const rows = await db.select({ v: t[field], n: count() }).from(e.table).where(where(e, q)).groupBy(t[field]);
+  const out = new Map<string, number>();
+  for (const r of rows) out.set(r.v === null || r.v === undefined ? "" : String(r.v), (out.get(r.v === null || r.v === undefined ? "" : String(r.v)) ?? 0) + Number(r.n));
+  return out;
+}
+
+export async function countRecords(e: Entity, q: ListQuery) {
+  const [{ n }] = await db.select({ n: count() }).from(e.table).where(where(e, q));
+  return Number(n);
 }
 
 export async function listRecords(e: Entity, q: ListQuery, opts: { all?: boolean; limit?: number } = {}) {

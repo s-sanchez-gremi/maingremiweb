@@ -1,19 +1,28 @@
+import { desc, ne } from "drizzle-orm";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { db } from "@apex/db";
+import { events } from "@apex/db/schema";
 import { requireUser } from "@apex/core/auth";
 import { can } from "@apex/core/permissions";
 import { AutoSelect } from "@/components/workspace/AutoSelect";
 import { Board, type BoardCard } from "@/components/workspace/Board";
+import { BulkBar } from "@/components/workspace/BulkBar";
 import { Cell } from "@/components/workspace/Cell";
+import { ColumnsMenu } from "@/components/workspace/ColumnsMenu";
+import { GroupToggle } from "@/components/workspace/GroupToggle";
+import { virtualCols } from "@/components/workspace/virtual";
 import { Icon } from "@/components/workspace/icons";
 import { Input, queryOf, type RecordParams } from "@/components/records/RecordScreen";
 import { RecordDetail } from "@/components/records/RecordDetail";
 import { saveRecordAction } from "@/lib/records/actions";
-import { choiceKey, filterFields, listRecords, PAGE_SIZE, relationChoices, sortFields } from "@/lib/records/engine";
+import { loadComputed } from "@/lib/records/computed";
+import { choiceKey, countRecords, filterFields, groupCounts, listRecords, PAGE_SIZE, relationChoices, sortFields } from "@/lib/records/engine";
 import { FIELD_TYPES, type Field } from "@/lib/records/fieldTypes";
 import { screenEntity } from "@/lib/records/registry";
 
-type Params = RecordParams & { open?: string; new?: string; view?: string; by?: string };
+type Params = RecordParams & { open?: string; new?: string; view?: string; by?: string; s?: string; group?: string; tab?: string };
 const BOARD_MAX = 200; // a board shows this many cards at most (filter to narrow); the table pages through everything
 
 export default async function WorkspaceTable({ params, searchParams }: { params: Promise<{ entity: string }>; searchParams: Promise<Params> }) {
@@ -27,6 +36,32 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
   const by = selects.find((f) => f.name === sp.by) ?? selects.find((f) => /status/i.test(f.name)) ?? selects[0];
   const board = sp.view === "board" && !!by;
   const [{ rows, total, page, pages }, choices] = await Promise.all([listRecords(e, q, board ? { limit: BOARD_MAX } : {}), relationChoices(e)]);
+  const computed = await loadComputed(e, rows.map((r) => r.id));
+  const openId = sp.open && /^[0-9a-f-]{36}$/.test(sp.open) ? sp.open : null;
+  const openComputed = openId ? computed[openId] ?? (await loadComputed(e, [openId]))[openId] : undefined;
+  const baseQ = { archived: q.archived };
+  const tabCounts = e.views ? await Promise.all([countRecords(e, baseQ), ...e.views.map((v) => countRecords(e, { ...baseQ, filters: v.filters, missing: v.missing }))]) : [];
+  const groupable = (e.groupBy ?? e.fields.filter((f) => f.type === "select").map((f) => f.name)).map((n) => e.fields.find((f) => f.name === n)!).filter(Boolean);
+  const groupField = !board ? groupable.find((f) => f.name === q.group) : undefined;
+  const gCounts = groupField ? await groupCounts(e, { ...q, group: undefined, page: undefined }, groupField.name) : new Map<string, number>();
+  const inviteEvents = e.bulk?.invite
+    ? (await db.select({ id: events.id, name: events.name, on: events.startsOn }).from(events).where(ne(events.status, "cancelled")).orderBy(desc(events.startsOn)).limit(40)).map((x) => ({ value: x.id, label: `${x.name}${x.on ? ` · ${x.on}` : ""}` }))
+    : undefined;
+
+  // Columns: stored fields plus computed ones; the person's choice lives in a cookie, the definition's default otherwise.
+  const virtual = virtualCols(e.key);
+  const primary = e.fields[0];
+  const allKeys = [...e.fields.map((f) => f.name), ...virtual.map((v) => v.key)];
+  const defKeys = (e.defaultColumns ?? e.fields.map((f) => f.name)).filter((k) => allKeys.includes(k));
+  const saved = decodeURIComponent((await cookies()).get(`ws_cols_${e.key}`)?.value ?? "").split(",").filter((k) => allKeys.includes(k));
+  const chosen = new Set(saved.length ? saved : defKeys);
+  chosen.add(primary.name);
+  const order = [primary.name, ...[...defKeys, ...allKeys].filter((k, i, a) => k !== primary.name && a.indexOf(k) === i)];
+  const visibleKeys = order.filter((k) => chosen.has(k));
+  const isDefault = !saved.length || (saved.length === defKeys.length && defKeys.every((k) => saved.includes(k)));
+  const colOptions = order.map((k) => ({ key: k, label: e.fields.find((f) => f.name === k)?.label ?? virtual.find((v) => v.key === k)!.label, locked: k === primary.name, computed: !e.fields.some((f) => f.name === k) }));
+  const cols = visibleKeys.map((k) => ({ key: k, field: e.fields.find((f) => f.name === k), v: virtual.find((v) => v.key === k) }));
+  const bulkSelects = e.fields.filter((f) => f.type === "select").map((f) => ({ name: f.name, label: f.label, choices: (f.choices ?? []).map(([value, label]) => ({ value, label })) }));
   const here = `/workspace/${e.key}`;
   const href = (extra: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
@@ -69,6 +104,16 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
   };
   const boardCards: BoardCard[] = board && by ? rows.map((r) => ({ id: r.id, title: cardTitle(r), meta: meta(r), value: String(r[by.name] ?? ""), href: href({ open: r.id, new: undefined }) })) : [];
 
+  // Rows in groups when the table is grouped (a header per value with its TOTAL count, even if the page shows only some of the rows).
+  const groupLabel = (f: Field, v: string) => (v === "" ? "Sense valor" : f.type === "select" ? f.choices?.find(([x]) => x === v)?.[1] ?? v : v);
+  const groups: { key: string | null; label: string; rows: typeof rows }[] = [];
+  if (!groupField) groups.push({ key: null, label: "", rows });
+  else for (const r of rows) {
+    const k = r[groupField.name] === null || r[groupField.name] === undefined ? "" : String(r[groupField.name]);
+    const last = groups[groups.length - 1];
+    if (last && last.key === k) last.rows.push(r); else groups.push({ key: k, label: groupLabel(groupField, k), rows: [r] });
+  }
+
   return (
     <div className={`ws-split${opening || sp.new ? " open" : ""}`}>
       <section className="ws-content">
@@ -93,6 +138,13 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
             </AutoSelect>
           ))}
           {board && <input type="hidden" name="view" value="board" />}
+          {sp.tab && <input type="hidden" name="tab" value={sp.tab} />}
+          {!board && groupable.length > 0 && (
+            <AutoSelect name="group" defaultValue={groupField?.name ?? ""} aria-label="Agrupa per" data-on={groupField ? "" : undefined}>
+              <option value="">Agrupa</option>
+              {groupable.map((f) => <option key={f.name} value={f.name}>Agrupa per {f.label.toLowerCase()}</option>)}
+            </AutoSelect>
+          )}
           {board && selects.length > 1 && (
             <AutoSelect name="by" defaultValue={by!.name} aria-label="Agrupa per">
               {selects.map((f) => <option key={f.name} value={f.name}>Agrupa per {f.label.toLowerCase()}</option>)}
@@ -112,10 +164,11 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
               </>}
             </nav>
           )}
+          {!board && <ColumnsMenu entity={e.key} options={colOptions} visible={visibleKeys} isDefault={isDefault} />}
           {by && (
             <nav className="ws-seg" aria-label="Vista">
-              <Link href={href({ view: undefined, by: undefined })} aria-current={board ? undefined : "page"}><Icon name="table" size={14} />Taula</Link>
-              <Link href={href({ view: "board", page: undefined })} aria-current={board ? "page" : undefined}><Icon name="board" size={14} />Tauler</Link>
+              <Link href={href({ view: undefined, by: undefined })} aria-current={board ? undefined : "page"}><Icon name="table" size={14} /><span className="ws-lbl">Taula</span></Link>
+              <Link href={href({ view: "board", page: undefined })} aria-current={board ? "page" : undefined}><Icon name="board" size={14} /><span className="ws-lbl">Tauler</span></Link>
             </nav>
           )}
           <details className="ws-menu">
@@ -126,8 +179,16 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
               <a role="menuitem" href={`${e.basePath}/export${href({ page: undefined }).replace(here, "")}`}><Icon name="download" size={14} />Exporta CSV</a>
             </div>
           </details>
-          <Link className="ws-btn primary" href={href({ new: "1", open: undefined })}><Icon name="plus" size={14} />Nou</Link>
+          <Link className="ws-btn primary" href={href({ new: "1", open: undefined })}><Icon name="plus" size={14} /><span className="ws-lbl">Nou</span></Link>
         </form>
+
+        {e.views && (
+          <nav className="ws-tabs" aria-label="Vistes">
+            <Link href={href({ tab: undefined, page: undefined })} aria-current={!sp.tab || !e.views.some((v) => v.key === sp.tab) ? "page" : undefined}>Totes<small>{tabCounts[0]?.toLocaleString("ca-ES")}</small></Link>
+            {e.views.map((v, i) => <Link key={v.key} href={href({ tab: v.key, page: undefined })} aria-current={sp.tab === v.key ? "page" : undefined}>{v.label}<small>{tabCounts[i + 1]?.toLocaleString("ca-ES")}</small></Link>)}
+          </nav>
+        )}
+        {!board && <BulkBar entity={e.key} exportPath={`${e.basePath}/export`} selects={bulkSelects} events={inviteEvents} archivable={e.archivable} />}
 
         {board && by ? (
           <div className="ws-boardwrap">
@@ -139,27 +200,42 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
           <table className="ws-table">
             <thead>
               <tr>
-                <th className="ws-open-col" aria-label="Obre" />
-                {e.fields.map((f) => (
-                  <th key={f.name} scope="col" className={`ws-t-${f.type}${f === e.fields[0] ? " ws-primary" : ""}`} aria-sort={sortKey === f.name ? (dir === "desc" ? "descending" : "ascending") : undefined}>
-                    {sortable.has(f.name)
-                      ? <Link href={href({ sort: f.name, dir: sortKey === f.name && dir !== "desc" ? "desc" : "asc", page: undefined })}>{f.label}{sortKey === f.name && <b aria-hidden>{dir === "desc" ? " ↓" : " ↑"}</b>}</Link>
-                      : <span>{f.label}</span>}
-                  </th>
+                {cols.map(({ key, field: f, v }) => (
+                  f ? (
+                    <th key={key} scope="col" className={`ws-t-${f.type}${f === primary ? " ws-primary" : ""}`} aria-sort={sortKey === f.name ? (dir === "desc" ? "descending" : "ascending") : undefined}>
+                      {f === primary && <input type="checkbox" className="ws-sel-all" aria-label="Selecciona les files de la pàgina" />}
+                      {sortable.has(f.name)
+                        ? <Link href={href({ sort: f.name, dir: sortKey === f.name && dir !== "desc" ? "desc" : "asc", page: undefined })}>{f.label}{sortKey === f.name && <b aria-hidden>{dir === "desc" ? " ↓" : " ↑"}</b>}</Link>
+                        : <span>{f.label}</span>}
+                    </th>
+                  ) : <th key={key} scope="col" className="ws-t-virtual" style={{ minWidth: v!.min }}><span>{v!.label}</span></th>
                 ))}
               </tr>
             </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} aria-selected={opening === r.id || undefined}>
-                  <td className="ws-open-col">{e.detail ? <Link className="ws-open" href={href({ open: r.id, new: undefined })} aria-label={`Obre ${e.summary(r)}`}><Icon name="expand" size={14} /></Link> : null}</td>
-                  {e.fields.map((f, i) => (
-                    <td key={f.name} className={`ws-t-${f.type} ${i === 0 ? "ws-primary" : ""} ${["number", "money", "percent"].includes(f.type) ? "ws-num" : ""}`.trim()}>{i === 0 && f.type === "text" && <Mono text={String(r[f.name] ?? "")} />}<Cell entity={e.key} id={r.id} name={f.name} type={f.type} value={raw(f, r[f.name])} options={f.type === "relation" && optsOf(f).length > BIG ? undefined : optsOf(f)} display={f.type === "relation" ? optsOf(f).find((o) => o.value === raw(f, r[f.name]))?.label : undefined} required={f.required} label={`${f.label} · ${e.summary(r)}`} /></td>
-                  ))}
-                </tr>
-              ))}
-              {rows.length === 0 && <tr><td colSpan={e.fields.length + 1} className="ws-empty"><Icon name={e.key} size={28} /><strong>{sp.q || filters.some((f) => sp[`f_${f.name}`]) ? "Cap resultat" : "Encara no hi ha res"}</strong><span>{sp.q || filters.some((f) => sp[`f_${f.name}`]) ? "Prova amb una altra cerca o neteja els filtres." : "Afegeix el primer element amb «Nou»."}</span></td></tr>}
-            </tbody>
+            {groups.map((g) => (
+              <tbody key={g.key ?? "all"}>
+                {g.key !== null && <tr className="ws-group-row"><td colSpan={cols.length}><GroupToggle label={g.label} count={gCounts.get(g.key) ?? g.rows.length} /></td></tr>}
+                {g.rows.map((r) => (
+                  <tr key={r.id} aria-selected={opening === r.id || undefined}>
+                    {cols.map(({ key, field: f, v }) => {
+                      if (!f) return <td key={key} className={`ws-t-virtual${v!.num ? " ws-num" : ""}`} style={{ minWidth: v!.min }}><span className="ws-virtual">{v!.render({ row: r, data: computed[r.id] ?? {}, open: (t) => href({ open: r.id, new: undefined, s: t }) })}</span></td>;
+                      const cell = <Cell entity={e.key} id={r.id} name={f.name} type={f.type} value={raw(f, r[f.name])} options={f.type === "relation" && optsOf(f).length > BIG ? undefined : optsOf(f)} display={f.type === "relation" ? optsOf(f).find((o) => o.value === raw(f, r[f.name]))?.label : undefined} required={f.required} label={`${f.label} · ${e.summary(r)}`} />;
+                      if (f !== primary) return <td key={key} className={`ws-t-${f.type}${["number", "money", "percent"].includes(f.type) ? " ws-num" : ""}`}>{cell}</td>;
+                      const sub = e.subline?.(r);
+                      return (
+                        <td key={key} className={`ws-t-${f.type} ws-primary`}>
+                          <div className="ws-first">
+                            <input type="checkbox" className="ws-sel" data-id={r.id} aria-label={`Selecciona ${e.summary(r)}`} />
+                            {e.detail ? <Link className="ws-open" href={href({ open: r.id, new: undefined })} aria-label={`Obre ${e.summary(r)}`}><Icon name="expand" size={14} /></Link> : <span className="ws-open" />}
+                            {f.type === "text" && <Mono text={String(r[f.name] ?? "")} />}<div className="ws-name">{cell}{sub && <span className={`ws-sub${sub.warn ? " warn" : ""}`}>{sub.text}</span>}</div></div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            ))}
+            {rows.length === 0 && <tbody><tr><td colSpan={cols.length} className="ws-empty"><Icon name={e.key} size={28} /><strong>{sp.q || sp.tab || filters.some((f) => sp[`f_${f.name}`]) ? "Cap resultat" : "Encara no hi ha res"}</strong><span>{sp.q || sp.tab || filters.some((f) => sp[`f_${f.name}`]) ? "Prova amb una altra cerca o neteja els filtres." : "Afegeix el primer element amb «Nou»."}</span></td></tr></tbody>}
           </table>
         </div>
         </>)}
@@ -179,7 +255,7 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
               </form>
             </div>
           ) : (
-            <div className="peek-body"><RecordDetail entity={e} id={opening!} sp={sp} workspace /></div>
+            <div className="peek-body"><RecordDetail entity={e} id={opening!} sp={sp} workspace tab={sp.s} tabHref={(t) => href({ open: opening!, new: undefined, s: t })} computed={openComputed} /></div>
           )}
         </aside>
       )}

@@ -11,10 +11,17 @@ import { FIELD_TYPES, type Field } from "@/lib/records/fieldTypes";
 
 export type RecordParams = { saved?: string; error?: string; q?: string; sort?: string; dir?: string; page?: string; [filter: string]: string | undefined };
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function queryOf(e: Entity, sp: RecordParams): ListQuery {
   const filters: Record<string, string> = {};
   for (const f of filterFields(e)) { const v = sp[`f_${f.name}`]; if (v) filters[f.name] = v; }
-  return { archived: sp.archived === "1", q: sp.q, filters, sort: sp.sort, dir: sp.dir === "desc" ? "desc" : sp.dir === "asc" ? "asc" : undefined, page: Number(sp.page) || 1 };
+  const tab = e.views?.find((v) => v.key === sp.tab);   // a workspace tab ("Agremiades", "Sense CIF") adds its own conditions
+  const ids = sp.ids ? sp.ids.split(",").filter((x) => UUID.test(x)).slice(0, 500) : undefined;
+  return {
+    archived: sp.archived === "1", q: sp.q, filters: { ...filters, ...tab?.filters }, missing: tab?.missing, ids,
+    sort: sp.sort, dir: sp.dir === "desc" ? "desc" : sp.dir === "asc" ? "asc" : undefined, page: Number(sp.page) || 1,
+    group: (e.groupBy ?? e.fields.filter((f) => f.type === "select").map((f) => f.name)).includes(sp.group ?? "") ? sp.group : undefined,
+  };
 }
 const href = (e: Entity, sp: RecordParams, extra: Record<string, string | undefined>, path = e.basePath) => {
   const p = new URLSearchParams();

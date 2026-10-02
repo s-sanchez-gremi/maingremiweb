@@ -16,7 +16,8 @@ type Company = {
 
 const STATUS: Record<string, Company["memberStatus"]> = { agremiat: "member", coagremiat: "member", matriu: "member", "antic agremiat": "former", "no agremiat": "prospect" };
 const RANK = { member: 3, former: 2, prospect: 1 } as const;
-const phone = (v: unknown) => (typeof v === "number" ? String(v) : str(v as string));
+// Notion keeps a placeholder "0" in empty phone cells: anything with fewer than 5 digits is not a phone number.
+const phone = (v: unknown) => { const t = typeof v === "number" ? String(v) : str(v as string); return t.replace(/\D/g, "").length >= 5 ? t : ""; };
 
 export function toCompany(r: Row): Company | null {
   const p = r.props;

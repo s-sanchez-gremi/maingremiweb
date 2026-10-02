@@ -75,6 +75,12 @@
   .ws .ws-head h1 { font-size: 24px; }
   .ws-field { flex: 1 1 100%; }
 }
+/* the labels of "Nou" and the view switch fold into their icons when the canvas is narrow (they stay for screen readers) */
+@container (max-width: 700px) {
+  .ws-lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .ws-btn.primary { padding: 0 9px; } .ws-seg a { padding: 0 8px; }
+  .ws-info { display: none; }
+}
 
 /* ---------- Toolbar ---------- */
 .ws-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 12px; flex: none; }
@@ -151,8 +157,6 @@
 .ws-table td.ws-primary .ws-cellwrap { gap: 2px; }
 .ws-table td.ws-primary .ws-cell { font-weight: 600; letter-spacing: -.006em; }
 .ws-table td.ws-num .ws-cell { text-align: right; font-variant-numeric: tabular-nums; }
-.ws .ws-table .ws-open-col { min-width: 0 !important; width: 44px; padding-left: 14px; text-align: center !important; box-sizing: border-box; }
-.ws-open { color: var(--text2); display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; opacity: 0; transition: opacity .12s, background .12s; }
 tr:hover .ws-open, .ws-open:focus-visible, tr[aria-selected] .ws-open { opacity: 1; }
 .ws-open:hover { background: color-mix(in srgb, var(--ink) 9%, transparent); color: var(--ink); } .ws-open:focus-visible { outline: 0; box-shadow: var(--ws-ring); }
 @media (hover: none) { .ws-open { opacity: 1; } }
@@ -163,23 +167,23 @@ tr:hover .ws-open, .ws-open:focus-visible, tr[aria-selected] .ws-open { opacity:
 .ws-table .ws-t-phone, .ws-table .ws-t-date { min-width: 118px; }
 .ws-table .ws-t-number, .ws-table .ws-t-money, .ws-table .ws-t-percent { min-width: 90px; }
 .ws-table .ws-t-checkbox { min-width: 56px; }
-.ws-table .ws-t-select { min-width: 126px; }
+.ws-table .ws-t-select { min-width: 112px; }
 .ws-table .ws-primary { min-width: 300px; }
-.ws-table td.ws-open-col, .ws-table th.ws-open-col { position: sticky; left: 0; z-index: 1; background: var(--surface); }
-.ws-table th.ws-open-col { z-index: 4; }
-.ws-table td.ws-primary, .ws-table th.ws-primary { position: sticky; left: 44px; z-index: 1; background: var(--surface); box-shadow: 1px 0 0 var(--ws-hair); }
+.ws-table td.ws-primary, .ws-table th.ws-primary { position: sticky; left: 0; z-index: 1; background: var(--surface); box-shadow: 1px 0 0 var(--ws-hair); }
 .ws-table th.ws-primary { z-index: 4; }
-.ws-table tbody tr:hover td.ws-open-col, .ws-table tbody tr:hover td.ws-primary { background: var(--ws-hover-solid); }
-.ws-table tr[aria-selected] td.ws-open-col, .ws-table tr[aria-selected] td.ws-primary { background: var(--ws-tint-solid); }
+.ws-table tbody tr:hover td.ws-primary { background: var(--ws-hover-solid); }
+.ws-table tr[aria-selected] td.ws-primary { background: var(--ws-tint-solid); }
 /* monogram before a name (decorative: tints are token mixes picked from the name) */
 .ws-mono { flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 9.5px; font-weight: 700; letter-spacing: .02em; margin-left: 4px; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink2); }
 .ws-mono[data-t="0"] { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent-hover); }
 .ws-mono[data-t="1"] { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
 .ws-mono[data-t="2"] { background: color-mix(in srgb, var(--ink) 9%, transparent); color: var(--ink2); }
 .ws-mono[data-t="3"] { background: color-mix(in srgb, var(--accent) 6%, var(--bg2)); color: var(--ink2); }
-.ws-primary .ws-cellwrap { display: flex; }
-.ws-primary > .ws-mono { float: left; margin: 5px 0 0 4px; }
-.ws-primary > .ws-mono + .ws-cellwrap { margin-left: 26px; }
+.ws-first { display: flex; align-items: center; gap: 4px; padding-left: 4px; }
+.ws-first .ws-mono { margin: 0; }
+.ws-name { min-width: 0; flex: 1; }
+.ws-sub { display: block; margin: -3px 0 2px 6px; font-size: 12px; line-height: 1.2; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ws-sub.warn { color: var(--warn); }
 
 /* ---------- Cells: look like text, behave like fields ---------- */
 .ws-cellwrap { display: flex; align-items: center; position: relative; padding: 0 2px; }
@@ -233,10 +237,10 @@ tr:hover .ws-open, .ws-open:focus-visible, tr[aria-selected] .ws-open { opacity:
 .ws .peek-body .card h3 { font-family: var(--sans); font-size: 11.5px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--text2); }
 /* the fields: an inset grouped list (label left, value right), like Settings */
 .ws .ws-fields { display: grid !important; grid-template-columns: 1fr !important; gap: 0 !important; background: var(--bg); border-radius: 12px; box-shadow: inset 0 0 0 1px var(--ws-hair); overflow: hidden; }
-.ws .ws-fields > label { display: grid; grid-template-columns: minmax(90px, 34%) minmax(0, 1fr); align-items: center; gap: 8px; padding: 0 10px; min-height: 30px; font-size: 12.5px; font-weight: 500; color: var(--text2); border-bottom: 1px solid var(--ws-hair); }
-.ws .ws-fields > label:has(textarea) { grid-template-columns: 1fr; align-items: stretch; gap: 0; padding-top: 6px; padding-bottom: 4px; }
-.ws .ws-fields > label:focus-within { background: var(--surface); }
-.ws .ws-fields > label.row { padding: 0 12px; justify-content: flex-start; gap: 10px; display: flex; color: var(--ink); }
+.ws .ws-fields > label, .ws .ws-fields > details > label { display: grid; grid-template-columns: minmax(90px, 34%) minmax(0, 1fr); align-items: center; gap: 8px; padding: 0 10px; min-height: 30px; font-size: 12.5px; font-weight: 500; color: var(--text2); border-bottom: 1px solid var(--ws-hair); }
+.ws .ws-fields > label:has(textarea), .ws .ws-fields > details > label:has(textarea) { grid-template-columns: 1fr; align-items: stretch; gap: 0; padding-top: 6px; padding-bottom: 4px; }
+.ws .ws-fields > label:focus-within, .ws .ws-fields > details > label:focus-within { background: var(--surface); }
+.ws .ws-fields > label.row, .ws .ws-fields > details > label.row { padding: 0 12px; justify-content: flex-start; gap: 10px; display: flex; color: var(--ink); }
 .ws .ws-fields > div { grid-column: 1; padding: 10px 12px; background: var(--surface); }
 .ws .ws-fields input:not([type=checkbox]):not([type=file]), .ws .ws-fields select, .ws .ws-fields textarea { border: 0 !important; background: transparent !important; box-shadow: none !important; border-radius: 6px; padding: 3px 4px; min-height: 28px; font-size: 13.5px; color: var(--ink); text-align: right; }
 .ws .ws-fields textarea { text-align: left; min-height: 52px; padding: 4px; }
@@ -300,10 +304,91 @@ tr:hover .ws-open, .ws-open:focus-visible, tr[aria-selected] .ws-open { opacity:
   .ws .ws-head h1 { font-size: 24px; }
   .ws-field { flex: 1 1 100%; }
   .ws-tablewrap { margin: 0 -14px; }
-  .ws .ws-table .ws-open-col { width: 58px; padding-left: 14px; }
-  .ws-table td.ws-primary, .ws-table th.ws-primary, .ws-table td.ws-open-col, .ws-table th.ws-open-col { position: static; box-shadow: none; }
+  .ws-table td.ws-primary, .ws-table th.ws-primary { position: static; box-shadow: none; }
   .ws-boardwrap { margin: 0 -14px; padding: 12px 14px 0; }
   .ws-col { flex-basis: 78vw; }
   .ws-titles .ws-hint { white-space: normal; }
   .ws-table .ws-primary { min-width: 220px; }
 }
+
+
+/* ---------- Tabs (views with counts) ---------- */
+.ws-tabs { display: flex; gap: 2px; margin: 0 -14px 0; padding: 0 14px; border-bottom: 1px solid var(--ws-hair); overflow-x: auto; flex: none; scrollbar-width: none; }
+.ws-tabs a { display: inline-flex; align-items: baseline; gap: 5px; padding: 6px 10px 7px; font-size: 13px; color: var(--text2); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; transition: color .12s; }
+.ws-tabs a:hover { color: var(--ink); }
+.ws-tabs a[aria-current="page"] { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }
+.ws-tabs small { font-size: 11.5px; font-weight: 500; color: var(--text2); font-variant-numeric: tabular-nums; }
+.ws-tabs a:focus-visible { outline: 0; box-shadow: var(--ws-ring); border-radius: 6px; }
+
+/* ---------- Columns menu ---------- */
+.ws-cols summary.ws-chip { width: auto; height: 28px; border-radius: 999px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; box-shadow: inset 0 0 0 1px var(--line); background: var(--surface); color: var(--ink); }
+.ws-chip-n { color: var(--text2); font-variant-numeric: tabular-nums; }
+.ws-cols > div { min-width: 230px; max-height: 60vh; overflow: auto; padding: 6px; display: block; }
+.ws-cols label { display: flex; align-items: center; gap: 9px; padding: 5px 8px; border-radius: 8px; font-size: 13px; cursor: pointer; } .ws-cols label:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.ws-cols label.sep { margin-top: 4px; border-top: 1px solid var(--ws-hair); border-radius: 0 0 8px 8px; padding-top: 9px; }
+.ws-cols input { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
+.ws-cols label em { margin-left: auto; font-style: normal; font-size: 11px; color: var(--text2); }
+.ws-cols button { all: unset; cursor: pointer; display: block; margin: 6px 8px 2px; font-size: 12.5px; color: var(--accent-hover); } .ws-cols button:hover { text-decoration: underline; }
+
+/* ---------- Merged and computed cells ---------- */
+.ws-virtual { display: block; padding: 4px 8px; font-size: 14px; line-height: 1.25; }
+.ws-two { display: grid; } .ws-two > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-two > span + span { font-size: 12px; color: var(--text2); }
+.ws-virtual a { color: inherit; text-decoration: none; } .ws-virtual a:hover { color: var(--accent-hover); text-decoration: underline; }
+.ws-two > span + span a { color: var(--info); }
+.ws-dim { color: var(--text2); }
+.ws .ws-count-link { font-weight: 600; font-variant-numeric: tabular-nums; }
+.ws-table td.ws-num .ws-virtual { text-align: right; }
+
+/* ---------- Groups and selection ---------- */
+.ws-group-row td { background: color-mix(in srgb, var(--ink) 3.5%, var(--surface)); border-bottom: 1px solid var(--ws-hair) !important; position: sticky; left: 0; }
+.ws-group-btn { all: unset; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; padding: 5px 14px; font-size: 13px; }
+.ws-group-btn .ws-ic { transform: rotate(90deg); transition: transform .15s; color: var(--text2); } .ws-group-btn[aria-expanded="false"] .ws-ic { transform: none; }
+.ws-group-btn span { color: var(--text2); font-variant-numeric: tabular-nums; font-size: 12.5px; }
+.ws-group-btn:focus-visible { box-shadow: var(--ws-ring); border-radius: 6px; }
+.ws-table tbody[data-folded] tr:not(.ws-group-row) { display: none; }
+.ws input.ws-sel, .ws input.ws-sel-all { appearance: auto; display: inline-block; width: 15px; height: 15px; min-height: 0; padding: 0; margin: 0 8px 0 0; vertical-align: middle; accent-color: var(--accent); cursor: pointer; opacity: 0; transition: opacity .1s; }
+.ws tr:hover input.ws-sel, .ws thead:hover input.ws-sel-all, .ws input.ws-sel:checked, .ws input.ws-sel-all:checked, .ws input.ws-sel:focus-visible, .ws input.ws-sel-all:focus-visible, .ws .ws-table[data-selecting] input.ws-sel, .ws .ws-table[data-selecting] input.ws-sel-all { opacity: 1; }
+@media (hover: none) { .ws input.ws-sel, .ws input.ws-sel-all { opacity: 1; } }
+.ws-table tbody tr:has(.ws-sel:checked) td { background: var(--ws-tint); }
+.ws-table tbody tr:has(.ws-sel:checked) td.ws-primary { background: var(--ws-tint-solid); }
+.ws-bulk { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 8px; padding: 6px 10px; border-radius: 10px; background: var(--ws-tint); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent); font-size: 13px; flex: none; animation: ws-pop .16s var(--ws-ease); }
+.ws-bulk strong { color: var(--accent-hover); }
+.ws-bulk-set { display: inline-flex; gap: 4px; align-items: center; }
+.ws .ws-bulk select { appearance: auto; font: inherit; font-size: 12.5px; height: 26px; border: 1px solid var(--field-border); border-radius: 8px; background: var(--surface); padding: 0 6px; max-width: 220px; }
+.ws .ws-bulk button, .ws .ws-bulk-link { font: inherit; font-size: 12.5px; font-weight: 600; height: 26px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; text-decoration: none; }
+.ws .ws-bulk button:hover, .ws .ws-bulk-link:hover { background: var(--bg2); }
+.ws .ws-bulk button:disabled { opacity: .5; cursor: default; }
+.ws .ws-bulk .ws-bulk-x { border-color: transparent; background: transparent; color: var(--text2); font-weight: 500; }
+.ws-bulk-msg { color: var(--ok); font-weight: 600; }
+
+/* ---------- Record sheet: header card, quick actions, key numbers, tabs ---------- */
+.sheet-head { display: flex; align-items: center; gap: 10px; padding: 14px 44px 8px 14px; }
+.sheet-head .peek-head { margin: 0; flex: 1; min-width: 0; }
+.sheet-head .peek-title { overflow-wrap: anywhere; }
+.sheet-head .ws-eyebrow { margin: 2px 0 0; font-weight: 400; }
+.ws-mono.lg { width: 38px; height: 38px; font-size: 13px; margin: 0; flex: none; }
+.sheet-head .ws-pill { flex: none; }
+.sheet-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0 14px 10px; }
+.sheet-actions a { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--line); font-size: 12.5px; color: var(--ink) !important; text-decoration: none !important; background: var(--surface); } .sheet-actions a:hover { background: var(--bg2); }
+.sheet-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; padding: 0 14px 10px; }
+.sheet-tiles > div { background: color-mix(in srgb, var(--ink) 4%, var(--surface)); border-radius: 9px; padding: 6px 9px; display: grid; gap: 1px; min-width: 0; }
+.sheet-tiles span { font-size: 11px; color: var(--text2); } .sheet-tiles b { font-size: 15px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet-tiles a { color: inherit; }
+.sheet-tabs { display: flex; gap: 0; padding: 0 8px; border-bottom: 1px solid var(--ws-hair); overflow-x: auto; scrollbar-width: none; }
+.ws .sheet-tabs a { display: inline-flex; align-items: baseline; gap: 4px; padding: 6px 8px 7px; font-size: 12.5px; color: var(--text2); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.ws .sheet-tabs a:hover { color: var(--ink); text-decoration: none; }
+.ws .sheet-tabs a[aria-current="page"] { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }
+.sheet-tabs small { font-size: 11px; color: var(--text2); }
+.sheet-head ~ .body { padding: 10px 12px 28px !important; }
+.ws-folded { grid-column: 1; }
+.ws-folded > summary { list-style: none; cursor: pointer; padding: 7px 10px; font-size: 12.5px; color: var(--accent-hover); border-bottom: 1px solid var(--ws-hair); background: var(--surface); }
+.ws-folded > summary::-webkit-details-marker { display: none; } .ws-folded > summary:hover { text-decoration: underline; }
+.ws-folded[open] > summary { color: var(--text2); }
+
+/* checkbox + open button live inside the (frozen) name column, so nothing depends on the width of a separate column */
+.ws-first { padding-left: 10px; gap: 2px; }
+.ws-open { color: var(--text2); display: inline-grid; place-items: center; width: 24px; height: 24px; flex: none; border-radius: 50%; opacity: 0; transition: opacity .12s, background .12s; }
+.ws .ws-first input.ws-sel { margin: 0 4px 0 0; flex: none; }
+.ws-table th.ws-primary > a, .ws-table th.ws-primary > span { padding-left: 54px; }
+.ws .ws-table th.ws-primary input.ws-sel-all { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); margin: 0; }
