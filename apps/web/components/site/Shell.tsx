@@ -3,7 +3,7 @@ import { L, locales, ui, type Locale } from "@/lib/i18n";
 import { SmartLink } from "./SmartLink";
 import { NavDesktop, type NavEntry } from "./NavDesktop";
 import { SocialLinks } from "./Social";
-import { SearchBox } from "./SearchBox";
+import { SearchBox, SearchLink } from "./SearchBox";
 
 export type Alt = { locale: Locale; href: string };
 
@@ -42,7 +42,7 @@ export async function Shell({ locale, alternates, children }: { locale: Locale; 
           </SmartLink>
           <NavDesktop items={nav} label="Principal" />
           <div className="header-actions">
-            <SearchBox locale={locale} />
+            <SearchLink locale={locale} />
             {buttons.map((b, i) => <SmartLink key={i} href={b.url} className={`btn${b.primary ? " primary" : ""}`}>{b.label}</SmartLink>)}
           </div>
           <details className="nav-mobile">

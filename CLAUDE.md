@@ -81,16 +81,17 @@ Plugin system, GraphQL, real-time collaboration, comments, freeform (pixel) posi
 
 Full detail and phase plan: `PLAN.md`.
 
-## Design tokens (from the approved mockups)
+## Design tokens ("print shop" style, client decision 2026-10-02)
 
-- **Accent color:** `#D50032`
-- **Background (ivory):** `#FAF9F5`; **secondary background:** `#F2F0E8`
-- **Ink (near-black):** `#141413`; **secondary ink panel:** `#23221F`
-- **Text, secondary/quiet:** `#5C5A54` / `#8A8780`
-- **Borders/dividers:** `#E5E2D9`
-- **Type:** serif (Georgia/Times New Roman) for headings and display; sans (Inter/system-ui) for body and UI
-- **Radius:** 6–10px on cards/buttons; **borders:** 1px, `#E5E2D9`
-- Reference the mockup artifact for exact spacing, card patterns and component shapes before building — treat it as the visual spec, not just inspiration.
+Client asked to follow the style of their draft site gremid.netlify.app (mockup approved in the project thread). Values live in `packages/ui/src/tokens.css`; this list is a summary.
+- **Accent color:** `#D50032` (hover `#B0002A`)
+- **Background (paper):** `#F7F4EE`; **darker paper (alternate sections):** `#EFEAE0`; **cards:** white
+- **Ink:** `#1A1715`; **darkest panel (top bar, footer, dark bands):** `#171412`, text on it `#F3EEE6`
+- **Text, secondary:** `#4D4741` (the reference site's lighter `#7A726A` fails 4.5:1 as small text, so it is not used)
+- **Borders/dividers:** `#D8D0C1`; input outlines `#857E76`
+- **Type:** Fraunces (self-hosted, `packages/ui/src/fonts/`, SIL OFL) for headings, weight 600; system sans for body and UI; IBM Plex Mono (self-hosted) for small capital labels (eyebrows, footer headings)
+- **Radius:** 4px on cards/buttons (almost square, like print); **borders:** 1px
+- **Header:** thin dark top bar; GREMI-red header with the logo in white (the logo file is black: CSS `filter` turns it white) and a white uppercase menu; dark footer with a decorative CMYK strip (`--cmyk-*`, never text)
 
 ## Content model
 
@@ -184,7 +185,7 @@ Ask the person running this guide for the mockup artifact link(s) if they weren'
 
 ## Design foundation (phase 4)
 - **One tokens file:** `packages/ui/src/tokens.css` holds every colour, type size, space, radius and shadow; the public site and the admin both read it. Nothing else defines a colour. To rebrand, edit that file.
-- **Contrast rules (enforced by `lib/__tests__/contrast.test.ts`, which parses the tokens file):** `#8A8780` fails as text (3.1–3.6:1) so it is only used for input outlines (`--field-border`, needs 3:1); small grey text uses `--text2` `#5C5A54` (6:1+); accent `#D50032` is fine on light backgrounds but **must not be used for small text on dark panels** (3.4:1) — use ivory there (the hero label uses ivory with a red bar).
+- **Contrast rules (enforced by `lib/__tests__/contrast.test.ts`, which parses the tokens file):** `--field-border` `#857E76` is only for input outlines (needs 3:1); small grey text uses `--text2` `#4D4741` (7.6:1+); white on the red header passes (5.4:1); accent `#D50032` is fine on light backgrounds but **must not be used for small text on dark panels** (3.4:1) — use ivory there (the hero label uses ivory with a red bar).
 - **Component library:** `components/ui/` — `Button`, `Card`, and accessible form fields (`TextField`, `TextAreaField`, `SelectField`, `CheckboxField`, `RadioGroup`: visible label, hint/error wired with `aria-describedby`, `aria-invalid`, 44px touch targets). Site pieces (`Shell`, header, footer, `PostCard`, section renderers) live in `components/site/` and `sections/render.tsx`.
 - **Styleguide:** `/styleguide` (local/e2e only, 404 in production) shows tokens with live contrast ratios, type, buttons, form fields in every state, cards and all section types.
 - **Accessibility checks on every change:** `e2e/design.spec.ts` runs axe (WCAG 2.2 AA) plus sideways-overflow and 44px touch-target checks on every public page at 320 / 375 / 768 / 1024 / 1440 px, and keyboard tests (skip link, mobile menu, visible focus).
