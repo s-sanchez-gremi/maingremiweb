@@ -22,7 +22,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
     .where(ids.length ? or(eq(submissions.clientId, id), inArray(submissions.projectId, ids)) : eq(submissions.clientId, id)).orderBy(desc(submissions.createdAt)).limit(100);
   return (
     <>
-      <div className="top"><div><div className="crumb"><Link href="/admin/clients">Clients</Link></div><h1>{c.name}</h1></div></div>
+      <div className="top"><div><div className="crumb"><Link href="/workspace/companies">Empreses</Link></div><h1>{c.name}</h1></div></div>
       <div className="body">
         {sp.saved && <p role="status" className="msg ok">{sp.saved === "invite" ? "Invitació enviada." : "Desat."}</p>}
         {sp.error && <p role="alert" className="msg err">{sp.error}</p>}

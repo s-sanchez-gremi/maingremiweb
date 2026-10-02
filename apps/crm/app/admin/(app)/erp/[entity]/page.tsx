@@ -1,15 +1,9 @@
-import { notFound } from "next/navigation";
-import { RecordScreen, type RecordParams } from "@/components/records/RecordScreen";
-import { renewSubscriptionAction } from "../actions";
+import { notFound, redirect } from "next/navigation";
 import { screenEntity } from "@/lib/records/registry";
 
-// The simple ERP lists are engine entities (lib/records/entities/erp.ts); only the renewal button is specific.
-export default async function ErpListPage({ params, searchParams }: { params: Promise<{ entity: string }>; searchParams: Promise<RecordParams> }) {
+// The simple ERP lists moved to the workspace (a table with in-place editing, side sheet, import, charts…). Old links and bookmarks land there.
+export default async function ErpListRedirect({ params }: { params: Promise<{ entity: string }> }) {
   const e = screenEntity((await params).entity);
-  if (!e || !e.basePath.startsWith("/admin/erp/")) notFound();
-  return (
-    <RecordScreen entity={e} sp={await searchParams} rowActions={e.key === "subscriptions" ? (r) => (
-      <form action={renewSubscriptionAction}><input type="hidden" name="id" value={r.id} /><button className="btn" type="submit">Registra la renovació</button></form>
-    ) : undefined} />
-  );
+  if (!e || !e.basePath.startsWith("/workspace/")) notFound();
+  redirect(e.basePath);
 }

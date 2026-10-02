@@ -287,7 +287,7 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
               </form>
             </div>
           ) : (
-            <div className="peek-body"><RecordDetail entity={e} id={opening!} sp={sp} workspace tab={sp.s} tabHref={(t) => href({ open: opening!, new: undefined, s: t })} computed={openComputed} /></div>
+            <div className="peek-body"><RecordDetail entity={e} id={opening!} sp={sp} tab={sp.s} tabHref={(t) => href({ open: opening!, new: undefined, s: t })} computed={openComputed} /></div>
           )}
         </aside>
       )}

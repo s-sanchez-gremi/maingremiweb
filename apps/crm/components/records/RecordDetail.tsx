@@ -1,9 +1,10 @@
 // The engine's record page: the record's fields (editable), linked records both ways, notes, files and change history.
-// In the workspace side sheet it is laid out as a header card, quick actions, key numbers and tabs; elsewhere as one long page.
+// Laid out as a header card, quick actions, key numbers and tabs.
 import Link from "next/link";
 import { Icon } from "@/components/workspace/icons";
 import { virtualCols } from "@/components/workspace/virtual";
 import { ConfirmButton } from "@apex/ui/components/ConfirmButton";
+import { renewSubscriptionAction } from "@/app/admin/(app)/erp/actions";
 import { addNoteAction, archiveAction, deleteFileAction, deleteNoteAction, deleteRecordAction, removeLogoAction, saveRecordAction, uploadFileAction, uploadLogoAction } from "@/lib/records/actions";
 import type { Entity } from "@/lib/records/entity";
 import { getRecord, relationChoices } from "@/lib/records/engine";
@@ -15,9 +16,9 @@ const when = (d: Date) => d.toLocaleString("ca-ES", { dateStyle: "short", timeSt
 const kb = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
 const blank = (v: unknown) => v === null || v === undefined || v === "" || v === 0 || (Array.isArray(v) && v.length === 0);
 
-/** `workspace`: shown in the workspace side sheet (header card, tabs; links and redirects stay inside the workspace). */
-export async function RecordDetail({ entity: e, id, sp, workspace, tab, tabHref, computed }: {
-  entity: Entity; id: string; sp: { saved?: string; error?: string }; workspace?: boolean;
+/** The record in the workspace side sheet: header card, quick actions, key numbers and tabs (Resum, linked records, Notes, Fitxers, Historial). */
+export async function RecordDetail({ entity: e, id, sp, tab, tabHref, computed }: {
+  entity: Entity; id: string; sp: { saved?: string; error?: string };
   tab?: string; tabHref?: (tab: string | undefined) => string; computed?: Record<string, string | number | null>;
 }) {
   const r = await getRecord(e, id);
@@ -31,18 +32,18 @@ export async function RecordDetail({ entity: e, id, sp, workspace, tab, tabHref,
     ...linked.map((l) => ({ key: `${l.entity.key}.${l.field}`, label: dup(l.entity.title) ? l.label : l.entity.title, n: l.total })),
     { key: "notes", label: "Notes", n: notes.length }, { key: "files", label: "Fitxers", n: files.length }, { key: "history", label: "Historial", n: 0 },
   ];
-  const current = workspace ? (tabs.find((t) => t.key === tab)?.key ?? "resum") : "all";
-  const stay = workspace && tabHref ? tabHref(current === "resum" ? undefined : current) : null;
-  const page = stay ?? (workspace ? `/workspace/${e.key}?open=${id}` : `${e.basePath}/${id}`);
-  const files_ = workspace || e.basePath.startsWith("/workspace/") ? `/workspace/${e.key}/${id}/files` : `${e.basePath}/${id}/files`;
-  const linkTo = (key: string, base: string, rid: string) => (workspace ? `/workspace/${key}?open=${rid}` : `${base}/${rid}`);
+  const current = tabs.find((t) => t.key === tab)?.key ?? "resum";
+  const stay = tabHref ? tabHref(current === "resum" ? undefined : current) : null;
+  const page = stay ?? `/workspace/${e.key}?open=${id}`;
+  const files_ = `/workspace/${e.key}/${id}/files`;
+  const linkTo = (key: string, rid: string) => `/workspace/${key}?open=${rid}`;
   const archived = e.archivable && !!r.archivedAt;
   const grid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 } as const;
   const hidden = <><input type="hidden" name="entity" value={e.key} /><input type="hidden" name="id" value={id} /><input type="hidden" name="back" value={page} /></>;
 
   // in the sheet, fields with no value fold away behind one line (required ones and checkboxes always show)
-  const shown = workspace ? e.fields.filter((f) => f.required || f.type === "checkbox" || f.type === "select" || !blank(r[f.name])) : e.fields;
-  const folded = workspace ? e.fields.filter((f) => !shown.includes(f)) : [];
+  const shown = e.fields.filter((f) => f.required || f.type === "checkbox" || f.type === "select" || !blank(r[f.name]));
+  const folded = e.fields.filter((f) => !shown.includes(f));
 
   const dataSection = (
     <section className="card" aria-label="Dades">
@@ -68,8 +69,8 @@ export async function RecordDetail({ entity: e, id, sp, workspace, tab, tabHref,
   const linkedSection = (l: (typeof linked)[number]) => (
     <section className="card" aria-label="Registres enllaçats" key={`${l.entity.key}.${l.field}`}>
       <h3>{l.label} <span className="hint">({l.total})</span></h3>
-      <ul>{l.rows.map((x) => <li key={x.id}>{l.entity.detail ? <Link href={linkTo(l.entity.key, l.entity.basePath, x.id)}>{x.text}</Link> : x.text}</li>)}</ul>
-      {l.total > l.rows.length && <Link href={`${workspace ? `/workspace/${l.entity.key}` : l.entity.basePath}?f_${l.field}=${id}`}>Veure’ls tots</Link>}
+      <ul>{l.rows.map((x) => <li key={x.id}>{l.entity.detail ? <Link href={linkTo(l.entity.key, x.id)}>{x.text}</Link> : x.text}</li>)}</ul>
+      {l.total > l.rows.length && <Link href={`/workspace/${l.entity.key}?f_${l.field}=${id}`}>Veure’ls tots</Link>}
     </section>
   );
   const notesSection = (
@@ -132,19 +133,6 @@ export async function RecordDetail({ entity: e, id, sp, workspace, tab, tabHref,
     {archived && <p className="msg">Aquest registre està arxivat.</p>}
   </>;
 
-  if (!workspace) {
-    return (
-      <>
-        <div className="top"><div><div className="crumb"><Link href={e.basePath}>{e.title}</Link></div><h1>{e.summary(r)}</h1></div></div>
-        <div className="body" style={{ display: "grid", gap: 14 }}>
-          {flash}{dataSection}{linksLine}
-          {linked.length > 0 && <div style={{ display: "grid", gap: 14 }}>{linked.map(linkedSection)}</div>}
-          {notesSection}{filesSection}{historySection}
-        </div>
-      </>
-    );
-  }
-
   // ---- workspace sheet ----
   const title = e.headline ? String(r[e.fields[0].name] ?? e.summary(r)) : e.summary(r);
   const words = title.trim().split(/\s+/).filter(Boolean);
@@ -185,6 +173,9 @@ export async function RecordDetail({ entity: e, id, sp, workspace, tab, tabHref,
       </nav>
       <div className="body" style={{ display: "grid", gap: 12 }}>
         {flash}
+        {current === "resum" && e.key === "subscriptions" && (
+          <form action={renewSubscriptionAction} className="ws-renew">{hidden}<button className="btn" type="submit">Registra la renovació</button><span className="hint">Crea la despesa i mou la data de renovació.</span></form>
+        )}
         {current === "resum" && <>{dataSection}{linksLine}{e.logo && (
           <section className="card" aria-label="Logotip">
             <h3>Logotip</h3>

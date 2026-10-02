@@ -7,7 +7,15 @@ async function login(page: Page, who: "admin" | "editor") {
   await page.getByRole("button", { name: "Entra" }).click();
   await expect(page.getByRole("heading", { name: "Tauler" })).toBeVisible();
 }
-const addForm = (page: Page) => page.locator("form", { has: page.getByRole("button", { name: "Afegeix", exact: true }) });
+const sheet = (page: Page) => page.getByRole("complementary", { name: "Fitxa" });
+/** Opens a workspace list in "new record" mode, fills the fields (label -> value) in the side sheet and saves; the new record opens. */
+async function create(page: Page, list: string, fields: Record<string, string>, selects: Record<string, string | { label: string }> = {}) {
+  await page.goto(`/workspace/${list}?new=1`);
+  for (const [label, value] of Object.entries(fields)) await sheet(page).getByLabel(label, { exact: label === "Nom" }).fill(value);
+  for (const [label, value] of Object.entries(selects)) await sheet(page).getByLabel(label).selectOption(value);
+  await sheet(page).getByRole("button", { name: "Crea" }).click();
+  await expect(page).toHaveURL(/open=[0-9a-f-]{36}/);
+}
 
 test("ERP registry is closed to editors", async ({ page }) => {
   await login(page, "editor");
@@ -20,38 +28,17 @@ test("ERP registry: setup lists, an expense with a document, member fees in bulk
   test.setTimeout(150_000); // many screens in one flow
   await login(page, "admin");
 
-  // setup: supplier, expense category with its Sage account, cost center, fee tier, member
-  await page.goto("/admin/erp/suppliers");
-  await addForm(page).getByLabel("Nom").fill("Papereria Test SL");
-  await addForm(page).getByLabel("NIF/CIF").fill("B12345678");
-  await addForm(page).getByRole("button", { name: "Afegeix" }).click();
-  await expect(page.getByRole("status")).toContainText("Desat");
-  await expect(page.getByText("Papereria Test SL · B12345678")).toBeVisible();
-
-  await page.goto("/admin/erp/categories");
-  await addForm(page).getByLabel("Nom").fill("Material de formació");
-  await addForm(page).getByLabel(/Compte de Sage/).fill("629000");
-  await addForm(page).getByRole("button", { name: "Afegeix" }).click();
-  await expect(page.getByText("Despesa · Material de formació (629000)")).toBeVisible();
-
-  await page.goto("/admin/erp/cost-centers");
-  await addForm(page).getByLabel("Tipus").selectOption("course");
-  await addForm(page).getByLabel("Nom").fill("Curs Packaging 2026");
-  await addForm(page).getByLabel(/Pressupost/).fill("1.500,00");
-  await addForm(page).getByRole("button", { name: "Afegeix" }).click();
-  await expect(page.getByText("Curs · Curs Packaging 2026")).toBeVisible();
-
-  await page.goto("/admin/erp/fee-tiers");
-  await addForm(page).getByLabel("Nom del tram").fill("Tram A");
-  await addForm(page).getByLabel("Quota anual (€)").fill("400,00");
-  await addForm(page).getByRole("button", { name: "Afegeix" }).click();
-  await expect(page.getByText("Tram A", { exact: true }).first()).toBeVisible();
-
-  await page.goto("/admin/erp/members");
-  await addForm(page).getByLabel("Empresa / nom").fill("Gràfiques Exemple SA");
-  await addForm(page).getByLabel("Tram de quota").selectOption({ label: "Tram A" });
-  await addForm(page).getByRole("button", { name: "Afegeix" }).click();
-  await expect(page.getByText("Gràfiques Exemple SA")).toBeVisible();
+  // setup: supplier, expense category with its Sage account, cost center, fee tier, member (the lists live in the workspace)
+  await create(page, "suppliers", { Nom: "Papereria Test SL", "NIF/CIF": "B12345678" });
+  await expect(page.getByRole("heading", { name: "Papereria Test SL" })).toBeVisible();
+  await create(page, "categories", { Nom: "Material de formació", "Compte de Sage": "629000" });
+  await expect(page.getByRole("heading", { name: /Material de formació \(629000\)/ })).toBeVisible();
+  await create(page, "cost-centers", { Nom: "Curs Packaging 2026", Pressupost: "1.500,00" }, { Tipus: "course" });
+  await expect(page.getByRole("heading", { name: /Curs Packaging 2026/ })).toBeVisible();
+  await create(page, "fee-tiers", { "Nom del tram": "Tram A", "Quota anual (€)": "400,00" });
+  await expect(page.getByRole("heading", { name: /Tram A/ })).toBeVisible();
+  await create(page, "members", { "Empresa / nom": "Gràfiques Exemple SA" }, { "Tram de quota": { label: "Tram A" } });
+  await expect(page.getByRole("heading", { name: /Gràfiques Exemple SA/ })).toBeVisible();
 
   // an expense with a document attached
   await page.goto("/admin/erp/entries/new?kind=expense");
@@ -104,53 +91,70 @@ test("ERP registry: setup lists, an expense with a document, member fees in bulk
 
 test("engine lists: filter, sort and CSV export", async ({ page }) => {
   await login(page, "admin");
-  await page.goto("/admin/erp/categories");
-  for (const [kind, name] of [["income", "Quotes socis"], ["expense", "Paper oficina"]] as const) {
-    await addForm(page).getByLabel("Tipus").selectOption(kind);
-    await addForm(page).getByLabel("Nom", { exact: true }).fill(name);
-    await addForm(page).getByRole("button", { name: "Afegeix" }).click();
-    await expect(page.getByText(`${kind === "income" ? "Ingrés" : "Despesa"} · ${name}`)).toBeVisible(); // the new row, not the previous "Desat"
-  }
-  await page.goto("/admin/erp/categories?f_kind=expense");
+  await create(page, "categories", { Nom: "Quotes socis" }, { Tipus: "income" });
+  await create(page, "categories", { Nom: "Paper oficina" }, { Tipus: "expense" });
+  await page.goto("/workspace/categories?f_kind=expense");
   await expect(page.locator("select[name=f_kind]")).toHaveValue("expense");
-  await expect(page.getByText("Despesa · Paper oficina")).toBeVisible();
-  await expect(page.getByText("Ingrés · Quotes socis")).toHaveCount(0);
-  await page.locator("select[name=f_kind]").selectOption("income");
-  await page.getByRole("button", { name: "Aplica" }).click();
+  await expect(page.getByLabel(/^Nom · Despesa · Paper oficina/)).toBeVisible();
+  await expect(page.getByLabel(/^Nom · Ingrés · Quotes socis/)).toHaveCount(0);
+  await page.locator("select[name=f_kind]").selectOption("income"); // the filter applies by itself
   await expect(page).toHaveURL(/f_kind=income/);
-  const res = await page.request.get("/admin/erp/categories/export?f_kind=income");
+  const res = await page.request.get("/workspace/categories/export?f_kind=income");
   expect(res.headers()["content-type"]).toContain("text/csv");
   const csv = await res.text();
   expect(csv).toContain("Quotes socis");
   expect(csv).not.toContain("Paper oficina");
 });
 
-test("record page: notes, file, history, archive and linked records", async ({ page }) => {
+test("the old admin list addresses land in the workspace", async ({ page }) => {
   await login(page, "admin");
   await page.goto("/admin/erp/suppliers");
-  await addForm(page).getByLabel("Nom").fill("Fitxa Test SL");
-  await addForm(page).getByRole("button", { name: "Afegeix" }).click();
-  await expect(page.getByRole("status")).toContainText("Desat");
-  await page.locator("summary", { hasText: "Fitxa Test SL" }).click();
-  await page.locator("details", { hasText: "Fitxa Test SL" }).getByRole("link", { name: "Obre la fitxa" }).click();
+  await expect(page).toHaveURL(/\/workspace\/suppliers$/);
+  await page.goto("/admin/clients?q=zz");
+  await expect(page).toHaveURL(/\/workspace\/companies\?q=zz/);
+  await create(page, "suppliers", { Nom: "Redirigit SL" });
+  const id = new URL(page.url()).searchParams.get("open")!;
+  await page.goto(`/admin/erp/suppliers/${id}`);
+  await expect(page).toHaveURL(new RegExp(`/workspace/suppliers\\?open=${id}`));
+});
+
+test("record sheet: notes, file, history and archive", async ({ page }) => {
+  await login(page, "admin");
+  await create(page, "suppliers", { Nom: "Fitxa Test SL" });
   await expect(page.getByRole("heading", { name: "Fitxa Test SL" })).toBeVisible();
 
+  await sheet(page).getByRole("link", { name: "Notes" }).click();
   await page.getByLabel("Nova nota").fill("Trucada amb el gerent");
   await page.getByRole("button", { name: "Afegeix la nota" }).click();
   await expect(page.getByRole("region", { name: "Notes" })).toContainText("Trucada amb el gerent");
 
-  await page.getByLabel("Telèfon").fill("93 123 45 67");
+  await sheet(page).getByRole("link", { name: "Resum" }).click();
+  await sheet(page).getByText(/Mostra \d+ camps? buits?/).click(); // empty fields are folded away
+  await sheet(page).getByLabel("Telèfon").fill("93 123 45 67");
   await page.getByRole("region", { name: "Dades" }).getByRole("button", { name: "Desa" }).click();
+  await sheet(page).getByRole("link", { name: "Historial" }).click();
   await expect(page.getByRole("region", { name: "Historial" })).toContainText("Telèfon: — → 93 123 45 67");
 
+  await sheet(page).getByRole("link", { name: "Fitxers" }).click();
   const pdf = Buffer.from("%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF");
-  await page.locator('input[type=file]').setInputFiles({ name: "contracte.pdf", mimeType: "application/pdf", buffer: pdf });
+  await page.locator("input[type=file]").setInputFiles({ name: "contracte.pdf", mimeType: "application/pdf", buffer: pdf });
   await page.locator("button", { hasText: "Puja" }).click();
   await expect(page.getByRole("region", { name: "Fitxers" })).toContainText("contracte.pdf");
 
+  await sheet(page).getByRole("link", { name: "Resum" }).click();
   await page.getByRole("button", { name: "Arxiva" }).click();
-  await expect(page).toHaveURL(/\/admin\/erp\/suppliers\?/);
-  await expect(page.getByText("Fitxa Test SL")).toHaveCount(0);
-  await page.goto("/admin/erp/suppliers?archived=1");
-  await expect(page.getByText("Fitxa Test SL")).toBeVisible();
+  await expect(page).toHaveURL(/\/workspace\/suppliers\?/);
+  await page.goto("/workspace/suppliers?q=Fitxa Test");
+  await expect(page.getByLabel(/^Nom · Fitxa Test SL/)).toHaveCount(0);
+  await page.goto("/workspace/suppliers?q=Fitxa Test&archived=1");
+  await expect(page.getByLabel(/^Nom · Fitxa Test SL/)).toBeVisible();
+});
+
+test("subscriptions: the renewal button is on the record sheet", async ({ page }) => {
+  await login(page, "admin");
+  await create(page, "subscriptions", { Nom: "Programari e2e", "Import (€)": "120,00", "Propera renovació": "2026-12-01" });
+  await expect(sheet(page).getByRole("button", { name: "Registra la renovació" })).toBeVisible();
+  await sheet(page).getByRole("button", { name: "Registra la renovació" }).click();
+  await expect(page).toHaveURL(/\/admin\/erp\/entries\?kind=expense&saved=renewal/);
+  await expect(page.getByText("Programari e2e").first()).toBeVisible();
 });

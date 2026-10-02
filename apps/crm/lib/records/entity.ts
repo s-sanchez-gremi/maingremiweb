@@ -16,7 +16,7 @@ export type Entity = {
   title: string;             // plural, shown as the page title
   table: AnyPgTable;
   fields: Field[];
-  basePath: string;          // where the screens live, e.g. /admin/erp/suppliers
+  basePath: string;          // where the screens live, e.g. /workspace/suppliers
   crumb: string;
   perm: "erp:write" | "leads:write" | "projects:write";
   search?: string[];         // text columns searched by the list box
