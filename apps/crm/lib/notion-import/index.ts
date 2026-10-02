@@ -5,12 +5,14 @@ import { importCompanies } from "./companies";
 import { importGala, importVisits } from "./events";
 import { importGeneric, TARGETS } from "./generic";
 import { importSponsors } from "./sponsors";
-import { importContactList } from "./lists";
-import { importTraining } from "./training";
+import { importRoster } from "./lists";
+import { importPeople } from "./people";
+import { importSuppliers } from "./suppliers";
+import { importCourses, importTraining } from "./training";
 import { queryDatabase, type Row } from "./notion";
 import { formatReport, type Report } from "./report";
 
-export type Sources = { companies?: string[]; former?: string[]; external?: string[]; gala?: string[]; visits?: string[]; labour?: string[]; training?: string[]; sponsors?: string[]; jobseekers?: string[] };
+export type Sources = { companies?: string[]; former?: string[]; external?: string[]; gala?: string[]; visits?: string[]; labour?: string[]; training?: string[]; sponsors?: string[]; jobseekers?: string[]; rosters?: string[]; suppliers?: string[]; people?: string[]; courses?: string[] };
 export type Options = { minTier?: number; db: typeof Db; read: (databaseId: string) => Promise<Row[]>; sources: Sources; dryRun: boolean; overwrite?: boolean; erp?: boolean; only?: (keyof Sources)[] };
 class Rollback extends Error {}
 
@@ -30,7 +32,12 @@ export async function runImport(o: Options): Promise<{ reports: Report[]; text: 
       if (want("external")) { const r = await importCompanies(ctx, await readAll(o.read, o.sources.external), { label: "Externes (no socis)", erp: false }); reports.push(r.report); for (const [k, v] of r.idmap) idmap.set(k, v); }
       if (want("gala")) reports.push(await importGala(ctx, await readAll(o.read, o.sources.gala), idmap));
       if (want("visits")) reports.push(await importVisits(ctx, await readAll(o.read, o.sources.visits), idmap));
-      if (want("labour")) for (const spec of o.sources.labour ?? []) { const [id, ...rest] = spec.split(":"); reports.push(await importContactList(ctx, await o.read(id), idmap, { id, eventName: rest.join(":").trim() || `Llista ${id.slice(0, 6)}` })); }
+      // people: "id:Label" or "id:Label:Role" (role given to everyone who has none, e.g. Formador)
+      if (want("people")) for (const spec of o.sources.people ?? []) { const [id, label, role] = spec.split(":"); reports.push(await importPeople(ctx, await o.read(id), idmap, { id, label: label?.trim() || `Llista ${id.slice(0, 6)}`, role: role?.trim() })); }
+      // rosters: "id:Event name" per database (labour = the Laboral lists, rosters = every other event/session list)
+      for (const k of ["labour", "rosters"] as const) if (want(k)) for (const spec of o.sources[k] ?? []) { const [id, ...rest] = spec.split(":"); reports.push(await importRoster(ctx, await o.read(id), idmap, { id, eventName: rest.join(":").trim() || `Llista ${id.slice(0, 6)}` })); }
+      if (want("courses")) for (const spec of o.sources.courses ?? []) { const [id, ...rest] = spec.split(":"); reports.push(await importCourses(ctx, await o.read(id), rest.join(":").trim() || "Cursos")); }
+      if (want("suppliers")) reports.push(await importSuppliers(ctx, await readAll(o.read, o.sources.suppliers)));
       if (want("training")) reports.push(await importTraining(ctx, await readAll(o.read, o.sources.training), idmap));
       if (want("sponsors")) reports.push(await importSponsors(ctx, await readAll(o.read, o.sources.sponsors), idmap));
       for (const k of ["jobseekers"] as const) if (want(k)) reports.push(await importGeneric(ctx, k, await readAll(o.read, o.sources[k])));

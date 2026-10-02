@@ -34,6 +34,7 @@ export const suppliers = pgTable("suppliers", {
   notes: text().notNull().default(""),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
+  externalRef: text("external_ref"),
 });
 
 export const feeTiers = pgTable("fee_tiers", {

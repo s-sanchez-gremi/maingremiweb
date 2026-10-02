@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@apex/db";
-import { clients, eventAttendance, events, feeTiers, jobSeekers, members, people, sponsors, trainingCourses, visits, users } from "@apex/db/schema";
+import { clients, eventAttendance, events, feeTiers, jobSeekers, members, people, sponsors, suppliers, trainingCourses, visits, users } from "@apex/db/schema";
 import { mergeCompanies } from "../notion-import/companies";
 import { queryDatabase, toRow, flattenProp, mask, type Row } from "../notion-import/notion";
 import { runImport } from "../notion-import";
@@ -27,7 +27,7 @@ const run = (sources: Parameters<typeof runImport>[0]["sources"], data: Record<s
   runImport({ db, read: async (id) => data[id] ?? [], sources, dryRun: false, ...extra });
 
 beforeEach(async () => {
-  for (const x of [eventAttendance, events, visits, sponsors, trainingCourses, jobSeekers, people, members, feeTiers, clients, users]) await db.delete(x);
+  for (const x of [eventAttendance, events, visits, sponsors, suppliers, trainingCourses, jobSeekers, people, members, feeTiers, clients, users]) await db.delete(x);
 });
 
 describe("reading Notion", () => {
@@ -241,7 +241,7 @@ describe("Laboral contact lists and Bonificada courses", () => {
     expect((await db.select().from(people)).map((x) => x.name).sort()).toEqual(["Laia Ribas", "Marc Soler", "Pere Ribas"]);
     const marc = (await db.select().from(eventAttendance)).find((x) => x.notes.includes("Empresa Desconeguda"));
     expect(marc).toBeTruthy(); // unmatched company name is kept
-    expect(r.reports.find((x) => x.source.includes("28/9"))!.extra["skipped: row has neither a person nor a company"]).toBe(1);
+    expect(r.reports.find((x) => x.source.includes("28/9"))!.extra["skipped: nothing identifies the row (no person, company or e-mail we know)"]).toBe(1);
     expect((await db.select().from(eventAttendance)).filter((x) => x.companyId)).toHaveLength(2);
     await run({ labour: ["A:Laboral 04/03", "B:Laboral 28/9"] }, data);
     expect(await db.select().from(eventAttendance)).toHaveLength(3);
@@ -263,5 +263,75 @@ describe("Laboral contact lists and Bonificada courses", () => {
     await db.delete(trainingCourses);
     await run({ training: ["t"] }, { t: rows(c1) });
     expect((await db.select().from(trainingCourses))[0].companyId).toBeTruthy();
+  });
+});
+
+describe("the other rosters, people, suppliers and courses", () => {
+  const rich = (s: string) => t(s);
+  it("recognises each roster's layout: title as person, title as company, company-only rows, relation to a company; keeps extras in the notes", async () => {
+    const co = company({ name: "Gràfiques Vila, S.L.", cif: "B1" });
+    // Congrés: title "Nom i cognoms" is the person; company typed; interests as multi-selects
+    const congres = rows(page({ "Nom i cognoms": title("Anna Puig"), Empresa: rich("Grafiques Vila SL"), "Correu electronic": email("anna@vila.example"), "Telèfon": phone("600111222"), "Innovació tecnològica:": multi("IA", "Robots") }));
+    // FESPA: title EMPRESA is the company, separate person column; Tour as multi-select
+    const fespa = rows(page({ EMPRESA: title("Grafiques Vila"), "Nom i cognoms": rich("Joan Soler"), CONTACTE: email("joan@vila.example"), "Tour / Fòrum": multi("Tour") }));
+    // LabelExpo / Printing Our Future: companies only (one with a contact e-mail)
+    const only = rows(page({ Empresa: title("Grafiques Vila"), "Ubicació": rich("Girona") }), page({ "Empresa Agremiada": title("Empresa Desconeguda SL"), email: email("info@x.example") }));
+    // Alumnes màster: title is the student, company through a relation to an imported company
+    const master = rows(page({ "Nom i cognoms": title("Marta Roca"), "Correo electrónico": email("marta@x.example"), Agremiats: rel(co.id) }));
+    const r = await run({ companies: ["c"], rosters: ["a:Congrés", "b:FESPA", "o:LabelExpo", "m:Màster"] }, { c: rows(co), a: congres, b: fespa, o: only, m: master });
+    expect((await db.select().from(events)).map((x) => x.name).sort()).toEqual(["Congrés", "FESPA", "LabelExpo", "Màster"]);
+    expect((await db.select().from(people)).map((x) => x.name).sort()).toEqual(["Anna Puig", "Joan Soler", "Marta Roca"]);
+    const at = await db.select().from(eventAttendance);
+    expect(at).toHaveLength(5);
+    expect(at.filter((x) => x.personId === null)).toHaveLength(2); // the two company-only rows
+    expect(at.filter((x) => x.companyId)).toHaveLength(4); // Congrés, FESPA, the company-only Vila row and Màster (by relation); the unknown company stays unlinked
+    expect(at.find((x) => x.notes.includes("Innovació tecnològica:: IA, Robots") || x.notes.includes("Innovació tecnològica:"))).toBeTruthy();
+    expect(at.find((x) => x.notes.includes("Empresa: Empresa Desconeguda SL"))!.notes).toContain("Contacte: info@x.example");
+    expect(r.reports.filter((x) => x.source.startsWith("Llista")).length).toBe(4);
+  });
+  it("people lists: no duplicates of people already imported (only blanks filled), trainers get a role, DNI never imported", async () => {
+    const co = company({ name: "Vila SL", cif: "B1" });
+    await run({ companies: ["c"], rosters: ["a:Sessió"] }, { c: rows(co), a: rows(page({ "Nom i cognoms": title("Anna Puig"), Empresa: rich("Vila SL"), "Correu electronic": email("anna@vila.example") })) });
+    const personal = rows(page({ Nombre: title("Anna Puig"), Company: rich("Vila SL"), "Email addresses": email("anna@vila.example"), "Càrrec": rich("Gerent"), "Phone numbers": rich("933111222") }), page({ Nombre: title("Pere Nou"), Company: rich("Empresa Sense Fitxa"), "Email addresses": email("pere@x.example") }));
+    const formadors = rows(page({ "Nom i cognoms": title("Laia Formadora"), "Correu electrònic": email("laia@x.example"), DNI: rich("12345678Z"), "perfil del formador": multi("Offset"), "Num. Telèfon": phone("600000000") }));
+    const r = await run({ people: ["p:Personal", "f:Formadors:Formador"] }, { p: personal, f: formadors });
+    const all = await db.select().from(people);
+    expect(all).toHaveLength(3);
+    const anna = all.find((x) => x.name === "Anna Puig")!;
+    expect([anna.role, anna.phone]).toEqual(["Gerent", "933111222"]); // blanks filled
+    expect(all.find((x) => x.name === "Pere Nou")!.notes).toContain("Empresa: Empresa Sense Fitxa");
+    const laia = all.find((x) => x.name === "Laia Formadora")!;
+    expect([laia.role, laia.source]).toEqual(["Formador", "Notion · Formadors"]);
+    expect(JSON.stringify(all)).not.toContain("12345678Z");
+    expect(r.reports.find((x) => x.source.includes("Formadors"))!.extra["DNI values left out on purpose"]).toBe(1);
+    await run({ people: ["p:Personal", "f:Formadors:Formador"] }, { p: personal, f: formadors });
+    expect(await db.select().from(people)).toHaveLength(3); // repeatable
+  });
+  it("a roster whose title is only a row number and whose person and company are LINKS to other databases resolves them", async () => {
+    const co = company({ name: "Gràfiques Vila, S.L.", cif: "B1" });
+    const personPage = page({ Nombre: title("Anna Puig"), Company: t("Vila"), "Email addresses": email("anna@vila.example") });
+    const rosterRow = page({ "Empresa Agremiada": title("57"), Persona: rel(personPage.id), Empresa: rel(co.id), email: { type: "rollup", rollup: {} } });
+    const orphan = page({ "Empresa Agremiada": title("56"), Persona: rel("99999999-9999-4999-8999-999999999999"), Empresa: rel("88888888-8888-4888-8888-888888888888") });
+    const r = await run({ companies: ["c"], people: ["p:Personal"], rosters: ["r:Printing Our Future"] }, { c: rows(co), p: rows(personPage), r: rows(rosterRow, orphan) });
+    const [ev] = await db.select().from(events);
+    expect(ev.name).toBe("Printing Our Future");
+    const at = await db.select().from(eventAttendance);
+    expect(at).toHaveLength(1); // the orphan row points at nothing we imported: skipped and counted
+    expect(at[0].personId).toBeTruthy(); expect(at[0].companyId).toBeTruthy();
+    expect((await db.select().from(people)).map((x) => x.name)).toEqual(["Anna Puig"]); // no person made out of a page id or a row number
+    expect(r.reports.find((x) => x.source.startsWith("Llista"))!.skipped).toBe(1);
+  });
+  it("suppliers and simple course lists", async () => {
+    const sup = rows(page({ EMPRESA: title("Tintes Ràpides SA"), MAIL: email("ventes@tintes.example"), "UBICACIÓ": rich("Terrassa"), WEB: { type: "url", url: "https://tintes.example" }, ORIGEN: multi("FESPA"), NOTA: rich("Bon preu"), "contactar P26": { type: "checkbox", checkbox: true } }));
+    const course = rows(page({ Nombre: title("Màster impressió"), Fecha: date("2026-03-15"), "accio i grup": rich("AF-7") }));
+    const r = await run({ suppliers: ["s"], courses: ["k:Màster"] }, { s: sup, k: course });
+    const [s] = await db.select().from(suppliers);
+    expect(s).toMatchObject({ name: "Tintes Ràpides SA", email: "ventes@tintes.example" });
+    expect(s.notes).toContain("UBICACIÓ: Terrassa"); expect(s.notes).toContain("contactar P26: sí"); expect(s.notes).toContain("ORIGEN: FESPA");
+    const [c] = await db.select().from(trainingCourses);
+    expect(c).toMatchObject({ name: "Màster impressió", startsOn: "2026-03-15" }); expect(c.notes).toContain("accio i grup: AF-7");
+    expect(r.reports.map((x) => x.created)).toEqual([1, 1]);
+    await run({ suppliers: ["s"], courses: ["k:Màster"] }, { s: sup, k: course });
+    expect([(await db.select().from(suppliers)).length, (await db.select().from(trainingCourses)).length]).toEqual([1, 1]);
   });
 });
