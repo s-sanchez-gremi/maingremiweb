@@ -79,7 +79,7 @@ export function loadExport(dir: string, since?: string): Export {
         tags: [...termIds.slice(1).map((c) => decodeName(c.name)), ...(r.tags ?? []).map((id) => tagById.get(id)).filter((t): t is Term => !!t).map((t) => decodeName(t.name))],
         cover: fm?.source_url ? { src: fm.source_url, alt: (fm.alt_text ?? "").trim() } : null,
         parts, description: plain(r.excerpt?.rendered ?? "").replace(/\s*\[…\]$/, "").slice(0, 160),
-        warnings: w, include: !w.some((x) => x.level === "alta"),
+        warnings: w, include: !w.some((x) => x.level === "alta") && parts.length > 0, // empty after cleaning: nothing to import
       });
     }
   }

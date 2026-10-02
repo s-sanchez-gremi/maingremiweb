@@ -23,10 +23,11 @@ hosting panel, which needs a different reader.
 pnpm --filter web wp:review --since 2026-08-01     # --since: the date the hack is believed to have started (optional)
 ```
 Writes `wp-export/revisio.html` (what each item will look like; it cannot load or run anything) and
-`wp-export/revisio.csv` (one row per item, column **importar** = sí/no). Items with a high-level warning start as
-**no**: `<script>`, code in attributes, hidden text/links, spam words (also in link addresses), text in an unexpected
-alphabet, iframes from other sites, or changed on/after `--since`. Medium warnings (unknown author, links to other
-sites, removed page-builder codes, missing images, more than 60 blocks) are only shown. The CSV is never overwritten
+`wp-export/revisio.csv` (one row per item, column **importar** = sí/no). The cleaner first drops scripts, foreign iframes and every **hidden** element (where hacks hide their
+spam links), then judges what is left. Items start as **no** when the kept content has a spam word (gambling, pharma,
+adult…), a link to a cheap spam domain (.xyz, .top…), text in an unexpected alphabet, was changed on/after `--since`,
+or is empty after cleaning. What was removed (code, hidden blocks, iframes), unknown authors, links to other sites,
+page-builder codes, missing images and more than 60 blocks are only shown as medium warnings. The CSV is never overwritten
 once it exists (`--reset` to start again), so a person's choices survive re-runs.
 
 ## 3. Import as drafts

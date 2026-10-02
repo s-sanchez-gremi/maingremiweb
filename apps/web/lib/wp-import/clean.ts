@@ -166,7 +166,9 @@ export const linksIn = (body: string) => [...body.matchAll(/\[[^\]\n]+\]\(([^)\s
 
 // --- Signs of a hacked page -------------------------------------------------------------------------------------
 
-const SPAM = /\b(casino|viagra|cialis|levitra|porn\w*|xxx|escort\w*|payday|loans?|bitcoin|crypto\w*|forex|betting|apuestas|gambling|lottery|pharmacy|pills|replica|essay|hookup|dating|weight loss|keto|slots?|jackpot|louis vuitton|nike air|kredit|onlyfans|sportsbook|1xbet)\b/i;
+const SPAM = /\b(casino|viagra|cialis|levitra|porn\w*|xxx|escort\w*|payday|loans?|bitcoin|crypto\w*|forex|betting|apuestas|gambling|lottery|pharmacy|pills|replica|essay|hookup|dating|weight loss|keto|slots?|jackpot|louis vuitton|nike air|kredit|onlyfans|sportsbook|1xbet|nsfw|adult content|sex chat|telegram groups?)\b/i;
+/** Cheap domain endings that spam links favour; a real link to one is rare enough to ask a person. */
+const SPAM_TLD = /\.(xyz|top|click|icu|buzz|shop|online|site|live|bet|casino|loan|win|vip|monster|cfd|sbs)$/i;
 const FOREIGN_SCRIPT = /[Ѐ-ӿ֐-ۿ฀-๿぀-ヿ㐀-鿿가-힯]/;
 const HIDDEN = /style\s*=\s*["'][^"']*(display\s*:\s*none|visibility\s*:\s*hidden|font-size\s*:\s*0|(left|top)\s*:\s*-\d{3,}|height\s*:\s*0|opacity\s*:\s*0)/i;
 const HIDDEN_ATTR = /(^|\s)hidden(\s|=|$)|aria-hidden\s*=\s*["']?true/i;
@@ -187,6 +189,8 @@ export function warnings(o: { title: string; html: string; parts: Part[]; site: 
   const text = `${o.title} ${kept.join(" ")}`;
   const spam = text.match(SPAM);
   if (spam) w.push({ level: "alta", text: `Paraula típica de spam: «${spam[0]}»` });
+  const cheap = [...new Set(hrefs.map(host).filter((h) => SPAM_TLD.test(h)))];
+  if (cheap.length) w.push({ level: "alta", text: `Enllaç a un domini típic de spam: ${cheap.slice(0, 3).join(", ")}` });
   if (FOREIGN_SCRIPT.test(text)) w.push({ level: "alta", text: "Text en un alfabet estrany (rus, xinès, japonès…)" });
   if (o.since && o.modified && o.modified.slice(0, 10) >= o.since) w.push({ level: "alta", text: `Modificat el ${o.modified.slice(0, 10)}, després del ${o.since}` });
   if (/<script\b/i.test(o.html)) w.push({ level: "mitjana", text: "Tenia codi <script> (s'ha tret)" });

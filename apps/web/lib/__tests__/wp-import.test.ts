@@ -62,6 +62,8 @@ describe("wp import: signs of a hacked page", () => {
     expect(levels(`<p>Cheap viagra here</p>`)).toContain("alta:Paraula");
     expect(levels(`<p>Visit <a href="https://best-casino.example">this</a></p>`)).toContain("alta:Paraula");
     expect(levels(`<p>激安 ブランド</p>`)).toContain("alta:Text");
+    expect(levels(`<p>UK NSFW Telegram Groups</p>`)).toContain("alta:Paraula");
+    expect(levels(`<p>Mira <a href="https://best-list.xyz/a">això</a></p>`)).toContain("alta:Enllaç");
     expect(levels(`<p>ok</p>`, { modified: "2026-09-01T10:00:00", since: "2026-08-15" })).toContain("alta:Modificat");
   });
 
