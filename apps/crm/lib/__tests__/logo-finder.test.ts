@@ -10,7 +10,7 @@ describe("logo finder", () => {
     for (const bad of ["", "localhost", "127.0.0.1", "http://192.168.1.5/x", "intranet", "ftp://x.com", "mail:pere@x.com", "https://www.linkedin.com/company/x", "behance.net/oscar", "x.wixsite.com/tienda"]) expect(normalizeSite(bad)).toBeNull();
   });
   it("guesses a site from a business e-mail, never from a free provider", () => {
-    expect(siteFromEmail("info@graficas3g.com")?.hostname).toBe("graficas3g.com");
+    expect(siteFromEmail("info@company.example")?.hostname).toBe("company.example");
     expect(siteFromEmail("pere@gmail.com", "admin@palahi.cat; quim")?.hostname).toBe("palahi.cat");
     expect(siteFromEmail("a@hotmail.com", "", "b@telefonica.net")).toBeNull();
   });

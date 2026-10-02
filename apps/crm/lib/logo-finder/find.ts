@@ -64,7 +64,7 @@ export function logoCandidates(html: string, base: URL): Candidate[] {
 
 const FREE_MAIL = /^(gmail|googlemail|hotmail|outlook|live|msn|yahoo|ymail|icloud|me|mac|aol|gmx|proton|protonmail|telefonica|movistar|terra|ya|wanadoo|orange|ono|vodafone|jazztel|tiscali|mixmail|tinet|menta|eresmas|telecable|pangea|arrakis)\.[a-z.]+$/i;
 
-/** The company site guessed from a business e-mail address (info@graficas3g.com -> graficas3g.com); null for free mail providers. Only used to find a logo, never saved as the website. */
+/** The company site guessed from a business e-mail address (info@company.example -> company.example); null for free mail providers. Only used to find a logo, never saved as the website. */
 export function siteFromEmail(...emails: string[]): URL | null {
   for (const raw of emails.flatMap((e) => e.split(/[;,\s]+/))) {
     const d = raw.split("@")[1]?.toLowerCase().trim();
