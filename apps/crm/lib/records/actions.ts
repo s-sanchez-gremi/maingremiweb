@@ -2,7 +2,12 @@
 // Generic save/delete for every engine entity: permission, validation and the redirect back to where the person was
 // (the admin pages or the workspace; `back` is only honoured when it points into this entity's own screens).
 import { redirect } from "next/navigation";
+import { eq } from "drizzle-orm";
+import sharp from "sharp";
 import { z } from "zod";
+import { db } from "@apex/db";
+import { classifyUpload } from "@apex/core/files";
+import { deletePrivatePrefix, putPrivate } from "@apex/core/storage";
 import { requireUser } from "@apex/core/auth";
 import { deleteRecord, saveField, saveRecord, setArchived } from "./engine";
 import type { Entity } from "./entity";
@@ -117,4 +122,36 @@ export async function archiveAction(fd: FormData) {
   const archive = fd.get("archive") === "1";
   await setArchived(e, id, archive, user);
   go(archive ? home : page, { saved: "1" });
+}
+
+/** Sets the record's logo from an uploaded PNG, JPEG, WebP or GIF (up to 5 MB): checked by content, shrunk to a small WebP, kept privately. */
+export async function uploadLogoAction(fd: FormData) {
+  const e = entityOf(fd);
+  await requireUser(e.perm);
+  const id = z.string().uuid().parse(s(fd, "id"));
+  const back = backTo(e, fd, `${ws(e)}?open=${id}`);
+  if (!e.logo) throw new Error("This list has no logos");
+  const file = fd.get("file");
+  if (!(file instanceof File) || file.size === 0) return go(back, { error: "Tria una imatge" });
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const kind = bytes.length <= 5 * 1024 * 1024 ? classifyUpload(file.name, bytes) : null;
+  if (!kind || !kind.mime.startsWith("image/")) return go(back, { error: "El logotip ha de ser una imatge PNG, JPG, WebP o GIF de com a màxim 5 MB" });
+  let webp: Buffer;
+  try { webp = await sharp(bytes, { failOn: "none" }).rotate().resize(160, 160, { fit: "inside", withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(); }
+  catch { return go(back, { error: "No s'ha pogut llegir la imatge" }); }
+  const key = `records/${e.key}/${id}/logo.webp`;
+  await putPrivate(key, webp, "image/webp");
+  await db.update(e.table).set({ [e.logo]: key } as never).where(eq((e.table as unknown as Record<string, never>).id, id));
+  go(back, { saved: "1" });
+}
+
+export async function removeLogoAction(fd: FormData) {
+  const e = entityOf(fd);
+  await requireUser(e.perm);
+  const id = z.string().uuid().parse(s(fd, "id"));
+  const back = backTo(e, fd, `${ws(e)}?open=${id}`);
+  if (!e.logo) throw new Error("This list has no logos");
+  await deletePrivatePrefix(`records/${e.key}/${id}/logo`);
+  await db.update(e.table).set({ [e.logo]: null } as never).where(eq((e.table as unknown as Record<string, never>).id, id));
+  go(back, { saved: "1" });
 }

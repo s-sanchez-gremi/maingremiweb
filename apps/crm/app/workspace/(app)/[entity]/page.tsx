@@ -82,7 +82,9 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
   const sortKey = q.sort ?? e.sort ?? "name";
   const dir = q.dir ?? (sortKey === (e.sort ?? "name") ? e.sortDir : undefined) ?? "asc";
   // A round monogram before the name (Contacts-style); its tint comes from the name, so the same record always looks the same. Decorative only.
-  const Mono = ({ text }: { text: string }) => {
+  const Mono = ({ text, logoOf }: { text: string; logoOf?: string }) => {
+    // eslint-disable-next-line @next/next/no-img-element
+    if (logoOf) return <img className="ws-logo" src={logoOf} alt="" width={22} height={22} loading="lazy" decoding="async" />;
     const words = text.trim().split(/\s+/).filter(Boolean);
     const ini = ((words[0]?.[0] ?? "") + (words.length > 1 ? words[1][0] : "")).toUpperCase();
     let h = 0; for (const c of text) h = (h * 31 + c.charCodeAt(0)) >>> 0;
@@ -257,7 +259,7 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
                           <div className="ws-first">
                             <input type="checkbox" className="ws-sel" data-id={r.id} aria-label={`Selecciona ${e.summary(r)}`} />
                             {e.detail ? <Link className="ws-open" href={href({ open: r.id, new: undefined })} aria-label={`Obre ${e.summary(r)}`}><Icon name="expand" size={14} /></Link> : <span className="ws-open" />}
-                            {f.type === "text" && <Mono text={String(r[f.name] ?? "")} />}<div className="ws-name">{cell}{sub && <span className={`ws-sub${sub.warn ? " warn" : ""}`}>{sub.text}</span>}</div></div>
+                            {f.type === "text" && <Mono text={String(r[f.name] ?? "")} logoOf={e.logo && r[e.logo] ? `/workspace/${e.key}/${r.id}/logo` : undefined} />}<div className="ws-name">{cell}{sub && <span className={`ws-sub${sub.warn ? " warn" : ""}`}>{sub.text}</span>}</div></div>
                         </td>
                       );
                     })}

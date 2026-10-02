@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@apex/db";
 import { clients, eventAttendance, events, feeTiers, jobSeekers, members, people, sponsors, suppliers, trainingCourses, visits, users } from "@apex/db/schema";
-import { mergeCompanies } from "../notion-import/companies";
+import { logoOf, mergeCompanies } from "../notion-import/companies";
 import { queryDatabase, toRow, flattenProp, mask, type Row } from "../notion-import/notion";
 import { runImport } from "../notion-import";
 
@@ -49,6 +49,16 @@ describe("reading Notion", () => {
     await expect((async () => { for await (const r of queryDatabase("tok", "db1", (async () => new Response("{}", { status: 404 })) as unknown as typeof fetch)) void r; })()).rejects.toThrow(/shared/);
   });
   it("masks names for the report", () => expect(mask("Anna Puig")).toBe("A••• P•••"));
+});
+
+describe("logos", () => {
+  const page = (files: unknown[]) => toRow({ id: "p1", properties: { Empresa: { type: "title", title: [{ plain_text: "Vila SL" }] }, Logotip: { type: "files", files } } as never });
+  it("keeps the download links of files apart from the plain values and picks the first image of the logo column", () => {
+    const r = page([{ name: "memoria.pdf", type: "file", file: { url: "https://x/m.pdf" } }, { name: "logo.png", type: "file", file: { url: "https://x/l.png?sig=1" } }]);
+    expect(r.props["Logotip"]).toEqual(["memoria.pdf", "logo.png"]);
+    expect(logoOf(r)).toBe("https://x/l.png?sig=1");
+    expect(logoOf(page([]))).toBe("");
+  });
 });
 
 describe("companies", () => {

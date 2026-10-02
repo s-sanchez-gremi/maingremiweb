@@ -45,7 +45,7 @@ export const crmEntities: Entity[] = [
     ],
     subline: (r) => (r.taxId || r.activity ? { text: [r.taxId, r.activity].filter(Boolean).join(" · ") } : { text: "Falta CIF", warn: true }),
     headline: { sub: (r) => [r.taxId, [r.city, r.province].filter(Boolean).join(", "), r.activity].filter(Boolean).join(" · "), status: "memberStatus" },
-    bulk: { invite: true },
+    bulk: { invite: true }, logo: "logoKey",
     summary: (r) => `${r.name}${r.taxId ? ` · ${r.taxId}` : ""}`,
     hint: "Una empresa per NIF/CIF: si ja existeix, no se'n pot crear una altra. Els socis, contactes, projectes i notes hi queden enllaçats.",
   },
