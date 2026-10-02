@@ -42,11 +42,11 @@ function order(e: Entity, q: ListQuery) {
   return [dir === "desc" ? desc(t[col]) : asc(t[col]), asc(t.id)];
 }
 
-export async function listRecords(e: Entity, q: ListQuery, opts: { all?: boolean } = {}) {
+export async function listRecords(e: Entity, q: ListQuery, opts: { all?: boolean; limit?: number } = {}) {
   const w = where(e, q);
   const page = Math.max(1, q.page ?? 1);
   const base = db.select().from(e.table).where(w).orderBy(...order(e, q));
-  const rows = (await (opts.all ? base : base.limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE))) as Row[];
+  const rows = (await (opts.all ? base : opts.limit ? base.limit(opts.limit) : base.limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE))) as Row[];
   const [{ n }] = await db.select({ n: count() }).from(e.table).where(w);
   return { rows, total: Number(n), page, pages: Math.max(1, Math.ceil(Number(n) / PAGE_SIZE)) };
 }

@@ -171,3 +171,31 @@ test("workspace: CSV import (validate first), export, and search across database
   const tpl = await (await page.request.get("/workspace/companies/import/template")).text();
   expect(tpl).toContain("NIF/CIF");
 });
+
+test("workspace: board view groups by status, cards can be moved, statuses are coloured", async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 800 });
+  await login(page);
+  await page.goto("/workspace/sponsors?new=1");
+  const panel = page.getByRole("complementary", { name: "Fitxa" });
+  await panel.getByLabel("Nom", { exact: true }).fill("Tauler e2e");
+  await panel.getByRole("button", { name: "Crea" }).click();
+  await expect(page.getByRole("heading", { name: "Tauler e2e" })).toBeVisible();
+
+  await page.goto("/workspace/sponsors");
+  await page.getByRole("link", { name: "Tauler", exact: true }).click();
+  await expect(page).toHaveURL(/view=board/);
+  const potential = page.getByRole("region", { name: /^Potencial:/ });
+  await expect(potential.locator(".ws-card", { hasText: "Tauler e2e" })).toBeVisible();
+
+  // the card menu (keyboard route; dragging calls the same code) moves it and it stays moved
+  await potential.locator(".ws-card", { hasText: "Tauler e2e" }).getByRole("combobox").selectOption("active");
+  const active = page.getByRole("region", { name: /^Actiu:/ });
+  await expect(active.locator(".ws-card", { hasText: "Tauler e2e" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("region", { name: /^Actiu:/ }).locator(".ws-card", { hasText: "Tauler e2e" })).toBeVisible();
+
+  // in the table the same status wears its colour
+  await page.goto("/workspace/sponsors?q=Tauler e2e");
+  const tone = await page.getByLabel(/^Estat · Tauler e2e/).getAttribute("data-tone");
+  expect(tone).toBe("good");
+});

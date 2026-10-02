@@ -13,6 +13,7 @@ const text: [string, string, string][] = [
   ["bg", "accent", "primary button"], ["bg", "accent-hover", "primary button hover"],
   ["ink-text", "ink", "text on dark band"], ["ink-text", "ink2", "text on hero"], ["bg", "ink", "headings on dark"], ["bg", "ink2", "headings on hero"],
   ["danger", "surface", "error text"], ["danger", "danger-bg", "error banner"], ["ok", "ok-bg", "success banner"],
+  ["warn", "warn-bg", "workspace status: attention"], ["info", "info-bg", "workspace status: in progress"], ["warn", "surface", "attention text on white"], ["info", "surface", "progress text on white"],
 ];
 const ui: [string, string, string][] = [
   ["field-border", "bg", "input outline on ivory"], ["field-border", "surface", "input outline on white"], ["field-border", "bg2", "input outline on beige"],

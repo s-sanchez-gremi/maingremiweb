@@ -17,6 +17,10 @@
   --danger-bg: #FBE9ED;
   --ok: #1E6B3A;
   --ok-bg: #E6F2EA;
+  --warn: #8A5A00;          /* amber text (5.5:1 on --warn-bg): states that need attention */
+  --warn-bg: #FFF1D6;
+  --info: #1D4F91;          /* blue text (7:1 on --info-bg): neutral progress states */
+  --info-bg: #E7EEF8;
 
   /* type */
   --serif: Georgia, "Times New Roman", serif;

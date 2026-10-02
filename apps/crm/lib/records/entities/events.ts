@@ -35,7 +35,7 @@ export const eventEntities: Entity[] = [
       f("eventId", "Esdeveniment", "relation", { to: "events", required: true, filter: true }), f("personId", "Persona", "relation", { to: "people" }),
       f("companyId", "Empresa", "relation", { to: "companies" }), f("status", "Estat", "select", { filter: true, choices: ATTENDANCE }), f("notes", "Notes", "text"),
     ],
-    summary: (r) => `Assistència · ${label(ATTENDANCE, r.status)}`,
+    summary: (r) => `Assistència · ${label(ATTENDANCE, r.status)}`, boardTitle: ["personId", "companyId"],
     hint: "Una persona només pot constar una vegada per esdeveniment.",
   },
   {

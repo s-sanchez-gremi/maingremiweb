@@ -2,6 +2,7 @@
 // One table cell, edited in place: it saves itself when you leave it (or change a choice) and shows ✓ or the error.
 import { useState, useTransition } from "react";
 import { saveCellAction } from "@/lib/records/actions";
+import { toneOf } from "@/lib/records/tones";
 import { Icon } from "./icons";
 
 
@@ -23,7 +24,7 @@ export function Cell({ entity, id, name, type, value, options, display, required
       else { setState("err"); setMsg(r.error); }
     });
   };
-  const common = { "aria-label": label, className: `ws-cell${state === "err" ? " err" : ""}`, title: msg || undefined, "aria-invalid": state === "err" || undefined } as const;
+  const common = { "aria-label": label, className: `ws-cell${state === "err" ? " err" : ""}`, title: msg || (type === "text" || type === "email" || type === "url" || type === "phone" ? v || undefined : undefined), "aria-invalid": state === "err" || undefined } as const;
 
   if (type === "relation" && !options) return <span className="ws-cell ws-static" title="Es canvia des de la fitxa">{display || "—"}</span>;
   let input;
@@ -31,7 +32,7 @@ export function Cell({ entity, id, name, type, value, options, display, required
   else if (type === "select" || type === "relation") {
     const blank = type === "relation" ? !required : !required && v === ""; // fixed choices only offer "—" while still empty
     input = (
-      <select {...common} data-empty={v === "" ? "" : undefined} value={v} onChange={(e) => { setV(e.target.value); save(e.target.value); }}>
+      <select {...common} data-empty={v === "" ? "" : undefined} data-tone={type === "select" ? toneOf(v) : undefined} value={v} onChange={(e) => { setV(e.target.value); save(e.target.value); }}>
         {blank && <option value="">—</option>}
         {(options ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>

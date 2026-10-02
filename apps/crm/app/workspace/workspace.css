@@ -5,6 +5,8 @@
   --ws-hair: color-mix(in srgb, var(--ink) 8%, transparent);
   --ws-hover: color-mix(in srgb, var(--ink) 4%, transparent);
   --ws-tint: color-mix(in srgb, var(--accent) 9%, transparent);
+  --ws-hover-solid: color-mix(in srgb, var(--surface) 95%, var(--ink));
+  --ws-tint-solid: color-mix(in srgb, var(--surface) 91%, var(--accent));
   --ws-window: color-mix(in srgb, var(--bg2) 88%, var(--bg));
   --ws-ring: 0 0 0 3px color-mix(in srgb, var(--accent) 26%, transparent);
   --ws-sheet: 0 0 0 1px var(--ws-hair), 0 1px 2px color-mix(in srgb, var(--ink) 4%, transparent), 0 12px 32px -16px color-mix(in srgb, var(--ink) 18%, transparent);
@@ -17,8 +19,8 @@
 .ws .ws-ic { flex: none; }
 
 /* ---------- Window + sidebar ---------- */
-.ws-shell { display: grid; grid-template-columns: 236px minmax(0, 1fr); height: 100vh; overflow: hidden; }
-.ws-side { padding: 18px 10px 12px 14px; display: flex; flex-direction: column; gap: 16px; overflow: auto; scrollbar-width: none; }
+.ws-shell { display: grid; grid-template-columns: 216px minmax(0, 1fr); height: 100vh; overflow: hidden; }
+.ws-side { padding: 14px 8px 10px 12px; display: flex; flex-direction: column; gap: 12px; overflow: auto; scrollbar-width: none; }
 .ws-brand { display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 14px; letter-spacing: -.01em; padding: 2px 8px; }
 .ws-mark { width: 22px; height: 22px; border-radius: 7px; background: var(--accent); box-shadow: inset 0 -7px 12px color-mix(in srgb, var(--ink) 20%, transparent), inset 0 1px 0 color-mix(in srgb, var(--bg) 45%, transparent), 0 1px 3px color-mix(in srgb, var(--accent) 40%, transparent); }
 .ws .ws-search { position: relative; display: block; }
@@ -30,9 +32,9 @@
 .ws .ws-search kbd { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font: inherit; font-size: 11px; color: var(--text2); border: 1px solid var(--ws-hair); border-radius: 5px; padding: 0 5px; line-height: 16px; background: var(--surface); pointer-events: none; }
 .ws .ws-search input:focus ~ kbd { display: none; }
 .ws-side nav { display: grid; gap: 2px; align-content: start; }
-.ws-group { display: grid; gap: 1px; margin-bottom: 14px; }
-.ws-group-name { font-size: 11px; font-weight: 600; letter-spacing: .02em; color: var(--text2); padding: 6px 10px 4px; }
-.ws-group a { display: flex; align-items: center; gap: 9px; padding: 0 10px; height: 30px; border-radius: 8px; color: inherit; text-decoration: none; font-size: 13.5px; transition: background .12s, box-shadow .12s; }
+.ws-group { display: grid; gap: 1px; margin-bottom: 8px; }
+.ws-group-name { font-size: 12px; font-weight: 600; color: var(--text2); padding: 4px 10px 3px; }
+.ws-group a { display: flex; align-items: center; gap: 9px; padding: 0 10px; height: 30px; border-radius: 8px; color: inherit; text-decoration: none; font-size: 14px; transition: background .12s, box-shadow .12s; }
 .ws-group a .ws-ic { color: var(--text2); transition: color .12s; }
 .ws-group a:hover { background: var(--ws-hover); }
 .ws-group a[aria-current="page"] { background: var(--surface); font-weight: 600; box-shadow: 0 0 0 1px var(--ws-hair), 0 1px 3px color-mix(in srgb, var(--ink) 8%, transparent); }
@@ -47,15 +49,18 @@
 /* ---------- Sheets: the table canvas and the record sheet float on the window ---------- */
 .ws-main { min-width: 0; height: 100vh; padding: 8px 8px 8px 0; box-sizing: border-box; }
 .ws-split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; height: 100%; }
-.ws-split.open { grid-template-columns: minmax(0, 1fr) clamp(400px, 32vw, 500px); }
-.ws-content { container-type: inline-size; background: var(--surface); border-radius: 14px; box-shadow: var(--ws-sheet); padding: 28px 32px 20px; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: auto; }
-.ws-head { display: flex; align-items: center; gap: 14px; flex: none; }
-.ws-tile { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; color: var(--accent); background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 13%, var(--surface)), color-mix(in srgb, var(--accent) 7%, var(--surface))); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 14%, transparent), 0 1px 2px color-mix(in srgb, var(--accent) 12%, transparent); flex: none; }
-.ws-titles { min-width: 0; }
+.ws-split.open { grid-template-columns: minmax(0, 1fr) clamp(380px, 30vw, 480px); }
+.ws-content { container-type: inline-size; background: var(--surface); border-radius: 14px; box-shadow: var(--ws-sheet); padding: 18px 22px 12px; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: auto; }
+.ws-head { display: flex; align-items: center; gap: 12px; flex: none; }
+.ws-head .ws-titles { flex: 1 1 0; }
+.ws-head > .ws-spacer { display: none; }
+.ws-tile { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--accent); background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 13%, var(--surface)), color-mix(in srgb, var(--accent) 7%, var(--surface))); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 14%, transparent), 0 1px 2px color-mix(in srgb, var(--accent) 12%, transparent); flex: none; }
+.ws-titles { min-width: 0; flex: 0 1 auto; }
 .ws-eyebrow { margin: 0 0 1px; font-size: 12px; font-weight: 600; color: var(--text2); letter-spacing: .01em; }
-.ws .ws-head h1 { margin: 0; font-family: var(--sans); font-size: 30px; font-weight: 700; letter-spacing: -.028em; line-height: 1.1; display: flex; align-items: center; gap: 10px; }
+.ws .ws-head h1 { margin: 0; font-family: var(--sans); font-size: 26px; font-weight: 700; letter-spacing: -.026em; line-height: 1.1; display: flex; align-items: center; gap: 10px; }
 .ws-count { font-size: 13px; font-weight: 500; letter-spacing: 0; color: var(--text2); font-variant-numeric: tabular-nums; background: color-mix(in srgb, var(--ink) 6%, transparent); border-radius: 999px; padding: 2px 9px; }
 .ws-hint { color: var(--text2); font-size: 14px; line-height: 1.5; margin: 12px 0 0; max-width: 70ch; flex: none; }
+.ws-titles .ws-hint { margin: 2px 0 0; font-size: 13px; line-height: 1.35; max-width: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ws .msg { margin: 12px 0 0; border-radius: 10px; flex: none; }
 .ws-spacer { flex: 1; }
 
@@ -68,10 +73,10 @@
 }
 
 /* ---------- Toolbar ---------- */
-.ws-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 20px 0 14px; flex: none; }
+.ws-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 12px; flex: none; }
 .ws-field { position: relative; display: block; flex: 0 1 320px; min-width: 220px; }
 .ws-field .ws-ic { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text2); pointer-events: none; }
-.ws .ws-toolbar input[type=search], .ws .ws-toolbar select { appearance: none; -webkit-appearance: none; border: 1px solid var(--field-border); border-radius: 999px; padding: 0 14px; font: inherit; font-size: 13px; background: var(--surface); color: inherit; height: 34px; width: auto; max-width: min(100%, 240px); text-overflow: ellipsis; transition: box-shadow .15s, border-color .15s, background .15s; cursor: pointer; }
+.ws .ws-toolbar input[type=search], .ws .ws-toolbar select { appearance: none; -webkit-appearance: none; border: 1px solid var(--field-border); border-radius: 999px; padding: 0 14px; font: inherit; font-size: 13px; background: var(--surface); color: inherit; height: 32px; width: auto; max-width: min(100%, 240px); text-overflow: ellipsis; transition: box-shadow .15s, border-color .15s, background .15s; cursor: pointer; }
 .ws .ws-toolbar input[type=search] { width: 100%; padding-left: 34px; cursor: text; }
 .ws .ws-toolbar select { padding-right: 30px; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none' stroke='%235C5A54' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='m1 1 4 4 4-4'/></svg>"); background-repeat: no-repeat; background-position: right 12px center; }
 .ws .ws-toolbar select:hover { background-color: var(--bg); }
@@ -79,7 +84,7 @@
 .ws .ws-toolbar input[type=search]:focus, .ws .ws-toolbar select:focus { outline: 0; border-color: var(--accent); box-shadow: var(--ws-ring); }
 .ws-flag { font-size: 12px; font-weight: 600; color: var(--accent-hover); background: var(--ws-tint); border-radius: 999px; padding: 6px 11px; }
 .ws-clear { font-size: 13px; color: var(--text2); text-decoration: none; padding: 6px 6px; border-radius: 6px; } .ws-clear:hover { color: var(--accent-hover); }
-.ws .ws-btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font: inherit; font-size: 13px; font-weight: 500; color: inherit; text-decoration: none; cursor: pointer; box-shadow: 0 1px 1px color-mix(in srgb, var(--ink) 4%, transparent); transition: background .12s, transform .12s, box-shadow .12s; }
+.ws .ws-btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font: inherit; font-size: 13px; font-weight: 500; color: inherit; text-decoration: none; cursor: pointer; box-shadow: 0 1px 1px color-mix(in srgb, var(--ink) 4%, transparent); transition: background .12s, transform .12s, box-shadow .12s; }
 .ws .ws-btn:hover { background: var(--bg2); }
 .ws .ws-btn:active { transform: scale(.97); }
 .ws .ws-btn:focus-visible { outline: 0; box-shadow: var(--ws-ring); }
@@ -94,15 +99,45 @@
 .ws-menu > div { position: absolute; right: 0; top: calc(100% + 6px); z-index: 10; min-width: 200px; padding: 5px; background: var(--surface); border-radius: 12px; box-shadow: var(--ws-pop); display: grid; animation: ws-pop .16s var(--ws-ease); }
 .ws-menu a { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 8px; font-size: 13px; color: inherit; text-decoration: none; } .ws-menu a:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); } .ws-menu a .ws-ic { color: var(--text2); }
 
+/* view switch (table | board) */
+.ws-seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 6%, transparent); }
+.ws-seg a { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 500; color: var(--text2); text-decoration: none; transition: background .12s, color .12s; }
+.ws-seg a:hover { color: var(--ink); }
+.ws-seg a[aria-current="page"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 0 0 1px var(--ws-hair), 0 1px 2px color-mix(in srgb, var(--ink) 8%, transparent); }
+.ws-seg a:focus-visible { outline: 0; box-shadow: var(--ws-ring); }
+
+/* ---------- Board ---------- */
+.ws-boardwrap { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; margin: 0 -22px; padding: 12px 22px 0; border-top: 1px solid var(--ws-hair); }
+.ws-boardwrap > .ws-hint { margin: 8px 0 0; flex: none; }
+.ws-board { flex: 1 1 auto; min-height: 0; display: flex; gap: 10px; align-items: stretch; overflow-x: auto; padding-bottom: 10px; scrollbar-width: thin; }
+.ws-col { flex: 0 0 270px; display: flex; flex-direction: column; min-height: 0; max-height: 100%; border-radius: 12px; padding: 8px; background: color-mix(in srgb, var(--ink) 3.5%, var(--surface)); box-shadow: inset 0 0 0 1px var(--ws-hair); transition: background .12s, box-shadow .12s; align-self: flex-start; }
+.ws-col[data-over] { background: var(--ws-tint); box-shadow: inset 0 0 0 2px var(--accent); }
+.ws-col > header { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 8px; flex: none; }
+.ws-pill { display: inline-block; font-size: 12.5px; font-weight: 600; padding: 3px 11px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.ws-col-n { font-size: 12.5px; color: var(--text2); font-variant-numeric: tabular-nums; }
+.ws-col-body { display: grid; gap: 6px; overflow: auto; min-height: 0; align-content: start; scrollbar-width: thin; }
+.ws-col-empty { margin: 0; padding: 14px 8px; text-align: center; font-size: 12.5px; color: var(--text2); }
+.ws-card { background: var(--surface); border-radius: 10px; padding: 9px 11px; box-shadow: 0 0 0 1px var(--ws-hair), 0 1px 2px color-mix(in srgb, var(--ink) 5%, transparent); cursor: grab; transition: box-shadow .12s, transform .12s; }
+.ws-card:hover { box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 16%, transparent), 0 4px 12px -4px color-mix(in srgb, var(--ink) 20%, transparent); }
+.ws-card:active { cursor: grabbing; }
+.ws-card[aria-current] { box-shadow: 0 0 0 2px var(--accent), var(--ws-ring); }
+.ws .ws-card-title { display: block; font-size: 14px; font-weight: 600; line-height: 1.3; letter-spacing: -.005em; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }
+.ws .ws-card-title:hover { color: var(--accent-hover); } .ws .ws-card-title:focus-visible { outline: 0; box-shadow: var(--ws-ring); border-radius: 4px; }
+.ws-card ul { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 1px; font-size: 12.5px; color: var(--text2); line-height: 1.35; }
+.ws-card-move { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.ws-card:focus-within .ws-card-move { position: static; width: auto; height: auto; overflow: visible; clip: auto; display: block; margin-top: 8px; }
+.ws .ws-card-move select { width: 100%; font-size: 12.5px; padding: 4px 8px; border-radius: 8px; }
+.ws-card { position: relative; }
+
 /* ---------- Table: lives directly on the canvas; only it scrolls ---------- */
-.ws-tablewrap { flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0 -32px; padding: 0 32px; border-top: 1px solid var(--ws-hair); scrollbar-width: thin; }
-.ws-table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 14px; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+.ws-tablewrap { flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0 -22px; padding: 0; border-top: 1px solid var(--ws-hair); scrollbar-width: thin; }
+.ws .ws-table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 14px; background: transparent; border: 0; border-radius: 0; box-shadow: none; overflow: visible; }
 .ws .ws-table th, .ws .ws-table td { padding: 0; border-bottom: 0; text-align: left; }
-.ws-table th { position: sticky; top: 0; z-index: 2; background: color-mix(in srgb, var(--surface) 88%, transparent); -webkit-backdrop-filter: saturate(160%) blur(10px); backdrop-filter: saturate(160%) blur(10px); font-weight: 600; font-size: 12px; color: var(--text2); border-bottom: 1px solid var(--ws-hair) !important; white-space: nowrap; }
-.ws-table th > a, .ws-table th > span { display: flex; align-items: center; gap: 6px; padding: 0 8px; height: 40px; color: inherit; text-decoration: none; transition: color .12s; }
+.ws-table th { position: sticky; top: 0; z-index: 3; background: var(--surface); font-weight: 600; font-size: 12.5px; color: var(--text2); border-bottom: 1px solid var(--ws-hair) !important; white-space: nowrap; }
+.ws-table th > a, .ws-table th > span { display: flex; align-items: center; gap: 6px; padding: 0 8px; height: 34px; color: inherit; text-decoration: none; transition: color .12s; }
 .ws-table th > a:hover { color: var(--ink); }
 .ws-table th b { color: var(--accent); font-weight: 700; }
-.ws-table td { border-bottom: 1px solid color-mix(in srgb, var(--ink) 5%, transparent) !important; min-width: 150px; vertical-align: middle; transition: background .1s; }
+.ws-table td { border-bottom: 1px solid color-mix(in srgb, var(--ink) 5%, transparent) !important; min-width: 140px; vertical-align: middle; transition: background .1s; }
 .ws-table tbody tr:last-child td { border-bottom: 0 !important; }
 .ws-table tbody tr:hover td { background: var(--ws-hover); }
 .ws-table tbody tr:hover td:first-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; } .ws-table tbody tr:hover td:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
@@ -112,11 +147,26 @@
 .ws-table td.ws-primary .ws-cellwrap { gap: 2px; }
 .ws-table td.ws-primary .ws-cell { font-weight: 600; letter-spacing: -.006em; }
 .ws-table td.ws-num .ws-cell { text-align: right; font-variant-numeric: tabular-nums; }
-.ws-open-col { min-width: 0 !important; width: 44px; text-align: center !important; }
+.ws .ws-table .ws-open-col { min-width: 0 !important; width: 66px; padding-left: 22px; text-align: center !important; box-sizing: border-box; }
 .ws-open { color: var(--text2); display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; opacity: 0; transition: opacity .12s, background .12s; }
 tr:hover .ws-open, .ws-open:focus-visible, tr[aria-selected] .ws-open { opacity: 1; }
 .ws-open:hover { background: color-mix(in srgb, var(--ink) 9%, transparent); color: var(--ink); } .ws-open:focus-visible { outline: 0; box-shadow: var(--ws-ring); }
 @media (hover: none) { .ws-open { opacity: 1; } }
+/* column widths by type, so names and e-mails are not cut; the open button and the name stay put while the rest scrolls sideways */
+.ws-table .ws-t-text, .ws-table .ws-t-relation { min-width: 200px; }
+.ws-table .ws-t-email, .ws-table .ws-t-url { min-width: 230px; }
+.ws-table .ws-t-textarea { min-width: 280px; }
+.ws-table .ws-t-phone, .ws-table .ws-t-date { min-width: 140px; }
+.ws-table .ws-t-number, .ws-table .ws-t-money, .ws-table .ws-t-percent { min-width: 110px; }
+.ws-table .ws-t-checkbox { min-width: 70px; }
+.ws-table .ws-t-select { min-width: 150px; }
+.ws-table .ws-primary { min-width: 340px; }
+.ws-table td.ws-open-col, .ws-table th.ws-open-col { position: sticky; left: 0; z-index: 1; background: var(--surface); }
+.ws-table th.ws-open-col { z-index: 4; }
+.ws-table td.ws-primary, .ws-table th.ws-primary { position: sticky; left: 66px; z-index: 1; background: var(--surface); box-shadow: 1px 0 0 var(--ws-hair); }
+.ws-table th.ws-primary { z-index: 4; }
+.ws-table tbody tr:hover td.ws-open-col, .ws-table tbody tr:hover td.ws-primary { background: var(--ws-hover-solid); }
+.ws-table tr[aria-selected] td.ws-open-col, .ws-table tr[aria-selected] td.ws-primary { background: var(--ws-tint-solid); }
 /* monogram before a name (decorative: tints are token mixes picked from the name) */
 .ws-mono { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 10.5px; font-weight: 700; letter-spacing: .02em; margin-left: 4px; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink2); }
 .ws-mono[data-t="0"] { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent-hover); }
@@ -124,19 +174,26 @@ tr:hover .ws-open, .ws-open:focus-visible, tr[aria-selected] .ws-open { opacity:
 .ws-mono[data-t="2"] { background: color-mix(in srgb, var(--ink) 9%, transparent); color: var(--ink2); }
 .ws-mono[data-t="3"] { background: color-mix(in srgb, var(--accent) 6%, var(--bg2)); color: var(--ink2); }
 .ws-primary .ws-cellwrap { display: flex; }
-.ws-primary > .ws-mono { float: left; margin: 13px 0 0 6px; }
-.ws-primary > .ws-mono + .ws-cellwrap { margin-left: 36px; }
+.ws-primary > .ws-mono { float: left; margin: 5px 0 0 5px; }
+.ws-primary > .ws-mono + .ws-cellwrap { margin-left: 34px; }
 
 /* ---------- Cells: look like text, behave like fields ---------- */
-.ws-cellwrap { display: flex; align-items: center; position: relative; padding: 4px 4px; }
-.ws .ws-cell { all: unset; box-sizing: border-box; width: 100%; padding: 8px 8px; min-height: 36px; font: inherit; font-size: 14px; line-height: 20px; border-radius: 8px; background: transparent; resize: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background .12s, box-shadow .12s; }
+.ws-cellwrap { display: flex; align-items: center; position: relative; padding: 1px 3px; }
+.ws .ws-cell { all: unset; box-sizing: border-box; width: 100%; padding: 6px 8px; min-height: 32px; font: inherit; font-size: 14px; line-height: 20px; border-radius: 8px; background: transparent; resize: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background .12s, box-shadow .12s; }
 .ws .ws-cell::placeholder { color: var(--text2); }
 .ws .ws-cell:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
 .ws .ws-cell:focus { background: var(--surface); box-shadow: 0 0 0 1.5px var(--accent), var(--ws-ring); text-overflow: clip; position: relative; z-index: 1; }
 .ws .ws-cell.err { box-shadow: 0 0 0 1.5px var(--danger), 0 0 0 4px color-mix(in srgb, var(--danger) 18%, transparent); }
 .ws .ws-static { display: block; color: inherit; cursor: default; } .ws .ws-static:hover { background: transparent; }
-.ws select.ws-cell { appearance: none; -webkit-appearance: none; cursor: pointer; width: auto; max-width: 100%; padding: 3px 11px; min-height: 0; border-radius: 999px; font-size: 12.5px; font-weight: 500; background: color-mix(in srgb, var(--ink) 7%, transparent); margin: 5px 2px; }
+.ws select.ws-cell { appearance: none; -webkit-appearance: none; cursor: pointer; width: auto; max-width: 100%; padding: 3px 11px; min-height: 0; border-radius: 999px; font-size: 12.5px; font-weight: 500; background: color-mix(in srgb, var(--ink) 7%, transparent); margin: 3px 2px; }
 .ws select.ws-cell:hover { background: color-mix(in srgb, var(--ink) 11%, transparent); }
+/* status colours: a tone is a meaning (see lib/records/tones.ts); the same pill is used in the table and on the board */
+.ws select.ws-cell[data-tone], .ws-pill[data-tone] { font-weight: 600; }
+.ws select.ws-cell[data-tone="good"], .ws-pill[data-tone="good"] { background: var(--ok-bg); color: var(--ok); }
+.ws select.ws-cell[data-tone="info"], .ws-pill[data-tone="info"] { background: var(--info-bg); color: var(--info); }
+.ws select.ws-cell[data-tone="warn"], .ws-pill[data-tone="warn"] { background: var(--warn-bg); color: var(--warn); }
+.ws select.ws-cell[data-tone="bad"], .ws-pill[data-tone="bad"] { background: var(--danger-bg); color: var(--danger); }
+.ws select.ws-cell[data-tone="muted"], .ws-pill[data-tone="muted"] { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--text2); }
 .ws select.ws-cell[data-empty] { background: transparent; color: var(--text2); font-weight: 400; }
 .ws select.ws-cell:focus { background: var(--surface); color: var(--ink); }
 .ws input[type=checkbox].ws-cell { appearance: auto; width: 18px; height: 18px; min-height: 0; margin: 9px 9px; padding: 0; accent-color: var(--accent); cursor: pointer; border-radius: 4px; }
@@ -163,20 +220,20 @@ tr:hover .ws-open, .ws-open:focus-visible, tr[aria-selected] .ws-open { opacity:
 @keyframes ws-slide { from { opacity: 0; transform: translateX(20px) scale(.99); } to { opacity: 1; transform: none; } }
 .ws-close { position: absolute; top: 16px; right: 16px; display: grid; place-items: center; width: 28px; height: 28px; color: var(--text2); border-radius: 50%; background: color-mix(in srgb, var(--ink) 6%, transparent); z-index: 3; transition: background .12s, color .12s; }
 .ws-close:hover { background: color-mix(in srgb, var(--ink) 12%, transparent); color: var(--ink); } .ws-close:focus-visible { outline: 0; box-shadow: var(--ws-ring); }
-.peek-body { padding: 24px 22px 56px; display: grid; gap: 22px; align-content: start; }
+.peek-body { padding: 18px 18px 40px; display: grid; gap: 16px; align-content: start; }
 .peek-head { margin-right: 36px; }
-.ws .peek-title { font-family: var(--sans); font-size: 24px; font-weight: 700; letter-spacing: -.024em; line-height: 1.15; margin: 0; }
-.ws .peek-body .body { padding: 0; display: grid; gap: 22px !important; }
+.ws .peek-title { font-family: var(--sans); font-size: 22px; font-weight: 700; letter-spacing: -.024em; line-height: 1.15; margin: 0; }
+.ws .peek-body .body { padding: 0; display: grid; gap: 16px !important; }
 .ws .peek-body .card { background: transparent; border: 0; border-radius: 0; padding: 0; gap: 10px; box-shadow: none; }
 .ws .peek-body .card h3 { font-family: var(--sans); font-size: 11.5px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--text2); }
 /* the fields: an inset grouped list (label left, value right), like Settings */
 .ws .ws-fields { display: grid !important; grid-template-columns: 1fr !important; gap: 0 !important; background: var(--bg); border-radius: 12px; box-shadow: inset 0 0 0 1px var(--ws-hair); overflow: hidden; }
-.ws .ws-fields > label { display: grid; grid-template-columns: minmax(96px, 38%) minmax(0, 1fr); align-items: center; gap: 12px; padding: 0 12px; min-height: 42px; font-size: 13px; font-weight: 500; color: var(--text2); border-bottom: 1px solid var(--ws-hair); }
+.ws .ws-fields > label { display: grid; grid-template-columns: minmax(96px, 38%) minmax(0, 1fr); align-items: center; gap: 10px; padding: 0 12px; min-height: 38px; font-size: 13px; font-weight: 500; color: var(--text2); border-bottom: 1px solid var(--ws-hair); }
 .ws .ws-fields > label:has(textarea) { grid-template-columns: 1fr; align-items: stretch; gap: 2px; padding-top: 10px; padding-bottom: 6px; }
 .ws .ws-fields > label:focus-within { background: var(--surface); }
 .ws .ws-fields > label.row { padding: 0 12px; justify-content: flex-start; gap: 10px; display: flex; color: var(--ink); }
 .ws .ws-fields > div { grid-column: 1; padding: 10px 12px; background: var(--surface); }
-.ws .ws-fields input:not([type=checkbox]):not([type=file]), .ws .ws-fields select, .ws .ws-fields textarea { border: 0 !important; background: transparent !important; box-shadow: none !important; border-radius: 6px; padding: 8px 6px; min-height: 36px; font-size: 14px; color: var(--ink); text-align: right; }
+.ws .ws-fields input:not([type=checkbox]):not([type=file]), .ws .ws-fields select, .ws .ws-fields textarea { border: 0 !important; background: transparent !important; box-shadow: none !important; border-radius: 6px; padding: 6px 6px; min-height: 32px; font-size: 14px; color: var(--ink); text-align: right; }
 .ws .ws-fields textarea { text-align: left; min-height: 72px; padding: 6px; }
 .ws .ws-fields select { cursor: pointer; text-align: right; text-align-last: right; }
 .ws .ws-fields input:focus, .ws .ws-fields select:focus, .ws .ws-fields textarea:focus { outline: 0; background: color-mix(in srgb, var(--accent) 6%, transparent) !important; }
@@ -223,5 +280,11 @@ tr:hover .ws-open, .ws-open:focus-visible, tr[aria-selected] .ws-open { opacity:
   .ws-tile { width: 40px; height: 40px; border-radius: 12px; }
   .ws .ws-head h1 { font-size: 24px; }
   .ws-field { flex: 1 1 100%; }
-  .ws-tablewrap { margin: 0 -14px; padding: 0 14px; }
+  .ws-tablewrap { margin: 0 -14px; }
+  .ws .ws-table .ws-open-col { width: 58px; padding-left: 14px; }
+  .ws-table td.ws-primary, .ws-table th.ws-primary, .ws-table td.ws-open-col, .ws-table th.ws-open-col { position: static; box-shadow: none; }
+  .ws-boardwrap { margin: 0 -14px; padding: 12px 14px 0; }
+  .ws-col { flex-basis: 78vw; }
+  .ws-titles .ws-hint { white-space: normal; }
+  .ws-table .ws-primary { min-width: 220px; }
 }

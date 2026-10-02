@@ -18,6 +18,7 @@ export type Entity = {
   label?: string;            // column used when another record points here (default "name")
   summary: (r: Record<string, unknown>) => string;
   hint?: string;
+  boardTitle?: string[];     // board view: fields tried in order for a card's title (the first with a value); default is `summary`
   detail?: boolean;          // record page with notes, files, history and linked records ({basePath}/{id})
   archivable?: boolean;      // table has `archivedAt`: records are archived and restored instead of only deleted
   links?: (id: string) => { href: string; label: string }[]; // extra links on the record page (e.g. projects and portal access)

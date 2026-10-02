@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@apex/core/auth";
 import { can } from "@apex/core/permissions";
 import { AutoSelect } from "@/components/workspace/AutoSelect";
+import { Board, type BoardCard } from "@/components/workspace/Board";
 import { Cell } from "@/components/workspace/Cell";
 import { Icon } from "@/components/workspace/icons";
 import { Input, queryOf, type RecordParams } from "@/components/records/RecordScreen";
@@ -12,7 +13,8 @@ import { choiceKey, filterFields, listRecords, relationChoices, sortFields } fro
 import { FIELD_TYPES, type Field } from "@/lib/records/fieldTypes";
 import { screenEntity } from "@/lib/records/registry";
 
-type Params = RecordParams & { open?: string; new?: string };
+type Params = RecordParams & { open?: string; new?: string; view?: string; by?: string };
+const BOARD_MAX = 200; // a board shows this many cards at most (filter to narrow); the table pages through everything
 
 export default async function WorkspaceTable({ params, searchParams }: { params: Promise<{ entity: string }>; searchParams: Promise<Params> }) {
   const user = await requireUser();
@@ -20,7 +22,11 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
   if (!e || !can(user, e.perm)) notFound();
   const sp = await searchParams;
   const q = queryOf(e, sp);
-  const [{ rows, total, page, pages }, choices] = await Promise.all([listRecords(e, q), relationChoices(e)]);
+  // Board view: one column per choice of a select field (the status by default).
+  const selects = e.fields.filter((f) => f.type === "select");
+  const by = selects.find((f) => f.name === sp.by) ?? selects.find((f) => /status/i.test(f.name)) ?? selects[0];
+  const board = sp.view === "board" && !!by;
+  const [{ rows, total, page, pages }, choices] = await Promise.all([listRecords(e, q, board ? { limit: BOARD_MAX } : {}), relationChoices(e)]);
   const here = `/workspace/${e.key}`;
   const href = (extra: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
@@ -44,6 +50,25 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
   const sortable = new Set(sortFields(e).map((f) => f.name));
   const opening = sp.open && /^[0-9a-f-]{36}$/.test(sp.open) ? sp.open : null;
 
+  const boardColumns = by ? [...(by.choices ?? []).map(([value, label]) => ({ value, label })), ...(rows.some((r) => !r[by.name]) && !by.choices?.some(([v]) => v === "") ? [{ value: "", label: "Sense valor" }] : [])] : [];
+  const textOf = (f: Field, v: unknown) => (f.type === "relation" ? optsOf(f).find((o) => o.value === String(v))?.label : f.type === "select" ? f.choices?.find(([x]) => x === v)?.[1] : FIELD_TYPES[f.type].show(v, f));
+  const titleField = (r: (typeof rows)[number]) => e.boardTitle?.find((n) => r[n] && textOf(e.fields.find((f) => f.name === n)!, r[n]));
+  const cardTitle = (r: (typeof rows)[number]) => { const n = titleField(r); return n ? textOf(e.fields.find((f) => f.name === n)!, r[n])! : e.summary(r); };
+  const meta = (r: (typeof rows)[number]) => {
+    const out: string[] = [];
+    const used = titleField(r);
+    for (const f of used ? e.fields : e.fields.slice(1)) {
+      if (f.name === by?.name || f.name === used || f.type === "textarea" || f.type === "checkbox") continue;
+      const v = r[f.name];
+      if (v === null || v === undefined || v === "") continue;
+      const text = textOf(f, v);
+      if (text) out.push(text.length > 48 ? `${text.slice(0, 47)}…` : text);
+      if (out.length === 3) break;
+    }
+    return out;
+  };
+  const boardCards: BoardCard[] = board && by ? rows.map((r) => ({ id: r.id, title: cardTitle(r), meta: meta(r), value: String(r[by.name] ?? ""), href: href({ open: r.id, new: undefined }) })) : [];
+
   return (
     <div className={`ws-split${opening || sp.new ? " open" : ""}`}>
       <section className="ws-content">
@@ -52,6 +77,7 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
           <div className="ws-titles">
             <p className="ws-eyebrow">{e.crumb}</p>
             <h1>{e.title}<span className="ws-count" title={`${total} ${total === 1 ? "element" : "elements"}`}>{total.toLocaleString("ca-ES")}</span></h1>
+            {e.hint && <p className="ws-hint" title={e.hint}>{e.hint}</p>}
           </div>
           <span className="ws-spacer" />
           <details className="ws-menu">
@@ -64,7 +90,6 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
           </details>
           <Link className="ws-btn primary" href={href({ new: "1", open: undefined })}><Icon name="plus" size={14} />Nou</Link>
         </header>
-        {e.hint && <p className="ws-hint">{e.hint}</p>}
         {sp.saved && !opening && <p role="status" className="msg ok">Desat.</p>}
         {sp.error && !opening && !sp.new && <p role="alert" className="msg err">{sp.error}</p>}
         <form method="get" className="ws-toolbar" aria-label="Filtres">
@@ -77,22 +102,41 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
           {filters.map((f) => (
             <AutoSelect key={f.name} name={`f_${f.name}`} defaultValue={sp[`f_${f.name}`] ?? ""} aria-label={f.label} data-on={sp[`f_${f.name}`] ? "" : undefined}>
               <option value="">{f.label}</option>
-              {(f.type === "checkbox" ? [{ value: "1", label: "Sí" }, { value: "0", label: "No" }] : optsOf(f)).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {(f.type === "checkbox" ? [{ value: "1", label: "Sí" }, { value: "0", label: "No" }] : optsOf(f).filter((o) => o.value !== "")).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </AutoSelect>
           ))}
+          {board && <input type="hidden" name="view" value="board" />}
+          {board && selects.length > 1 && (
+            <AutoSelect name="by" defaultValue={by!.name} aria-label="Agrupa per">
+              {selects.map((f) => <option key={f.name} value={f.name}>Agrupa per {f.label.toLowerCase()}</option>)}
+            </AutoSelect>
+          )}
           {sp.archived === "1" && <><input type="hidden" name="archived" value="1" /><span className="ws-flag">Arxivats</span></>}
           <input type="hidden" name="sort" value={sortKey} /><input type="hidden" name="dir" value={dir} />
           <button type="submit" className="sr-only">Filtra</button>
           {(sp.q || filters.some((f) => sp[`f_${f.name}`])) && <Link className="ws-clear" href={href({ q: undefined, page: undefined, ...Object.fromEntries(filters.map((f) => [`f_${f.name}`, undefined])) })}>Neteja</Link>}
+          <span className="ws-spacer" />
+          {by && (
+            <nav className="ws-seg" aria-label="Vista">
+              <Link href={href({ view: undefined, by: undefined })} aria-current={board ? undefined : "page"}><Icon name="table" size={14} />Taula</Link>
+              <Link href={href({ view: "board", page: undefined })} aria-current={board ? "page" : undefined}><Icon name="board" size={14} />Tauler</Link>
+            </nav>
+          )}
         </form>
 
+        {board && by ? (
+          <div className="ws-boardwrap">
+            <Board entity={e.key} field={by.name} fieldLabel={by.label} openId={opening} columns={boardColumns} cards={boardCards} />
+            {total > rows.length && <p className="ws-hint">Es mostren les primeres {rows.length} de {total}. Filtra o cerca per veure’n d’altres.</p>}
+          </div>
+        ) : (<>
         <div className="ws-tablewrap">
           <table className="ws-table">
             <thead>
               <tr>
                 <th className="ws-open-col" aria-label="Obre" />
                 {e.fields.map((f) => (
-                  <th key={f.name} scope="col" aria-sort={sortKey === f.name ? (dir === "desc" ? "descending" : "ascending") : undefined}>
+                  <th key={f.name} scope="col" className={`ws-t-${f.type}${f === e.fields[0] ? " ws-primary" : ""}`} aria-sort={sortKey === f.name ? (dir === "desc" ? "descending" : "ascending") : undefined}>
                     {sortable.has(f.name)
                       ? <Link href={href({ sort: f.name, dir: sortKey === f.name && dir !== "desc" ? "desc" : "asc", page: undefined })}>{f.label}{sortKey === f.name && <b aria-hidden>{dir === "desc" ? " ↓" : " ↑"}</b>}</Link>
                       : <span>{f.label}</span>}
@@ -105,7 +149,7 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
                 <tr key={r.id} aria-selected={opening === r.id || undefined}>
                   <td className="ws-open-col">{e.detail ? <Link className="ws-open" href={href({ open: r.id, new: undefined })} aria-label={`Obre ${e.summary(r)}`}><Icon name="expand" size={14} /></Link> : null}</td>
                   {e.fields.map((f, i) => (
-                    <td key={f.name} className={`${i === 0 ? "ws-primary" : ""} ${["number", "money", "percent"].includes(f.type) ? "ws-num" : ""}`.trim() || undefined}>{i === 0 && f.type === "text" && <Mono text={String(r[f.name] ?? "")} />}<Cell entity={e.key} id={r.id} name={f.name} type={f.type} value={raw(f, r[f.name])} options={f.type === "relation" && optsOf(f).length > BIG ? undefined : optsOf(f)} display={f.type === "relation" ? optsOf(f).find((o) => o.value === raw(f, r[f.name]))?.label : undefined} required={f.required} label={`${f.label} · ${e.summary(r)}`} /></td>
+                    <td key={f.name} className={`ws-t-${f.type} ${i === 0 ? "ws-primary" : ""} ${["number", "money", "percent"].includes(f.type) ? "ws-num" : ""}`.trim()}>{i === 0 && f.type === "text" && <Mono text={String(r[f.name] ?? "")} />}<Cell entity={e.key} id={r.id} name={f.name} type={f.type} value={raw(f, r[f.name])} options={f.type === "relation" && optsOf(f).length > BIG ? undefined : optsOf(f)} display={f.type === "relation" ? optsOf(f).find((o) => o.value === raw(f, r[f.name]))?.label : undefined} required={f.required} label={`${f.label} · ${e.summary(r)}`} /></td>
                   ))}
                 </tr>
               ))}
@@ -113,7 +157,8 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
             </tbody>
           </table>
         </div>
-        {pages > 1 && (
+        </>)}
+        {!board && pages > 1 && (
           <nav className="ws-pager" aria-label="Pàgines">
             {page > 1 && <Link href={href({ page: String(page - 1) })}>← Anterior</Link>}
             <span>Pàgina {page} de {pages}</span>
