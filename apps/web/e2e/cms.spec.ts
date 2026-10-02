@@ -116,7 +116,7 @@ test("scheduled publishing goes live when the cron job runs", async ({ page }) =
 
 test("editors cannot manage users or settings", async ({ page }) => {
   await login(page, "editor");
-  await expect(page.getByRole("link", { name: "Usuaris" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Equip" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Configuració" })).toHaveCount(0);
   expect((await page.goto("/admin/users"))?.status()).toBe(404);
   expect((await page.goto("/admin/settings"))?.status()).toBe(404);

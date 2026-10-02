@@ -7,7 +7,7 @@ import { defaultSettings, settingsSchema } from "@/lib/settings-schema";
 import { entries, entryTranslations, settings } from "@apex/db/schema";
 import { SettingsEditor } from "./SettingsEditor";
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string; error?: string }> }) {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string; error?: string; tab?: string }> }) {
   const me = await requireUser();
   if (!can(me, "settings:write")) notFound();
   const sp = await searchParams;
@@ -21,7 +21,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     <SettingsEditor
       initial={parsed.success ? parsed.data : defaultSettings()}
       options={{ media: [], forms: [], pages: [...label].map(([id, l]) => ({ id, label: l })) }}
-      message={sp.saved ? { kind: "ok", text: "Desat." } : sp.error ? { kind: "err", text: sp.error } : null}
+      tab={sp.tab ?? "general"}
+      message={sp.saved ? { kind: "ok", text: "Desat. La web ja mostra els canvis." } : sp.error ? { kind: "err", text: sp.error } : null}
     />
   );
 }

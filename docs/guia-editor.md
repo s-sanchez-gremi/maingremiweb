@@ -62,7 +62,7 @@ Només hi ha el format bàsic, i és a propòsit:
 
 ## 4. Imatges i fitxers
 
-1. A **Biblioteca de mitjans**, arrossega els fitxers a la zona de pujada (o tria'ls de l'ordinador). S'accepten imatges (JPG, PNG, WebP, GIF), PDF, Word, Excel i PowerPoint, fins a 15 MB cada un. No s'accepten SVG.
+1. A **Fitxers i imatges**, arrossega els fitxers a la zona de pujada (o tria'ls de l'ordinador). S'accepten imatges (JPG, PNG, WebP, GIF), PDF, Word, Excel i PowerPoint, fins a 15 MB cada un. No s'accepten SVG.
 2. El sistema redueix i optimitza les imatges sol (les guarda en WebP, fins a 1.600 px d'ample). No cal preparar-les.
 3. Cada fitxer té un **enllaç públic** (per exemple `https://…/fitxers/1a2b3c4d/circular.pdf`). Prem **Copia l'enllaç** i enganxa'l en un correu, un missatge o el text d'una pàgina. **Qualsevol persona amb l'enllaç el pot obrir**: no hi pengis documents interns ni amb dades personals.
 4. Si elimines un fitxer, els enllaços que hagis enviat deixen de funcionar.
@@ -111,13 +111,13 @@ A **Gestió** s'hi **registra** el que passa amb els diners; la comptabilitat, l
 
 ## 9. Què només fan els administradors
 
-- **Usuaris**: crear-ne, canviar el rol (administrador o editor), restablir contrasenyes i eliminar.
-- **Configuració**: menú principal, peu de pàgina, botons de la capçalera (per exemple, *Campus virtual*), xarxes socials, dades de contacte, enllaços legals, SEO per defecte i pàgina d'inici.
+- **Equip** (usuaris): crear-ne, canviar el rol (administrador o editor), restablir contrasenyes i eliminar.
+- **Configuració** (i **Menú i capçalera**, que obre la mateixa pantalla): està partida en pestanyes, *General* (pàgina d'inici, contacte, SEO per defecte), *Menú principal*, *Botons de dalt* (per exemple, *Campus virtual* o *Àrea d'agremiats*), *Xarxes socials* i *Peu de pàgina* (text, columnes i enllaços legals). Els textos s'escriuen idioma per idioma: tria **CA**, **ES** o **EN** a dalt; el número vermell diu quants textos falten per traduir. Un sol **Desa els canvis** ho desa tot.
 - **Errors**: problemes inesperats del web (vegeu l'apartat següent).
 
 ## 10. Si alguna cosa no va bé
 
-- **Tauler → Estat del sistema** (administradors) diu si les tasques programades funcionen, si hi ha correus pendents o fallits i quants errors oberts hi ha.
+- **Inici → Estat del sistema** (administradors) diu "La web funciona bé" o, si no, què passa (tasques programades aturades, correus fallits, errors oberts). Quan hi ha errors oberts, al menú apareix **Errors** amb el número.
 - **Un article programat no ha sortit:** mira l'estat del sistema. Si diu *Aturades*, avisa qui manté el servidor.
 - **No arriben els correus d'avís dels formularis:** mira *Correus fallits* al tauler. Les respostes no es perden mai; el sistema reintenta l'enviament durant un dia.
 - **Has publicat una cosa per error:** obre-la i prem **Passa a esborrany**: deixa de ser visible al web. Si vols recuperar una versió anterior, al panell lateral hi ha **Versions publicades**: prem **Restaura** i es copia a l'esborrany (no canvia el web fins que tornis a publicar). Es guarden les últimes 10.
