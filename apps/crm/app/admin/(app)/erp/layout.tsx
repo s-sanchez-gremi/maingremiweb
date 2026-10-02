@@ -4,8 +4,8 @@ import { requireUser } from "@apex/core/auth";
 import { can } from "@apex/core/permissions";
 
 const tabs = [
-  ["/admin/erp", "Resum"], ["/admin/erp/entries?kind=expense", "Despeses"], ["/admin/erp/entries?kind=income", "Ingressos"], ["/admin/erp/members", "Socis"], ["/admin/erp/fees", "Quotes"],
-  ["/admin/erp/subscriptions", "Subscripcions"], ["/admin/erp/suppliers", "Proveïdors"], ["/admin/erp/cost-centers", "Centres de cost"], ["/admin/erp/categories", "Categories"], ["/admin/erp/fee-tiers", "Trams"],
+  ["/admin/erp", "Resum"], ["/admin/erp/entries?kind=expense", "Despeses"], ["/admin/erp/entries?kind=income", "Ingressos"], ["/workspace/members", "Socis"], ["/admin/erp/fees", "Quotes"],
+  ["/workspace/subscriptions", "Subscripcions"], ["/workspace/suppliers", "Proveïdors"], ["/workspace/cost-centers", "Centres de cost"], ["/workspace/categories", "Categories"], ["/workspace/fee-tiers", "Trams"],
 ] as const;
 
 // Everything under /admin/erp needs the ERP permission (admins only until the team defines roles).

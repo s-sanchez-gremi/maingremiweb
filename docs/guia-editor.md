@@ -94,7 +94,7 @@ Dins de cada article o pàgina, al panell lateral, hi ha els idiomes (CA, ES, EN
 
 ### Portal de clients
 
-- Perquè un client vegi els seus projectes, obre'l a **Clients**, i a **Accés al portal** escriu el correu de la persona i prem **Convida**. Rebrà un correu per crear la seva contrasenya (l'enllaç val 7 dies i només es pot fer servir una vegada). A **Reenvia l'invitació** el pots tornar a enviar.
+- Perquè un client vegi els seus projectes, obre l'empresa a l'**Espai de treball** (Empreses), prem **Projectes i accés al portal**, i a **Accés al portal** escriu el correu de la persona i prem **Convida**. Rebrà un correu per crear la seva contrasenya (l'enllaç val 7 dies i només es pot fer servir una vegada). A **Reenvia l'invitació** el pots tornar a enviar.
 - **Desactiva** talla l'accés a l'instant; **Elimina** el treu del tot.
 - El client **només veu** el nom i l'estat dels seus projectes i els **documents que tu comparteixis**. Dins d'un projecte, cada document té un botó **Comparteix**: fins que no el premis, el client no el veu. Les notes, les tasques i les respostes de formularis mai no es mostren al client.
 - El portal és a `/portal` (adreça que pots enviar als clients).

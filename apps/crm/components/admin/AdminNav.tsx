@@ -8,9 +8,8 @@ const items = [
   { href: "/admin/forms", label: "Formularis", match: (p: string) => p.startsWith("/admin/forms") },
   { href: "/admin/projects", label: "Projectes", match: (p: string) => p.startsWith("/admin/projects") },
   { href: "/admin/tasks", label: "Tasques", match: (p: string) => p.startsWith("/admin/tasks") },
-  { href: "/admin/clients", label: "Clients", match: (p: string) => p.startsWith("/admin/clients") },
   { href: "/admin/erp", label: "Gestió", adminOnly: true, match: (p: string) => p.startsWith("/admin/erp") },
-  { href: "/workspace", label: "Espai de treball ↗", adminOnly: true, match: () => false },
+  { href: "/workspace", label: "Espai de treball ↗", match: () => false },
   { href: "/admin/account", label: "El meu compte", match: (p: string) => p.startsWith("/admin/account") },
 ];
 

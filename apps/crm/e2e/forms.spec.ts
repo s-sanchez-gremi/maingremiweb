@@ -351,9 +351,12 @@ test("a form inside a landing page tags the lead with that page and its theme", 
 
 test("projects module: create a client and a project, point a form at it, and the response shows up on the project", async ({ page, request }) => {
   await login(page);
-  await page.goto("/admin/clients");
-  await page.getByLabel("Nom").fill("Rovellosa Packaging");
-  await page.getByRole("button", { name: "Crea el client" }).click();
+  await page.goto("/workspace/companies?new=1"); // companies are created in the workspace; projects and portal access stay on the client page
+  const sheet = page.getByRole("complementary", { name: "Fitxa" });
+  await sheet.getByLabel("Nom", { exact: true }).fill("Rovellosa Packaging");
+  await sheet.getByRole("button", { name: "Crea" }).click();
+  await expect(page.getByRole("heading", { name: "Rovellosa Packaging" })).toBeVisible();
+  await sheet.getByRole("link", { name: /Projectes i accés al portal/ }).click();
   await expect(page.getByRole("heading", { name: "Rovellosa Packaging" })).toBeVisible();
 
   await page.getByRole("link", { name: "Nou projecte" }).click();

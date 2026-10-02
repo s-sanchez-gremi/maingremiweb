@@ -1,11 +1,11 @@
-// The ERP registry's simple lists as engine definitions (suppliers, categories, cost centers, fee tiers, members, subscriptions).
+// The ERP registry's simple lists as engine definitions (they live in the workspace; /admin/erp/<list> redirects there) (suppliers, categories, cost centers, fee tiers, members, subscriptions).
 import { costCenters, erpCategories, feeTiers, members, subscriptions, suppliers, users } from "@apex/db/schema";
 import type { Entity } from "../entity";
 import type { Field } from "../fieldTypes";
 
 const f = (name: string, label: string, type: Field["type"], extra: Partial<Field> = {}): Field => ({ name, label, type, ...extra });
 const base = { perm: "erp:write", crumb: "Gestió" } as const;
-const at = (key: string) => `/admin/erp/${key}`;
+const at = (key: string) => `/workspace/${key}`;
 
 export const erpEntities: Entity[] = [
   {
