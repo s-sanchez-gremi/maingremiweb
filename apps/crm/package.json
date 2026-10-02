@@ -8,6 +8,7 @@
     "start": "next start -p 3001",
     "lint": "eslint",
     "test": "vitest run --passWithNoTests",
+    "logos:find": "node --env-file=../../.env --import tsx scripts/find-logos.mts",
     "notion:import": "node --env-file=../../.env --import tsx scripts/notion-import.mts"
   },
   "dependencies": {
