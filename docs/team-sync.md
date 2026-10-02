@@ -22,6 +22,7 @@ Since your last sync, `main` gained the CRM's records engine and the app-boundar
 Open question for you both (not urgent): the old CRM screens `/admin/clients` and the ERP list pages still exist next to the new workspace; Sam decides when to retire them.
 
 Done: (none yet; Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+Partial, 2026-10-02 JM (Claude, cloud session): step 5 checks are green on a branch from current `main` (boundaries, lint, types, unit tests except the media test that needs the Docker S3 mock). Steps 1 and 2 still have to be run once on Joan Marc's own computer.
 
 ## For Sam (apps/crm) and his Claude
 
