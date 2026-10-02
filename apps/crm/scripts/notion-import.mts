@@ -1,7 +1,7 @@
 // Usage (from apps/crm):  pnpm notion:import [--dry-run] [--overwrite] [--no-erp] [--min-tier 5] [--only companies,gala,...]
 // Needs NOTION_TOKEN (internal integration secret; the databases must be shared with that integration) and the database ids:
 //   NOTION_DB_COMPANIES (comma-separated: every copy of the Agremiats/Empreses database), NOTION_DB_FORMER ("Baixa agremiat": former members), NOTION_DB_EXTERNAL ("Externes": non-member companies, no ERP records), NOTION_DB_GALA, NOTION_DB_VISITS,
-//   NOTION_DB_LABOUR ("id:Event name" per list, comma-separated: each Laboral list becomes an event with attendance), NOTION_DB_TRAINING (Bonificada), NOTION_DB_SPONSORS, NOTION_DB_JOBSEEKERS.
+//   NOTION_DB_LABOUR ("id:Event name" per list, comma-separated: each Laboral list becomes an event with attendance), NOTION_DB_TRAINING (Bonificada), NOTION_DB_SPONSORS, NOTION_DB_JOBSEEKERS, NOTION_DB_ROSTERS ("id:Event name" per event/session list), NOTION_DB_SUPPLIERS, NOTION_DB_PEOPLE ("id:Label[:Role]"), NOTION_DB_COURSES ("id:Label").
 // Always run with --dry-run first, on a throwaway database (see docs/notion-import.md). Notion is only read, never changed.
 import { db } from "@apex/db";
 import { readerFor, runImport, type Sources } from "../lib/notion-import/index";
@@ -12,7 +12,7 @@ const only = args.find((a, i) => args[i - 1] === "--only")?.split(",") as (keyof
 const token = process.env.NOTION_TOKEN;
 if (!token) { console.error("NOTION_TOKEN is not set (see docs/notion-import.md)."); process.exit(1); }
 const ids = (k: string) => (process.env[k] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-const sources: Sources = { companies: ids("NOTION_DB_COMPANIES"), former: ids("NOTION_DB_FORMER"), external: ids("NOTION_DB_EXTERNAL"), gala: ids("NOTION_DB_GALA"), visits: ids("NOTION_DB_VISITS"), labour: ids("NOTION_DB_LABOUR"), training: ids("NOTION_DB_TRAINING"), sponsors: ids("NOTION_DB_SPONSORS"), jobseekers: ids("NOTION_DB_JOBSEEKERS") };
+const sources: Sources = { companies: ids("NOTION_DB_COMPANIES"), former: ids("NOTION_DB_FORMER"), external: ids("NOTION_DB_EXTERNAL"), gala: ids("NOTION_DB_GALA"), visits: ids("NOTION_DB_VISITS"), labour: ids("NOTION_DB_LABOUR"), training: ids("NOTION_DB_TRAINING"), sponsors: ids("NOTION_DB_SPONSORS"), jobseekers: ids("NOTION_DB_JOBSEEKERS"), rosters: ids("NOTION_DB_ROSTERS"), suppliers: ids("NOTION_DB_SUPPLIERS"), people: ids("NOTION_DB_PEOPLE"), courses: ids("NOTION_DB_COURSES") };
 if (!Object.values(sources).some((s) => s && s.length)) { console.error("No NOTION_DB_* variable is set: nothing to import."); process.exit(1); }
 
 try {

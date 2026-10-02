@@ -39,6 +39,10 @@ Safest first run: point `DATABASE_URL` at a throwaway database (`createdb apex_i
 | Visites agremiats | **Visits** (status, type, date, company; the responsible person's name goes into the summary) |
 | Patrocinadors | **Sponsors** (a prospect pipeline: status *Potencial*): events targeted, last contact, contact, proposal, budget, follow-up and history are kept as readable lines in the notes; linked to a company when its name matches exactly one; a plain-number budget becomes the amount |
 | Laboral lists (04/03, 28/9) | each list is an **event** ("Laboral 04/03"…) with its contacts as **people** and one attendance row each (status *Convidat*); configure as `NOTION_DB_LABOUR=<id>:<event name>,<id>:<event name>`. A company name that matches no company is kept in the attendance notes |
+| Event and session rosters (Congrés, Jornada PPWR, Forum EUDR, Repaper, FESPA, Open House Bobst, LabelExpo, Protocol de desconnexió, Factura electrònica, Edició 2026, Alumnes màster) | each list is an **event**; `NOTION_DB_ROSTERS=<id>:<event name>,…`. Columns are recognised by role (title as company or as person, "Persona", "Nom i cognoms", e-mail and phone under their many names), people are matched on name **and** e-mail, a row with only a company is an attendance row of the company, and every other column (interests, status, follow-up…) is kept as lines in the attendance notes |
+| Proveïdors | **ERP suppliers** (`NOTION_DB_SUPPLIERS`; location, web, LinkedIn, contact, origin and notes as lines in the supplier's notes) |
+| Formadors, Personal (address book) | **People** (`NOTION_DB_PEOPLE=<id>:<label>[:<role>]`, e.g. `…:Formadors:Formador`); someone already present (same name and e-mail, or name and company) is not duplicated, only blanks are filled; **DNI never imported** |
+| Formació màster seguiment | **Training courses** (`NOTION_DB_COURSES=<id>:<label>`) |
 | Bonificada | **Formació bonificada** courses: status (En curs → running, Bonificat/Acabat → done), hours, end date, company from the member/external relation; code, price, trainers count, budget file name and responsible person in the notes |
 | Borsa de treball | **Job seekers** (see below) |
 
@@ -50,3 +54,8 @@ Compare the report's counts with Notion (companies, people, events). Notion stay
 
 ## 6. What the first dry run on the real workspace showed (2026-10-01)
 Companies: the main list ("Agremiats", 577 rows) plus "Empreses" (303) merge into 582 companies (298 pages merged by CIF); 11 have no CIF; 1 had an impossible founding year (left empty and counted). Fees: 133 different yearly amounts, only 16 shared by five or more companies, so 15 fee tiers are created and 164 custom amounts are kept in the members' notes. Gala: 535 people (many share one company mailbox, so people are matched on name **and** e-mail), 4 rows without a name skipped, about 45 % of attendees are not member companies and stay without a company link. Not yet imported: "Baixa agremiat" (134 former members), "Externes" (1001 non-members), Patrocinadors (131), Laboral, Bonificada, Borsa de treball (1601 pages, sensitive: see section 4). The **token is a secret**: keep it only in `.env`, give the integration read access only, and revoke it in Notion when the migration is finished.
+
+## 7. Not imported (and why)
+- **Needs a legal basis first:** Newsletters (246) and Llistat Escola (1,814) are mailing lists with unknown consent; Borsa de treball (1,601), Ofertes borsa (103) and Alumnes EGA (37) hold CVs and job-seeker data.
+- **Not importable through the API:** Printing Our Future 16/10/25 (58 rows: the pages are only numbers and a computed e-mail column that Notion does not return).
+- **Not CRM data:** Manuals, Cronograma Revista Trimestral, Graella disponibilitat màquines, Feigraf-Neobis, Questionari IA (survey answers), Concurs 2026 (media files), Tasques (6 rows, not tied to a project), People (Notion template), Junta Directiva 2025 and Assemblea (rollups only, no names).

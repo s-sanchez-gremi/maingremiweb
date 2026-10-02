@@ -25,7 +25,15 @@ export function flattenProp(p: Prop): Flat {
     case "created_time": case "last_edited_time": return typeof v === "string" ? v : null;
     case "unique_id": return v && typeof v === "object" ? `${(v as { prefix?: string }).prefix ?? ""}${(v as { number?: number }).number ?? ""}` : null;
     case "formula": { const f = v as { type?: string; [k: string]: unknown } | null; const x = f && f.type ? f[f.type] : null; return typeof x === "string" || typeof x === "number" || typeof x === "boolean" ? x : null; }
-    default: return null; // rollup, button, … carry nothing we import
+    case "rollup": { // a computed column: a number, a date or a list of values of the linked pages
+      const x = v as { type?: string; number?: number | null; date?: { start?: string } | null; array?: Prop[] } | null;
+      if (!x) return null;
+      if (x.type === "number") return x.number ?? null;
+      if (x.type === "date") return x.date?.start ?? null;
+      if (x.type === "array") return (x.array ?? []).map((i) => flattenProp(i)).flatMap((i) => (Array.isArray(i) ? i : [i])).filter((i): i is string | number | boolean => i !== null && i !== "").map(String);
+      return null;
+    }
+    default: return null; // button, … carry nothing we import
   }
 }
 
@@ -63,3 +71,10 @@ export const isoDate = (s: string) => (/^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0,
 const LEGAL = /\b(s ?l ?u?|s ?a ?u?|s ?c ?p|s ?coop|c ?b|sociedad limitada|sociedad anonima)\b/g;
 /** a company name reduced to what identifies it: accents, case, punctuation and legal forms (SL, SA, SLU…) removed */
 export const canon = (s: string) => normName(s).replace(LEGAL, " ").replace(/\s+/g, " ").trim();
+
+/** Every other filled property as readable "label: value" lines (so nothing in Notion is lost, without a column for each). */
+export function noteLines(r: Row, skip: string[] = []) {
+  return Object.entries(r.props)
+    .filter(([k, v]) => k !== r.titleKey && !skip.includes(k) && v !== null && v !== "" && v !== false && !(Array.isArray(v) && (v.length === 0 || /^[0-9a-f-]{36}$/.test(v[0]))))
+    .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v === true ? "sí" : v}`).join("\n");
+}
