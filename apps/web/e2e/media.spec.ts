@@ -49,9 +49,9 @@ test("upload documents, share their public link, filter and delete", async ({ pa
   expect((await request.get("/fitxers/00000000/res.pdf", { maxRedirects: 0 })).status()).toBe(404);
 
   // Filters and search.
-  await page.getByRole("link", { name: "Imatges" }).click();
+  await page.getByRole("link", { name: "Imatges", exact: true }).click();
   await expect(pdfCard).toHaveCount(0);
-  await page.getByRole("link", { name: "Documents" }).click();
+  await page.getByRole("link", { name: "Documents", exact: true }).click();
   await expect(pdfCard).toBeVisible();
   await page.getByRole("searchbox").fill(`inscripcio ${stamp}`);
   await page.getByRole("button", { name: "Cerca" }).click();
