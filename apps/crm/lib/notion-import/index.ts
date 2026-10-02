@@ -7,12 +7,13 @@ import { importGeneric, TARGETS } from "./generic";
 import { importSponsors } from "./sponsors";
 import { importRoster } from "./lists";
 import { importPeople } from "./people";
+import { importMailing } from "./mailing";
 import { importSuppliers } from "./suppliers";
 import { importCourses, importTraining } from "./training";
 import { queryDatabase, type Row } from "./notion";
 import { formatReport, type Report } from "./report";
 
-export type Sources = { companies?: string[]; former?: string[]; external?: string[]; gala?: string[]; visits?: string[]; labour?: string[]; training?: string[]; sponsors?: string[]; jobseekers?: string[]; rosters?: string[]; suppliers?: string[]; people?: string[]; courses?: string[] };
+export type Sources = { companies?: string[]; former?: string[]; external?: string[]; gala?: string[]; visits?: string[]; labour?: string[]; training?: string[]; sponsors?: string[]; jobseekers?: string[]; rosters?: string[]; suppliers?: string[]; people?: string[]; courses?: string[]; newsletters?: string[]; schoolList?: string[] };
 export type Options = { minTier?: number; db: typeof Db; read: (databaseId: string) => Promise<Row[]>; sources: Sources; dryRun: boolean; overwrite?: boolean; erp?: boolean; only?: (keyof Sources)[] };
 class Rollback extends Error {}
 
@@ -40,6 +41,8 @@ export async function runImport(o: Options): Promise<{ reports: Report[]; text: 
       if (want("suppliers")) reports.push(await importSuppliers(ctx, await readAll(o.read, o.sources.suppliers)));
       if (want("training")) reports.push(await importTraining(ctx, await readAll(o.read, o.sources.training), idmap));
       if (want("sponsors")) reports.push(await importSponsors(ctx, await readAll(o.read, o.sources.sponsors), idmap));
+      if (want("newsletters")) reports.push(await importMailing(ctx, await readAll(o.read, o.sources.newsletters), { label: "Newsletters", list: "newsletter" }));
+      if (want("schoolList")) reports.push(await importMailing(ctx, await readAll(o.read, o.sources.schoolList), { label: "Llistat Escola", list: "school" }));
       for (const k of ["jobseekers"] as const) if (want(k)) reports.push(await importGeneric(ctx, k, await readAll(o.read, o.sources[k])));
       if (o.dryRun) throw new Rollback();
     });

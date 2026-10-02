@@ -12,7 +12,7 @@ const only = args.find((a, i) => args[i - 1] === "--only")?.split(",") as (keyof
 const token = process.env.NOTION_TOKEN;
 if (!token) { console.error("NOTION_TOKEN is not set (see docs/notion-import.md)."); process.exit(1); }
 const ids = (k: string) => (process.env[k] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-const sources: Sources = { companies: ids("NOTION_DB_COMPANIES"), former: ids("NOTION_DB_FORMER"), external: ids("NOTION_DB_EXTERNAL"), gala: ids("NOTION_DB_GALA"), visits: ids("NOTION_DB_VISITS"), labour: ids("NOTION_DB_LABOUR"), training: ids("NOTION_DB_TRAINING"), sponsors: ids("NOTION_DB_SPONSORS"), jobseekers: ids("NOTION_DB_JOBSEEKERS"), rosters: ids("NOTION_DB_ROSTERS"), suppliers: ids("NOTION_DB_SUPPLIERS"), people: ids("NOTION_DB_PEOPLE"), courses: ids("NOTION_DB_COURSES") };
+const sources: Sources = { companies: ids("NOTION_DB_COMPANIES"), former: ids("NOTION_DB_FORMER"), external: ids("NOTION_DB_EXTERNAL"), gala: ids("NOTION_DB_GALA"), visits: ids("NOTION_DB_VISITS"), labour: ids("NOTION_DB_LABOUR"), training: ids("NOTION_DB_TRAINING"), sponsors: ids("NOTION_DB_SPONSORS"), jobseekers: ids("NOTION_DB_JOBSEEKERS"), rosters: ids("NOTION_DB_ROSTERS"), suppliers: ids("NOTION_DB_SUPPLIERS"), people: ids("NOTION_DB_PEOPLE"), courses: ids("NOTION_DB_COURSES"), newsletters: ids("NOTION_DB_NEWSLETTERS"), schoolList: ids("NOTION_DB_SCHOOL_LIST") };
 if (!Object.values(sources).some((s) => s && s.length)) { console.error("No NOTION_DB_* variable is set: nothing to import."); process.exit(1); }
 
 try {

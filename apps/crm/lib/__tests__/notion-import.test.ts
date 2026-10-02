@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@apex/db";
-import { clients, eventAttendance, events, feeTiers, jobSeekers, members, people, sponsors, suppliers, trainingCourses, visits, users } from "@apex/db/schema";
+import { clients, eventAttendance, events, feeTiers, jobSeekers, mailingContacts, members, people, sponsors, suppliers, trainingCourses, visits, users } from "@apex/db/schema";
 import { logoOf, mergeCompanies } from "../notion-import/companies";
 import { queryDatabase, toRow, flattenProp, mask, type Row } from "../notion-import/notion";
 import { runImport } from "../notion-import";
@@ -27,7 +27,7 @@ const run = (sources: Parameters<typeof runImport>[0]["sources"], data: Record<s
   runImport({ db, read: async (id) => data[id] ?? [], sources, dryRun: false, ...extra });
 
 beforeEach(async () => {
-  for (const x of [eventAttendance, events, visits, sponsors, suppliers, trainingCourses, jobSeekers, people, members, feeTiers, clients, users]) await db.delete(x);
+  for (const x of [eventAttendance, events, visits, sponsors, suppliers, trainingCourses, jobSeekers, mailingContacts, people, members, feeTiers, clients, users]) await db.delete(x);
 });
 
 describe("reading Notion", () => {
@@ -346,3 +346,26 @@ describe("the other rosters, people, suppliers and courses", () => {
     expect([(await db.select().from(suppliers)).length, (await db.select().from(trainingCourses)).length]).toEqual([1, 1]);
   });
 });
+
+describe("mailing lists", () => {
+  it("keeps one row per address per list, no consent, and is safe to re-run", async () => {
+    const data = {
+      news: rows(
+        page({ Nombre: title("Ana"), email: email("Ana@Example.com"), Clasificacio: multi("Premsa") }),
+        page({ Nombre: title("Ana bis"), email: email("ana@example.com") }),
+        page({ Nombre: title("sense correu"), email: email("") }),
+      ),
+      school: rows(page({ Nombre: title("ana@example.com"), campaign: sel("Escola 2026") })),
+    };
+    const sources = { newsletters: ["news"], schoolList: ["school"] };
+    const first = await run(sources, data);
+    expect(first.reports.map((r) => r.created)).toEqual([1, 1]);
+    const all = await db.select().from(mailingContacts);
+    expect(all.map((r) => `${r.list}:${r.email}`).sort()).toEqual(["newsletter:ana@example.com", "school:ana@example.com"]);
+    expect(all.every((r) => r.consentOn === null)).toBe(true);
+    expect(all.find((r) => r.list === "newsletter")?.tags).toEqual(["Premsa"]);
+    await run(sources, data);
+    expect(await db.select().from(mailingContacts)).toHaveLength(2);
+  });
+});
+
