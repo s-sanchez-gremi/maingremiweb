@@ -5,8 +5,8 @@ export function SearchBox({ locale }: { locale: Locale }) {
   const t = ui(locale);
   return (
     <form className="search" role="search" action={`/${locale}/search`} method="get">
-      <label className="sr-only" htmlFor={`q-${locale}`}>{t.searchLabel}</label>
-      <input id={`q-${locale}`} name="q" type="search" maxLength={100} autoComplete="off" placeholder={t.search} />
+      {/* label wraps the input: the box appears twice on the search page (menu + page), so an id would not be unique */}
+      <label className="q"><span className="sr-only">{t.searchLabel}</span><input name="q" type="search" maxLength={100} autoComplete="off" placeholder={t.search} /></label>
       <button type="submit">{t.search}</button>
     </form>
   );
