@@ -25,16 +25,25 @@ describe("logo finder", () => {
     expect(c[1].url).toBe("https://x.com/apple.png");
     expect(c.some((x) => /favicon\.ico|f32/.test(x.url))).toBe(false);
   });
+  it("skips the default icons of website builders and the platform sites themselves", () => {
+    const html = `<link rel="apple-touch-icon" href="https://s.w.org/images/core/emoji/x.png"><link rel="apple-touch-icon" href="/wp-includes/images/w-logo-blue.png"><link rel="apple-touch-icon" href="/mine.png">`;
+    expect(logoCandidates(html, new URL("https://x.cat/")).map((c) => c.url)).toEqual(["https://x.cat/mine.png", "https://x.cat/apple-touch-icon.png"]);
+    for (const site of ["weebly.com", "https://www.wix.com", "squarespace.com"]) expect(normalizeSite(site)).toBeNull();
+  });
   it("survives broken JSON-LD and relative or odd addresses", () => {
     const c = logoCandidates(`<script type="application/ld+json">{oops</script><link rel="apple-touch-icon" href="img/a.png"><link rel="icon" href="javascript:x">`, new URL("https://y.cat/pagina/"));
     expect(c[0].url).toBe("https://y.cat/pagina/img/a.png");
   });
   it("turns a good image into a small WebP and refuses tiny or banner-shaped ones", async () => {
-    const png = (w: number, h: number) => sharp({ create: { width: w, height: h, channels: 3, background: "#D50032" } }).png().toBuffer();
+    // a red square on white (a flat colour alone would count as an empty image)
+    const png = (w: number, h: number) => sharp({ create: { width: w, height: h, channels: 3, background: "#ffffff" } }).composite([{ input: { create: { width: Math.floor(w / 2), height: Math.floor(h / 2), channels: 3, background: "#D50032" } }, left: Math.floor(w / 4), top: Math.floor(h / 4) }]).png().toBuffer();
     const ok = await toLogoWebp(await png(400, 300));
     expect(ok && (await sharp(ok).metadata())).toMatchObject({ format: "webp", width: 160 });
     expect(await toLogoWebp(await png(32, 32))).toBeNull();
     expect(await toLogoWebp(await png(1200, 100))).toBeNull();
     expect(await toLogoWebp(Buffer.from("not an image"))).toBeNull();
+    // a white mark on a transparent background is empty once flattened on white
+    const ghost = await sharp({ create: { width: 200, height: 200, channels: 4, background: { r: 255, g: 255, b: 255, alpha: 1 } } }).png().toBuffer();
+    expect(await toLogoWebp(ghost)).toBeNull();
   });
 });

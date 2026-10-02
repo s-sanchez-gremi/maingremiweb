@@ -5,7 +5,7 @@
 export type Candidate = { url: string; score: number; kind: "jsonld" | "apple" | "icon" | "fallback" };
 
 /** Sites that are a page on someone else's platform: their icon is the platform's, not the company's. */
-const PLATFORMS = /(^|\.)(linkedin\.com|facebook\.com|fb\.com|instagram\.com|twitter\.com|x\.com|youtube\.com|youtu\.be|tiktok\.com|behance\.net|linktr\.ee|linktree\.com|pinterest\.[a-z]+|wa\.me|whatsapp\.com|google\.[a-z]+|goo\.gl|bit\.ly|vimeo\.com|issuu\.com|flickr\.com|blogspot\.[a-z]+|wordpress\.com|wixsite\.com|myportfolio\.com|carbonmade\.com|dribbble\.com)$/i;
+const PLATFORMS = /(^|\.)(linkedin\.com|facebook\.com|fb\.com|instagram\.com|twitter\.com|x\.com|youtube\.com|youtu\.be|tiktok\.com|behance\.net|linktr\.ee|linktree\.com|pinterest\.[a-z]+|wa\.me|whatsapp\.com|google\.[a-z]+|goo\.gl|bit\.ly|vimeo\.com|issuu\.com|flickr\.com|blogspot\.[a-z]+|wordpress\.com|wixsite\.com|myportfolio\.com|carbonmade\.com|dribbble\.com|weebly\.com|wix\.com|squarespace\.com|jimdo\.com|jimdosite\.com|godaddy\.com|webnode\.[a-z]+|shopify\.com)$/i;
 
 /** "laplana.com" / "www.x.cat/ca" -> https URL, or null when it is not a public web address. */
 export function normalizeSite(raw: string): URL | null {
@@ -44,6 +44,9 @@ function jsonLdLogos(html: string): string[] {
   return out;
 }
 
+/** Default icons that website builders and CMSs put on every site (their own mark, not the company's). */
+const GENERIC_ICON = /\/wp-includes\/images\/w-logo|\/\/s\.w\.org\/|wordpress\.org|\/ficons\/|editmysite\.com\/.*favicon|parastorage\.com\/.*(favicon|wix)|default-?(favicon|icon)/i;
+
 /** Candidate logo addresses of a page, best first. */
 export function logoCandidates(html: string, base: URL): Candidate[] {
   const out: Candidate[] = [];
@@ -59,7 +62,7 @@ export function logoCandidates(html: string, base: URL): Candidate[] {
     else if (!/\.ico(\?|$)/i.test(href) && (size >= 64 || /\.svg(\?|$)/i.test(href))) add(abs(href, base), 50 + Math.min(size, 256) / 10, "icon");
   }
   add(abs("/apple-touch-icon.png", base), 40, "fallback");
-  return out.sort((a, b) => b.score - a.score);
+  return out.filter((c) => !GENERIC_ICON.test(c.url)).sort((a, b) => b.score - a.score);
 }
 
 const FREE_MAIL = /^(gmail|googlemail|hotmail|outlook|live|msn|yahoo|ymail|icloud|me|mac|aol|gmx|proton|protonmail|telefonica|movistar|terra|ya|wanadoo|orange|ono|vodafone|jazztel|tiscali|mixmail|tinet|menta|eresmas|telecable|pangea|arrakis)\.[a-z.]+$/i;
