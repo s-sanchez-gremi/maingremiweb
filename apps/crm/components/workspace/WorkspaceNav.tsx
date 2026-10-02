@@ -11,7 +11,7 @@ export function WorkspaceNav({ groups }: { groups: { name: string; items: { key:
         <div key={g.name} className="ws-group">
           <div className="ws-group-name">{g.name}</div>
           {g.items.map((i) => (
-            <Link key={i.key} href={`/workspace/${i.key}`} aria-current={path === `/workspace/${i.key}` || path.startsWith(`/workspace/${i.key}/`) ? "page" : undefined}>
+            <Link key={i.key} href={`/workspace/${i.key}`} title={i.title} aria-current={path === `/workspace/${i.key}` || path.startsWith(`/workspace/${i.key}/`) ? "page" : undefined}>
               <Icon name={i.key} /><span>{i.title}</span>
             </Link>
           ))}

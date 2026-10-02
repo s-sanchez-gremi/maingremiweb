@@ -9,7 +9,7 @@ import { Icon } from "@/components/workspace/icons";
 import { Input, queryOf, type RecordParams } from "@/components/records/RecordScreen";
 import { RecordDetail } from "@/components/records/RecordDetail";
 import { saveRecordAction } from "@/lib/records/actions";
-import { choiceKey, filterFields, listRecords, relationChoices, sortFields } from "@/lib/records/engine";
+import { choiceKey, filterFields, listRecords, PAGE_SIZE, relationChoices, sortFields } from "@/lib/records/engine";
 import { FIELD_TYPES, type Field } from "@/lib/records/fieldTypes";
 import { screenEntity } from "@/lib/records/registry";
 
@@ -72,30 +72,17 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
   return (
     <div className={`ws-split${opening || sp.new ? " open" : ""}`}>
       <section className="ws-content">
-        <header className="ws-head">
-          <span className="ws-tile" aria-hidden><Icon name={e.key} size={22} /></span>
-          <div className="ws-titles">
-            <p className="ws-eyebrow">{e.crumb}</p>
-            <h1>{e.title}<span className="ws-count" title={`${total} ${total === 1 ? "element" : "elements"}`}>{total.toLocaleString("ca-ES")}</span></h1>
-            {e.hint && <p className="ws-hint" title={e.hint}>{e.hint}</p>}
-          </div>
-          <span className="ws-spacer" />
-          <details className="ws-menu">
-            <summary aria-label="Més accions"><Icon name="more" size={16} /></summary>
-            <div role="menu">
-              {e.archivable && <Link role="menuitem" href={href({ archived: sp.archived === "1" ? undefined : "1", page: undefined })}><Icon name="archive" size={14} />{sp.archived === "1" ? "Veure els actius" : "Veure els arxivats"}</Link>}
-              <Link role="menuitem" href={`${here}/import`}><Icon name="upload" size={14} />Importa CSV</Link>
-              <a role="menuitem" href={`${e.basePath}/export${href({ page: undefined }).replace(here, "")}`}><Icon name="download" size={14} />Exporta CSV</a>
-            </div>
-          </details>
-          <Link className="ws-btn primary" href={href({ new: "1", open: undefined })}><Icon name="plus" size={14} />Nou</Link>
-        </header>
         {sp.saved && !opening && <p role="status" className="msg ok">Desat.</p>}
         {sp.error && !opening && !sp.new && <p role="alert" className="msg err">{sp.error}</p>}
-        <form method="get" className="ws-toolbar" aria-label="Filtres">
+        {/* ONE bar: title, search, filters, view, page, menu, new. It wraps on narrow canvases. */}
+        <form method="get" className="ws-bar" aria-label="Filtres">
+          <h1 title={e.hint}>
+            <Icon name={e.key} size={18} />{e.title}<span className="ws-count" title={`${total} ${total === 1 ? "element" : "elements"}`}>{total.toLocaleString("ca-ES")}</span>
+          </h1>
+          {e.hint && <span className="ws-info" tabIndex={0} role="note" aria-label={e.hint} title={e.hint}><Icon name="info" size={15} /></span>}
           {e.search && (
             <span className="ws-field">
-              <Icon name="search" size={15} />
+              <Icon name="search" size={14} />
               <input type="search" name="q" defaultValue={sp.q} placeholder={`Cerca a ${e.title.toLowerCase()}`} aria-label={`Cerca ${e.title.toLowerCase()}`} />
             </span>
           )}
@@ -116,12 +103,30 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
           <button type="submit" className="sr-only">Filtra</button>
           {(sp.q || filters.some((f) => sp[`f_${f.name}`])) && <Link className="ws-clear" href={href({ q: undefined, page: undefined, ...Object.fromEntries(filters.map((f) => [`f_${f.name}`, undefined])) })}>Neteja</Link>}
           <span className="ws-spacer" />
+          {!board && (
+            <nav className="ws-pager" aria-label="Pàgines">
+              <span>{((page - 1) * PAGE_SIZE + 1).toLocaleString("ca-ES")}–{Math.min(page * PAGE_SIZE, total).toLocaleString("ca-ES")} de {total.toLocaleString("ca-ES")}</span>
+              {pages > 1 && <>
+                {page > 1 ? <Link href={href({ page: String(page - 1) })} aria-label="Pàgina anterior"><Icon name="back" size={14} /></Link> : <span className="off" aria-hidden><Icon name="back" size={14} /></span>}
+                {page < pages ? <Link href={href({ page: String(page + 1) })} aria-label="Pàgina següent"><Icon name="next" size={14} /></Link> : <span className="off" aria-hidden><Icon name="next" size={14} /></span>}
+              </>}
+            </nav>
+          )}
           {by && (
             <nav className="ws-seg" aria-label="Vista">
               <Link href={href({ view: undefined, by: undefined })} aria-current={board ? undefined : "page"}><Icon name="table" size={14} />Taula</Link>
               <Link href={href({ view: "board", page: undefined })} aria-current={board ? "page" : undefined}><Icon name="board" size={14} />Tauler</Link>
             </nav>
           )}
+          <details className="ws-menu">
+            <summary aria-label="Més accions"><Icon name="more" size={16} /></summary>
+            <div role="menu">
+              {e.archivable && <Link role="menuitem" href={href({ archived: sp.archived === "1" ? undefined : "1", page: undefined })}><Icon name="archive" size={14} />{sp.archived === "1" ? "Veure els actius" : "Veure els arxivats"}</Link>}
+              <Link role="menuitem" href={`${here}/import`}><Icon name="upload" size={14} />Importa CSV</Link>
+              <a role="menuitem" href={`${e.basePath}/export${href({ page: undefined }).replace(here, "")}`}><Icon name="download" size={14} />Exporta CSV</a>
+            </div>
+          </details>
+          <Link className="ws-btn primary" href={href({ new: "1", open: undefined })}><Icon name="plus" size={14} />Nou</Link>
         </form>
 
         {board && by ? (
@@ -158,13 +163,6 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
           </table>
         </div>
         </>)}
-        {!board && pages > 1 && (
-          <nav className="ws-pager" aria-label="Pàgines">
-            {page > 1 && <Link href={href({ page: String(page - 1) })}>← Anterior</Link>}
-            <span>Pàgina {page} de {pages}</span>
-            {page < pages && <Link href={href({ page: String(page + 1) })}>Següent →</Link>}
-          </nav>
-        )}
       </section>
 
       {(opening || sp.new) && (
