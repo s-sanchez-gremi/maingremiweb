@@ -35,7 +35,7 @@ export default async function Preview({ params, searchParams }: { params: Promis
   return (
     <Shell locale={locale} alternates={[]}>
       {!hasHeader && <div className="wrap narrow"><div className="page-title"><h1>{t?.title || ui(locale).untitled}</h1></div></div>}
-      <SectionRenderer sections={sections} media={media} locale={locale} source={{ path: "", theme: entry.theme }} />
+      <SectionRenderer sections={sections} media={media} locale={locale} source={{ path: "", theme: entry.theme }} edit />
       <PreviewBridge />
     </Shell>
   );

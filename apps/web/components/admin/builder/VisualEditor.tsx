@@ -13,6 +13,7 @@ import {
   type SectionItem, type Target,
 } from "@/lib/builder-ops";
 import type { ToEditor, ToPreview } from "./PreviewBridge";
+import { setPath } from "@/lib/inline-edit";
 
 const MIME = "application/x-apex";
 type Payload = { kind: "new-block" | "new-section"; type: string } | { kind: "move-block" | "move-section"; id: string };
@@ -74,13 +75,19 @@ export function VisualEditor({ entryId, locale, sections, onChange, options, sav
       const m = e.data;
       if (m?.apex === "ready") tell(selected);
       else if (m?.apex === "select") { setSelected(m.id); tell(m.id); }
+      else if (m?.apex === "edit") {
+        const cur = latest.current;
+        const f = findBlock(cur, m.id);
+        if (f) onChange(cur.map((s) => s.id !== f.section.id ? s : { ...s, data: { ...s.data, [f.col]: (s.data[f.col] as { id: string }[]).map((b) => (b.id === m.id ? { ...f.block, data: setPath(f.block.data, m.field, m.value) } : b)) } }));
+        else onChange(cur.map((s) => (s.id === m.id ? { ...s, data: setPath(s.data, m.field, m.value) } : s)));
+      }
       else if (m?.apex === "drop") {
         try { apply(JSON.parse(m.payload) as Payload, m.target as Target); } catch { /* not ours */ }
       }
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [apply, selected, tell]);
+  }, [apply, onChange, selected, tell]);
 
   // Click-to-add (also the keyboard route): after the selection, or at the end of the page.
   const addBlockHere = (type: string) => {
