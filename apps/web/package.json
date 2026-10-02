@@ -10,7 +10,10 @@
     "db:migrate": "node --env-file=../../.env --import tsx db/migrate.mts",
     "test": "vitest run --passWithNoTests",
     "user:create": "node --env-file=../../.env --import tsx db/create-user.mts",
-    "seed:demo": "node --env-file=../../.env --import tsx db/seed-demo.mts"
+    "seed:demo": "node --env-file=../../.env --import tsx db/seed-demo.mts",
+    "wp:fetch": "node --import tsx scripts/wp-fetch.mts",
+    "wp:review": "node --import tsx scripts/wp-review.mts",
+    "wp:import": "node --env-file=../../.env --import tsx scripts/wp-import.mts"
   },
   "dependencies": {
     "@apex/core": "workspace:*",
