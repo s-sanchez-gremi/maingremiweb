@@ -16,7 +16,7 @@ test("upload documents, share their public link, filter and delete", async ({ pa
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await login(page);
   await page.goto("/admin/media");
-  await expect(page.getByRole("heading", { name: "Biblioteca de mitjans" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fitxers i imatges" })).toBeVisible();
 
   const stamp = Date.now();
   const pdf = `Circular ${stamp}.pdf`, docx = `Inscripció ${stamp}.docx`;
