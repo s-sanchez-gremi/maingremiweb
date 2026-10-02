@@ -1,25 +1,35 @@
-/* THE design tokens (approved mockups). Public site and admin both read these; nothing else defines a colour.
+/* THE design tokens (GREMI "print shop" style, client decision 2026-10-02, after gremid.netlify.app). Public site and admin both read these; nothing else defines a colour.
    Contrast rules are enforced by lib/__tests__/contrast.test.ts, which parses this file. */
+/* Self-hosted fonts (SIL OFL, licences next to the files): no third-party request. */
+@font-face{font-family:"Fraunces";font-style:normal;font-weight:100 900;font-display:swap;src:url(./fonts/fraunces-latin-wght-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Fraunces";font-style:normal;font-weight:100 900;font-display:swap;src:url(./fonts/fraunces-latin-ext-wght-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:500;font-display:swap;src:url(./fonts/ibm-plex-mono-latin-500-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:500;font-display:swap;src:url(./fonts/ibm-plex-mono-latin-ext-500-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+
 :root {
   /* colour */
   --accent: #D50032;
-  --accent-hover: #A9002A;
-  --bg: #FAF9F5;            /* ivory */
-  --bg2: #F2F0E8;           /* secondary background */
+  --accent-hover: #B0002A;
+  --bg: #F7F4EE;            /* paper */
+  --bg2: #EFEAE0;           /* darker paper (alternate sections) */
   --surface: #FFFFFF;
-  --ink: #141413;           /* near-black */
-  --ink2: #23221F;          /* secondary ink panel */
-  --text2: #5C5A54;         /* quiet text: the ONLY grey allowed for small text on light backgrounds */
-  --ink-text: #C9C6BE;      /* text on dark panels */
-  --line: #E5E2D9;          /* decorative dividers and card borders (never the only cue for a control) */
-  --field-border: #8A8780;  /* input/checkbox outlines: >= 3:1 on every light background (WCAG 1.4.11) */
+  --ink: #1A1715;           /* ink (text, dark band) */
+  --ink2: #171412;          /* darkest panel (top bar, magazine, footer) */
+  --text2: #4D4741;         /* quiet text: the ONLY grey allowed for small text on light backgrounds */
+  --ink-text: #F3EEE6;      /* text on dark panels */
+  --line: #D8D0C1;          /* decorative dividers and card borders (never the only cue for a control) */
+  --field-border: #857E76;  /* input/checkbox outlines: >= 3:1 on every light background (WCAG 1.4.11) */
+  --cmyk-c: #00A0DC;        /* decorative print strip only, never text */
+  --cmyk-m: #E4007C;
+  --cmyk-y: #FFDD00;
   --danger: #B00020;
   --danger-bg: #FBE9ED;
   --ok: #1E6B3A;
   --ok-bg: #E6F2EA;
 
   /* type */
-  --serif: Georgia, "Times New Roman", serif;
+  --serif: "Fraunces", Georgia, "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace; /* small capital labels only */
   --sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
   --fs-xs: 12px;
   --fs-sm: 14px;
@@ -33,9 +43,9 @@
 
   /* space, shape, motion */
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px;
-  --r: 6px;                 /* buttons, inputs */
-  --r-lg: 10px;             /* cards */
-  --shadow-card: 0 8px 24px rgba(20, 20, 19, 0.08);
+  --r: 4px;                 /* buttons, inputs: almost square, like print */
+  --r-lg: 4px;              /* cards */
+  --shadow-card: 0 10px 28px rgba(26, 23, 21, 0.08);
   --container: 1312px;
   --tap: 44px;              /* minimum touch target */
   --focus: 2px solid var(--accent);

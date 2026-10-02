@@ -243,10 +243,12 @@ test.describe("navigation with dropdowns, header buttons and social links", () =
   });
 });
 
-test("search: header box finds published content (accent-insensitive) and says so when nothing matches", async ({ page }) => {
+test("search: the header magnifier opens the search page, which finds published content (accent-insensitive) and says so when nothing matches", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await settle(page, "/ca");
-  await page.locator(".header-actions").getByRole("searchbox", { name: "Cerca al web" }).fill("intelligencia artificial");
+  await page.locator(".header-actions").getByRole("link", { name: "Cerca" }).click();
+  await expect(page).toHaveURL(/\/ca\/search$/);
+  await page.locator("main").getByRole("searchbox", { name: "Cerca al web" }).fill("intelligencia artificial");
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/ca\/search\?q=/);
   await expect(page.getByRole("link", { name: "Com impacta la intel·ligència artificial al sector" })).toBeVisible();
