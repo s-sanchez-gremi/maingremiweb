@@ -18,6 +18,7 @@ export const media = pgTable("media", {
   filename: text().notNull().default(""),
   width: integer(),
   height: integer(),
+  size: integer(), // bytes as uploaded (null for files uploaded before the media library)
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

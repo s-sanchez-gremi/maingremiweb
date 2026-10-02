@@ -62,4 +62,4 @@ Companies: the main list ("Agremiats", 577 rows) plus "Empreses" (303) merge int
 
 
 ## 8. Fields filled by later passes
-Migration 0018: *Cuota* → company `fee_status` (Corrent pagament / Impagament / Sense dades); sponsors' *esdeveniments*, *contactats*, *últim contacte*, *persona de contacte* (only when it is an e-mail), *proposta*, *seguiment* → their own fields (the rest stays in the notes); gala *SEIENTS* → seat tags (platea, llotja, llotja sponsor, vip, nominal) and *Categoria* → free category tags. Re-running fills them on rows imported earlier without touching what people edited since.
+Migration 0019: *Cuota* → company `fee_status` (Corrent pagament / Impagament / Sense dades); sponsors' *esdeveniments*, *contactats*, *últim contacte*, *persona de contacte* (only when it is an e-mail), *proposta*, *seguiment* → their own fields (the rest stays in the notes); gala *SEIENTS* → seat tags (platea, llotja, llotja sponsor, vip, nominal) and *Categoria* → free category tags. Re-running fills them on rows imported earlier without touching what people edited since.

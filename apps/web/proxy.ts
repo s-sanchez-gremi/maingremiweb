@@ -7,7 +7,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { buildCsp, kindOf } from "@apex/core/csp";
 
 const LOCALES = ["ca", "es", "en"];
-const KNOWN = ["admin", "api", "embed", "styleguide"];
+const KNOWN = ["admin", "api", "embed", "fitxers", "styleguide"];
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;

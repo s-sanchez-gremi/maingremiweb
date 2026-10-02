@@ -2,15 +2,25 @@ import { describe, expect, it } from "vitest";
 import sharp from "sharp";
 import { eq } from "drizzle-orm";
 import { db } from "@apex/db";
-import { media } from "@apex/db/schema";
-import { MediaError, deleteMedia, detectKind, mediaInUse, mediaUrl, processImage, saveUpload } from "../media";
+import { entries, entryTranslations, media } from "@apex/db/schema";
+import { MediaError, cleanName, deleteMedia, detectKind, findByCode, mediaInUse, mediaUrl, processImage, saveUpload } from "../media";
+import { shareCode, shareName, sharePath } from "../media-url";
 
+const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+// Detection only looks at the zip signature and the Office manifest name, so a tiny fake is enough here.
+const officeLike = () => Buffer.concat([Buffer.from([0x50, 0x4b, 0x03, 0x04]), Buffer.alloc(26), Buffer.from("[Content_Types].xml<Types/>")]);
 const png = (w: number, h: number) => sharp({ create: { width: w, height: h, channels: 3, background: "#D50032" } }).png().toBuffer();
 
 describe("detectKind()", () => {
   it("identifies by bytes, not by name", async () => {
     expect(detectKind(await png(4, 4))).toBe("image");
-    expect(detectKind(Buffer.from("%PDF-1.7\n"))).toBe("pdf");
+    expect(detectKind(Buffer.from("%PDF-1.7\n"))).toBe("application/pdf");
+    expect(detectKind(officeLike(), "Inscripció.DOCX")).toBe(DOCX);
+    expect(detectKind(officeLike(), "llibre.xlsx")).toMatch(/spreadsheetml/);
+    expect(detectKind(officeLike(), "presentacio.pptx")).toMatch(/presentationml/);
+    expect(detectKind(officeLike(), "macro.docm")).toBeNull(); // only the plain Office formats
+    expect(detectKind(officeLike(), "arxiu.zip")).toBeNull();
+    expect(detectKind(Buffer.from("PK\x03\x04 just a zip"), "fake.docx")).toBeNull();
     expect(detectKind(Buffer.from("<svg xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>"))).toBeNull();
     expect(detectKind(Buffer.from("MZ\x90\x00 fake.jpg"))).toBeNull();
   });
@@ -43,6 +53,36 @@ describe("upload → storage → delete (needs local S3 mock)", () => {
     await deleteMedia(id);
     expect((await fetch(url)).status).toBe(404);
     expect(await db.select().from(media).where(eq(media.id, id))).toHaveLength(0);
+  });
+  it("stores documents as uploaded, under a short shareable link that names the file", async () => {
+    const id = await saveUpload({ name: "Inscripció curs 2026.docx", bytes: officeLike() });
+    const [row] = await db.select().from(media).where(eq(media.id, id));
+    expect(row).toMatchObject({ mime: DOCX, filename: "Inscripcio curs 2026.docx", size: officeLike().length, width: null });
+    expect(sharePath(row)).toBe(`/fitxers/${id.slice(0, 8)}/inscripcio-curs-2026.docx`);
+    expect((await findByCode(shareCode(id)))?.id).toBe(id);
+    expect(await findByCode("zzzzzzzz")).toBeNull();
+    const res = await fetch(mediaUrl(row));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe(DOCX);
+    expect(res.headers.get("content-disposition")).toContain('filename="inscripcio-curs-2026.docx"');
+    await deleteMedia(id);
+    expect(await findByCode(shareCode(id))).toBeNull();
+  });
+  it("a file linked from a page by its shareable link counts as in use", async () => {
+    const id = await saveUpload({ name: "circular.pdf", bytes: Buffer.from("%PDF-1.7\n") });
+    const [row] = await db.select().from(media).where(eq(media.id, id));
+    expect(await mediaInUse(id)).toBe(false);
+    const [entry] = await db.insert(entries).values({ type: "page" }).returning();
+    await db.insert(entryTranslations).values({ entryId: entry.id, locale: "ca", title: "t", slug: `t-${Date.now()}`, sections: [{ type: "text", body: `[Circular](https://x.test${sharePath(row)})` }] });
+    expect(await mediaInUse(id)).toBe(true);
+    await expect(deleteMedia(id)).rejects.toBeInstanceOf(MediaError);
+    await db.delete(entries).where(eq(entries.id, entry.id));
+    await deleteMedia(id);
+  });
+  it("names files plainly", () => {
+    expect(cleanName("Fòrum <script>.pdf")).toBe("Forum script.pdf");
+    expect(shareName({ mime: "image/webp", filename: "Gala 2026 — foto.JPG" })).toBe("gala-2026-foto.webp");
+    expect(shareName({ mime: "application/pdf", filename: "···.pdf" })).toBe("fitxer.pdf");
   });
   it("refuses unsupported and oversized files", async () => {
     await expect(saveUpload({ name: "x.svg", bytes: Buffer.from("<svg/>") })).rejects.toBeInstanceOf(MediaError);

@@ -10,7 +10,7 @@ const text: [string, string, string][] = [
   ["ink", "bg", "body text"], ["ink", "surface", "text on cards"], ["ink", "bg2", "text on beige band"],
   ["text2", "bg", "quiet text"], ["text2", "surface", "quiet text on cards"], ["text2", "bg2", "quiet text on beige band"],
   ["accent", "bg", "eyebrows, links"], ["accent", "surface", "eyebrows on cards"], ["accent", "bg2", "eyebrows on beige band"],
-  ["bg", "accent", "primary button"], ["bg", "accent-hover", "primary button hover"],
+  ["bg", "accent", "primary button"], ["surface", "accent", "menu on the red header"], ["ink", "surface", "white button on the red header"], ["bg", "accent-hover", "primary button hover"],
   ["ink-text", "ink", "text on dark band"], ["ink-text", "ink2", "text on hero"], ["bg", "ink", "headings on dark"], ["bg", "ink2", "headings on hero"],
   ["danger", "surface", "error text"], ["danger", "danger-bg", "error banner"], ["ok", "ok-bg", "success banner"],
   ["warn", "warn-bg", "workspace status: attention"], ["info", "info-bg", "workspace status: in progress"], ["warn", "surface", "attention text on white"], ["info", "surface", "progress text on white"],
@@ -25,7 +25,7 @@ describe("design tokens meet WCAG AA", () => {
   it("the light greys that fail as text are not used as text tokens", () => {
     // --line is decorative only; if it ever becomes text it must pass 4.5
     expect(contrast(t.line, t.bg)).toBeLessThan(4.5);
-    expect(t["text2"]).toBe("#5C5A54");
+    expect(t["text2"]).toBe("#4D4741");
   });
   it("accent on the dark panels is NOT allowed for small text (documented: use ivory there)", () => {
     expect(contrast(t.accent, t.ink)).toBeLessThan(4.5);

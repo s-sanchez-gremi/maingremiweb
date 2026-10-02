@@ -1,0 +1,17 @@
+/* Staff bar (components/site/AdminBar.tsx). Tokens only. */
+.adminbar{display:flex;align-items:center;gap:var(--sp-1);min-height:40px;padding:0 var(--sp-3);background:var(--ink2);color:var(--bg);font:500 13px/1 var(--sans)}
+.adminbar a,.adminbar button{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 var(--sp-3);color:var(--bg);background:none;border:0;font:inherit;text-decoration:none;cursor:pointer}
+.adminbar a:hover,.adminbar button:hover{background:var(--ink)}
+.adminbar a:focus-visible,.adminbar button:focus-visible{outline:2px solid var(--bg);outline-offset:-2px}
+.adminbar form{display:contents}
+.adminbar .brand{font:700 13px/1 var(--serif);letter-spacing:.5px;padding-right:var(--sp-2)}
+.adminbar .edit{background:var(--accent);font-weight:700}
+.adminbar .edit:hover{background:var(--accent-hover)}
+.adminbar .chip{border:1px solid var(--field-border);border-radius:var(--r);padding:3px 7px;font-size:12px;color:var(--bg2)}
+.adminbar .gap{flex:1}
+.adminbar .who{color:var(--ink-text);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.adminbar .narrow,.adminbar .narrow-inline{display:none}
+@media (max-width:767px){
+  .adminbar .wide,.adminbar form.wide,.adminbar .wide-inline{display:none}
+  .adminbar .narrow,.adminbar .narrow-inline{display:inline-flex}
+}
