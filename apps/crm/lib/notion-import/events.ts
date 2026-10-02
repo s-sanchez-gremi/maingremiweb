@@ -49,7 +49,16 @@ export async function importGala(ctx: Ctx, rows: Row[], idmap: Map<string, strin
       bump(report, "people created");
     }
     const notes = [str(p["Categoria"]) && `Categoria: ${str(p["Categoria"])}`, str(p["SEIENTS"]) && `Seients: ${str(p["SEIENTS"])}`, str(p["Fila"]) && `Fila: ${str(p["Fila"])}`, str(p["Observacions"]) && str(p["Observacions"])].filter(Boolean).join(" · ");
-    const done = await db.insert(eventAttendance).values({ eventId: ev.id, personId: person.id, companyId, status: "confirmed", notes, externalRef: r.id }).onConflictDoNothing().returning({ id: eventAttendance.id });
+    // seat type and category are tags now (Notion multi-selects); the free text stays in the notes as before
+    const SEAT: Record<string, string> = { platea: "platea", llotja: "llotja", "llotja sponsor": "llotja_sponsor", vip: "vip", nominal: "nominal" };
+    const tagList = (v: unknown) => (Array.isArray(v) ? (v as string[]).map((t) => t.trim()) : []).filter(Boolean);
+    const seats = [...new Set(tagList(p["SEIENTS"]).map((t) => SEAT[t.toLowerCase()]).filter(Boolean))];
+    const categories = [...new Set(tagList(p["Categoria"]).map((t) => t.toLowerCase()))];
+    const done = await db.insert(eventAttendance).values({ eventId: ev.id, personId: person.id, companyId, status: "confirmed", seats, categories, notes, externalRef: r.id }).onConflictDoNothing().returning({ id: eventAttendance.id });
+    if (!done.length && (seats.length || categories.length)) { // an earlier import had these only in the notes: fill the tags once
+      const upd = await db.update(eventAttendance).set({ seats, categories }).where(and(eq(eventAttendance.externalRef, r.id), sql`cardinality(${eventAttendance.seats}) = 0 and cardinality(${eventAttendance.categories}) = 0`)).returning({ id: eventAttendance.id });
+      if (upd.length) bump(report, "seat and category tags filled on rows imported before");
+    }
     if (done.length) { report.created++; if (report.samples.length < 5) report.samples.push(`${mask(name)} → ${eventName}`); } else { report.skipped++; bump(report, "skipped: same person already listed for this event"); }
   }
   return report;

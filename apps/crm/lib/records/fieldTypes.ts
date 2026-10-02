@@ -2,12 +2,12 @@
 // string becomes a stored value, how it is shown and how it goes into a CSV. Adding a type = one entry here.
 import { parseEuros, plainEuros } from "@apex/core/money";
 
-export type FieldType = "text" | "textarea" | "email" | "phone" | "url" | "number" | "money" | "percent" | "date" | "select" | "checkbox" | "relation";
+export type FieldType = "text" | "textarea" | "email" | "phone" | "url" | "number" | "money" | "percent" | "date" | "select" | "tags" | "checkbox" | "relation";
 export type Choice = readonly [value: string, label: string];
 
 export type Field = {
   name: string; label: string; type: FieldType; required?: boolean; wide?: boolean;
-  choices?: readonly Choice[];                       // select: fixed choices
+  choices?: readonly Choice[];                       // select: fixed choices; tags: the allowed tags (without it any tag may be typed)
   to?: string; where?: Record<string, string>;      // relation: target entity key (+ equality filter on its options)
   filter?: boolean;                                  // offer as a list filter (select, relation, checkbox)
   list?: boolean;                                    // show as a column in the CSV (default: every field)
@@ -52,6 +52,19 @@ export const FIELD_TYPES: Record<FieldType, Def> = {
     parse: (raw, f) => { if (!raw) return null; if (!f.choices?.some(([v]) => v === raw)) throw new RecordError("opció no vàlida"); return raw; },
     show: (v, f) => f.choices?.find(([x]) => x === v)?.[1] ?? plain(v, f),
   },
+  // several tags on one record (Notion's multi-select), stored as text[]; the form sends them joined with "|"
+  tags: {
+    parse: (raw, f) => {
+      const list = [...new Set(raw.split("|").map((t) => t.trim()).filter(Boolean))];
+      if (list.length > 30) throw new RecordError("massa etiquetes (màx. 30)");
+      for (const t of list) {
+        if (t.length > 60) throw new RecordError("una etiqueta és massa llarga (màx. 60 caràcters)");
+        if (f.choices?.length && !f.choices.some(([v]) => v === t)) throw new RecordError("etiqueta no vàlida");
+      }
+      return list;
+    },
+    show: (v, f) => (Array.isArray(v) ? v.map((t) => f.choices?.find(([x]) => x === t)?.[1] ?? t).join(", ") : ""),
+  },
   checkbox: { parse: (raw) => raw === "on" || raw === "true", show: (v) => (v ? "Sí" : "No"), csv: (v) => (v ? "Sí" : "No") },
   relation: { parse: (raw) => { if (!raw) return null; if (!UUID.test(raw)) throw new RecordError("registre no vàlid"); return raw; }, show: plain },
 };
@@ -66,6 +79,7 @@ export function parseFields(fields: readonly Field[], get: (name: string) => str
     const raw = get(f.name);
     if (raw === undefined && f.type !== "checkbox") continue;
     const v = FIELD_TYPES[f.type].parse((raw ?? "").trim(), f);
+    if (f.type === "tags") { if (f.required && (v as string[]).length === 0) throw new RecordError(`${f.label} és obligatori`); out[f.name] = v; continue; }
     const empty = v === null || v === "" || v === undefined;
     if (f.required && empty && f.type !== "checkbox") throw new RecordError(`${f.label} és obligatori`);
     if (empty && !f.required && !NULLABLE.has(f.type)) { out[f.name] = ""; continue; }

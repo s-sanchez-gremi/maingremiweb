@@ -16,7 +16,8 @@ type Company = {
 
 const STATUS: Record<string, Company["memberStatus"]> = { agremiat: "member", coagremiat: "member", matriu: "member", "antic agremiat": "former", "no agremiat": "prospect" };
 const RANK = { member: 3, former: 2, prospect: 1 } as const;
-const phone = (v: unknown) => (typeof v === "number" ? String(v) : str(v as string));
+// Notion keeps a placeholder "0" in empty phone cells: anything with fewer than 5 digits is not a phone number.
+const phone = (v: unknown) => { const t = typeof v === "number" ? String(v) : str(v as string); return t.replace(/\D/g, "").length >= 5 ? t : ""; };
 
 export function toCompany(r: Row): Company | null {
   const p = r.props;
@@ -34,6 +35,9 @@ export function toCompany(r: Row): Company | null {
     parentIds: Array.isArray(p["Matriu agremiat"]) ? (p["Matriu agremiat"] as string[]) : [], cuota: str(p["Cuota"]), amount: num(p["Import"]),
   };
 }
+
+// Notion's "Cuota" status: Corrent pagament / Impagament / Sense dades.
+export const feeOf = (cuota: string): "paid" | "overdue" | "unknown" => (cuota === "Corrent pagament" ? "paid" : cuota === "Impagament" ? "overdue" : "unknown");
 
 /** Merge pages describing the same company: first non-empty value wins (oldest page first); the strongest member status wins. */
 export function mergeCompanies(rows: Row[]) {
@@ -99,12 +103,13 @@ export async function importCompanies(ctx: Ctx, rows: Row[], opts: { forceStatus
       if (c.employees !== null && (ctx.overwrite || existing.employees === null)) patch.employees = c.employees;
       if (c.foundedYear !== null && (ctx.overwrite || existing.foundedYear === null)) patch.foundedYear = c.foundedYear;
       if (c.getsMagazine && !existing.getsMagazine) patch.getsMagazine = true;
+      if (feeOf(c.cuota) !== "unknown" && (ctx.overwrite || existing.feeStatus === "unknown")) patch.feeStatus = feeOf(c.cuota);
       if (opts.forceStatus === "former" && existing.memberStatus === "member") bump(report, "also a CURRENT member elsewhere (status left unchanged, check by hand)");
       if (c.memberStatus !== "prospect" && (ctx.overwrite || existing.memberStatus === "prospect")) patch.memberStatus = c.memberStatus;
       if (!existing.externalRef) patch.externalRef = c.ids[0];
       if (Object.keys(patch).length) { await db.update(clients).set(patch).where(eq(clients.id, id)); report.updated++; } else report.skipped++;
     } else {
-      const [row] = await db.insert(clients).values({ ...Object.fromEntries(COLS.map((k) => [k, c[k]])), memberStatus: c.memberStatus, employees: c.employees, foundedYear: c.foundedYear, getsMagazine: c.getsMagazine, externalRef: c.ids[0] } as typeof clients.$inferInsert).returning({ id: clients.id });
+      const [row] = await db.insert(clients).values({ ...Object.fromEntries(COLS.map((k) => [k, c[k]])), memberStatus: c.memberStatus, feeStatus: feeOf(c.cuota), employees: c.employees, foundedYear: c.foundedYear, getsMagazine: c.getsMagazine, externalRef: c.ids[0] } as typeof clients.$inferInsert).returning({ id: clients.id });
       id = row.id; report.created++;
       { const k = canon(c.name); if (k) byCanon.set(k, [...(byCanon.get(k) ?? []), id]); }
       if (report.samples.length < 5) report.samples.push(`${mask(c.name)} · ${c.memberStatus}`);

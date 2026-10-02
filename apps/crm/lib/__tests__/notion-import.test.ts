@@ -53,10 +53,11 @@ describe("reading Notion", () => {
 
 describe("companies", () => {
   it("merges pages of the same company by CIF (spaces/case ignored), then by name, keeping the strongest status", () => {
-    const m = mergeCompanies(rows(company({ name: "Vila SL", cif: "B 123", agremiat: "NO AGREMIAT" }), company({ name: "VILA, S.L.", cif: "b123", agremiat: "agremiat", tel: "937" }), company({ name: "Altres", cif: "" }), company({ name: "altres" })));
+    const m = mergeCompanies(rows(company({ name: "Vila SL", cif: "B 123", agremiat: "NO AGREMIAT" }), company({ name: "VILA, S.L.", cif: "b123", agremiat: "agremiat", tel: "937 000 111" }), company({ name: "Altres", cif: "", tel: "0" }), company({ name: "altres" })));
     expect(m).toHaveLength(2);
     const vila = m.find((c) => c.taxId)!;
-    expect([vila.ids.length, vila.memberStatus, vila.phone]).toEqual([2, "member", "937"]);
+    expect([vila.ids.length, vila.memberStatus, vila.phone]).toEqual([2, "member", "937 000 111"]);
+    expect(m.find((c) => !c.taxId)!.phone).toBe(""); // the placeholder "0" is not a phone
   });
   it("imports companies with all fields, the contact as a person, parent link, ERP member and fee tier", async () => {
     const parent = company({ name: "Grup Gràfic", cif: "A1", amount: 600 });

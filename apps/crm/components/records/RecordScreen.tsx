@@ -8,13 +8,23 @@ import { deleteRecordAction, saveRecordAction } from "@/lib/records/actions";
 import type { Entity } from "@/lib/records/entity";
 import { choiceKey, filterFields, listRecords, relationChoices, sortFields, type Choices, type ListQuery, type Row } from "@/lib/records/engine";
 import { FIELD_TYPES, type Field } from "@/lib/records/fieldTypes";
+import { TagsInput } from "@/components/workspace/Tags";
 
 export type RecordParams = { saved?: string; error?: string; q?: string; sort?: string; dir?: string; page?: string; [filter: string]: string | undefined };
 
-export function queryOf(e: Entity, sp: RecordParams): ListQuery {
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const resolveMe = (filters: Record<string, string> | undefined, me?: string) => Object.fromEntries(Object.entries(filters ?? {}).filter(([, v]) => v !== "@me" || me).map(([k, v]) => [k, v === "@me" ? me! : v]));
+
+export function queryOf(e: Entity, sp: RecordParams, me?: string): ListQuery {
   const filters: Record<string, string> = {};
   for (const f of filterFields(e)) { const v = sp[`f_${f.name}`]; if (v) filters[f.name] = v; }
-  return { archived: sp.archived === "1", q: sp.q, filters, sort: sp.sort, dir: sp.dir === "desc" ? "desc" : sp.dir === "asc" ? "asc" : undefined, page: Number(sp.page) || 1 };
+  const tab = e.views?.find((v) => v.key === sp.tab);   // a workspace tab ("Agremiades", "Sense CIF") adds its own conditions
+  const ids = sp.ids ? sp.ids.split(",").filter((x) => UUID.test(x)).slice(0, 500) : undefined;
+  return {
+    archived: sp.archived === "1", q: sp.q, filters: { ...filters, ...resolveMe(tab?.filters, me) }, missing: tab?.missing, match: tab?.match, ids,
+    sort: sp.sort, dir: sp.dir === "desc" ? "desc" : sp.dir === "asc" ? "asc" : undefined, page: Number(sp.page) || 1,
+    group: (e.groupBy ?? e.fields.filter((f) => f.type === "select").map((f) => f.name)).includes(sp.group ?? "") ? sp.group : undefined,
+  };
 }
 const href = (e: Entity, sp: RecordParams, extra: Record<string, string | undefined>, path = e.basePath) => {
   const p = new URLSearchParams();
@@ -26,6 +36,7 @@ const href = (e: Entity, sp: RecordParams, extra: Record<string, string | undefi
 export function Input({ f, row, choices }: { f: Field; row?: Row; choices: Choices }) {
   const v = row?.[f.name];
   if (f.type === "checkbox") return <label className="row" style={{ justifyContent: "flex-start", gap: 8 }}><input type="checkbox" name={f.name} defaultChecked={row ? !!v : true} />{f.label}</label>;
+  if (f.type === "tags") return <div className="ws-tagsrow" style={f.wide ? { gridColumn: "1 / -1" } : undefined}><span>{f.label}</span><TagsInput name={f.name} label={f.label} defaultValue={Array.isArray(v) ? (v as string[]) : []} choices={f.choices} /></div>;
   if (f.type === "textarea") return <label style={f.wide ? { gridColumn: "1 / -1" } : undefined}>{f.label}<textarea name={f.name} defaultValue={String(v ?? "")} /></label>;
   if (f.type === "select" || f.type === "relation") {
     const list = f.type === "select" ? (f.choices ?? []).map(([value, label]) => ({ value, label })) : choices[choiceKey(f)] ?? [];
