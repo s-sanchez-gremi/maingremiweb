@@ -60,6 +60,7 @@ export async function importCsv(e: Entity, text: string, opts: { dryRun: boolean
       let v = (table[i][c] ?? "").trim();
       if (f.type === "checkbox") v = TRUE.has(key(v)) ? "on" : "";
       else if (f.type === "date") { const m = v.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/); if (m) v = `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`; }
+      else if (f.type === "tags") v = v.split(/[|;,]/).map((t) => t.trim()).filter(Boolean).map((t) => f.choices?.find(([val, label]) => val === t || key(label) === key(t))?.[0] ?? t).join("|");
       else if (f.type === "select" && v) v = f.choices?.find(([val, label]) => val === v || key(label) === key(v))?.[0] ?? v;
       else if (f.type === "relation" && v && !UUID.test(v)) {
         const hit = rel.get(f.name)?.get(key(v)) ?? [];

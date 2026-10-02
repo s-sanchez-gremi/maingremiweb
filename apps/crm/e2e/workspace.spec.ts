@@ -14,7 +14,7 @@ test("workspace: create in the side panel, edit cells in place, open the record"
   await page.goto("/workspace");
   await expect(page).toHaveURL(/\/workspace\/[a-z-]+$/);
   await page.goto("/workspace/suppliers");
-  await page.getByRole("link", { name: "+ Nou" }).click();
+  await page.getByRole("link", { name: "Nou", exact: true }).click();
   await page.getByRole("complementary", { name: "Fitxa" }).getByLabel("Nom").fill("Workspace Test SL");
   await page.getByRole("button", { name: "Crea" }).click();
   await expect(page).toHaveURL(/open=[0-9a-f-]{36}/);
@@ -34,8 +34,11 @@ test("workspace: create in the side panel, edit cells in place, open the record"
   await email.blur();
   await expect(page.getByRole("alert").filter({ hasText: "correu no vàlid" })).toBeVisible();
 
-  // the side panel shows the history of the in-place edit and takes a note
+  // the side panel shows the history of the in-place edit (a tab of the sheet) and takes a note
+  const sheet = page.getByRole("complementary", { name: "Fitxa" });
+  await sheet.getByRole("link", { name: "Historial" }).click();
   await expect(page.getByRole("region", { name: "Historial" })).toContainText("Telèfon");
+  await sheet.getByRole("link", { name: "Notes" }).click();
   await page.getByLabel("Nova nota").fill("Nota des de l'espai de treball");
   await page.getByRole("button", { name: "Afegeix la nota" }).click();
   await expect(page.getByRole("region", { name: "Notes" })).toContainText("Nota des de l'espai de treball");
@@ -82,6 +85,7 @@ test("workspace: companies (one per tax id), people linked to a company", async 
 
   await page.goto("/workspace/companies");
   await page.getByRole("link", { name: "Obre Gràfiques Vila SL · B99887766" }).click();
+  await panel.getByRole("link", { name: /^Persones/ }).click();
   await expect(page.getByRole("region", { name: "Registres enllaçats" })).toContainText("Anna Puig");
 });
 
@@ -111,6 +115,7 @@ test("workspace: an event, who attends it, a sponsor and a visit", async ({ page
 
   await page.goto("/workspace/events");
   await page.getByRole("link", { name: /^Obre Gala e2e 2026/ }).click();
+  await panel.getByRole("link", { name: /^Assistència/ }).click();
   await expect(page.getByRole("region", { name: "Registres enllaçats" })).toContainText("Convidada e2e");
   await expect(page.getByRole("region", { name: "Registres enllaçats" })).toContainText("Confirmat");
 
@@ -170,4 +175,209 @@ test("workspace: CSV import (validate first), export, and search across database
   // the template has the headers
   const tpl = await (await page.request.get("/workspace/companies/import/template")).text();
   expect(tpl).toContain("NIF/CIF");
+});
+
+test("workspace: board view groups by status, cards can be moved, statuses are coloured", async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 800 });
+  await login(page);
+  await page.goto("/workspace/sponsors?new=1");
+  const panel = page.getByRole("complementary", { name: "Fitxa" });
+  await panel.getByLabel("Nom", { exact: true }).fill("Tauler e2e");
+  await panel.getByRole("button", { name: "Crea" }).click();
+  await expect(page.getByRole("heading", { name: "Tauler e2e" })).toBeVisible();
+
+  await page.goto("/workspace/sponsors");
+  await page.getByRole("link", { name: "Tauler", exact: true }).click();
+  await expect(page).toHaveURL(/view=board/);
+  const potential = page.getByRole("region", { name: /^Potencial:/ });
+  await expect(potential.locator(".ws-card", { hasText: "Tauler e2e" })).toBeVisible();
+
+  // the card menu (keyboard route; dragging calls the same code) moves it and it stays moved
+  await potential.locator(".ws-card", { hasText: "Tauler e2e" }).getByRole("combobox").selectOption("active");
+  const active = page.getByRole("region", { name: /^Actiu:/ });
+  await expect(active.locator(".ws-card", { hasText: "Tauler e2e" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("region", { name: /^Actiu:/ }).locator(".ws-card", { hasText: "Tauler e2e" })).toBeVisible();
+
+  // in the table the same status wears its colour
+  await page.goto("/workspace/sponsors?q=Tauler e2e");
+  const tone = await page.getByLabel(/^Estat · Tauler e2e/).getAttribute("data-tone");
+  expect(tone).toBe("good");
+});
+
+test("workspace: companies tabs with counts, grouping, columns, and bulk actions on selected rows", async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 800 });
+  await login(page);
+  const panel = page.getByRole("complementary", { name: "Fitxa" });
+  for (const [name, cif] of [["Massiva Alfa SL", "B80000001"], ["Massiva Beta SL", ""]]) {
+    await page.goto("/workspace/companies?new=1");
+    await panel.getByLabel("Nom", { exact: true }).fill(name);
+    if (cif) await panel.getByLabel("NIF/CIF").fill(cif);
+    await panel.getByRole("button", { name: "Crea" }).click();
+    await expect(page.getByRole("heading", { name })).toBeVisible();
+  }
+  await page.goto("/workspace/events?new=1");
+  await panel.getByLabel("Nom", { exact: true }).fill("Acte massiu e2e");
+  await panel.getByRole("button", { name: "Crea" }).click();
+  await expect(page.getByRole("heading", { name: "Acte massiu e2e" })).toBeVisible();
+
+  // a tab with a count: only companies without a tax id
+  await page.goto("/workspace/companies?q=Massiva");
+  const tabs = page.getByRole("navigation", { name: "Vistes" });
+  await expect(tabs.getByRole("link", { name: /^Sense CIF/ })).toBeVisible();
+  await tabs.getByRole("link", { name: /^Sense CIF/ }).click();
+  await expect(page).toHaveURL(/tab=no-taxid/);
+  await expect(page.getByLabel(/^Nom · Massiva Beta SL/)).toBeVisible();
+  await expect(page.getByLabel(/^Nom · Massiva Alfa SL/)).toHaveCount(0);
+
+  // select both, invite them to the event, once only
+  await page.goto("/workspace/companies?q=Massiva");
+  await page.getByRole("checkbox", { name: /^Selecciona Massiva Alfa SL/ }).check();
+  await page.getByRole("checkbox", { name: /^Selecciona Massiva Beta SL/ }).check();
+  const bar = page.getByRole("region", { name: "Accions sobre la selecció" });
+  await expect(bar).toContainText("2 seleccionades");
+  await bar.getByLabel("Esdeveniment").selectOption({ label: "Acte massiu e2e" });
+  await bar.getByRole("button", { name: "Convida" }).click();
+  await expect(bar.getByRole("status")).toContainText("Convidades: 2");
+  await page.getByRole("checkbox", { name: /^Selecciona Massiva Alfa SL/ }).check();
+  await bar.getByRole("button", { name: "Convida" }).click();
+  await expect(bar.getByRole("status")).toContainText("1 omeses");
+
+  // change the status of the selection
+  await page.getByRole("checkbox", { name: /^Selecciona Massiva Alfa SL/ }).check();
+  await page.getByRole("checkbox", { name: /^Selecciona Massiva Beta SL/ }).check();
+  await bar.getByLabel(/^Nou valor/).selectOption("member");
+  await bar.getByRole("button", { name: "Aplica" }).click();
+  await expect(bar.getByRole("status")).toContainText("Actualitzades: 2");
+  await expect(page.getByLabel(/^Estat · Massiva Alfa SL/)).toHaveValue("member");
+
+  // grouped by status, with the group header and its total; hidden columns come back through the menu
+  await page.goto("/workspace/companies?q=Massiva&group=memberStatus");
+  await expect(page.getByRole("button", { name: /Agremiada/ })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Núm. de client" })).toHaveCount(0);
+  await page.getByText("Columnes", { exact: false }).first().click();
+  await page.getByRole("checkbox", { name: "Núm. de client" }).click();
+  await expect(page.getByRole("columnheader", { name: "Núm. de client" })).toBeVisible();
+
+  // the selection goes to the CSV
+  const id = await page.getByRole("checkbox", { name: /^Selecciona Massiva Alfa SL/ }).getAttribute("data-id");
+  const csv = await (await page.request.get(`/workspace/companies/export?ids=${id}`)).text();
+  expect(csv).toContain("Massiva Alfa SL");
+  expect(csv).not.toContain("Massiva Beta SL");
+});
+
+test("workspace: chart view, filters on text fields, column presets, and a per-person tab", async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 800 });
+  await login(page);
+  const panel = page.getByRole("complementary", { name: "Fitxa" });
+  for (const name of ["Grafica Alfa SL", "Grafica Beta SL"]) {
+    await page.goto("/workspace/companies?new=1");
+    await panel.getByLabel("Nom", { exact: true }).fill(name);
+    await panel.getByLabel("Província").fill("Zzprov");
+    await panel.getByRole("button", { name: "Crea" }).click();
+    await expect(page.getByRole("heading", { name })).toBeVisible();
+  }
+
+  // a chart of companies per province; a bar leads to the table filtered to that province
+  await page.goto("/workspace/companies?view=chart&by=province");
+  const bar = page.getByRole("link", { name: /Zzprov/ });
+  await expect(bar).toContainText("2");
+  await bar.click();
+  await expect(page).toHaveURL(/f_province=Zzprov/);
+  await expect(page.getByLabel(/^Nom · Grafica Alfa SL/)).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Província" })).toHaveValue("Zzprov");
+
+  // the province filter is a menu of the values that exist, with counts
+  await page.goto("/workspace/companies");
+  await expect(page.getByRole("combobox", { name: "Província" }).locator("option", { hasText: "Zzprov (2)" })).toHaveCount(1);
+
+  // a column preset swaps the columns in one click
+  await page.goto("/workspace/companies?q=Grafica Alfa");
+  await expect(page.getByRole("columnheader", { name: "Adreça" })).toHaveCount(0);
+  await page.getByText("Columnes", { exact: false }).first().click();
+  await page.getByRole("button", { name: "Adreça", exact: true }).click();
+  await expect(page.getByRole("columnheader", { name: "Adreça" })).toBeVisible();
+  await page.getByRole("button", { name: "Resum", exact: true }).click(); // the menu stays open after a refresh
+  await expect(page.getByRole("columnheader", { name: "Ubicació" })).toBeVisible();
+
+  // visits have a tab of the signed-in person's own (none yet)
+  await page.goto("/workspace/visits");
+  await page.getByRole("navigation", { name: "Vistes" }).getByRole("link", { name: /^Les meves/ }).click();
+  await expect(page).toHaveURL(/tab=mine/);
+  await expect(page.getByText("Cap resultat")).toBeVisible();
+});
+
+test("workspace: tags on sponsors (edit in the table, filter by tab, chart) and the quota status of companies", async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 800 });
+  await login(page);
+  const panel = page.getByRole("complementary", { name: "Fitxa" });
+
+  // a sponsor with two event tags chosen in the form
+  await page.goto("/workspace/sponsors?new=1");
+  await panel.getByLabel("Nom", { exact: true }).fill("Etiquetes e2e");
+  await panel.getByRole("group", { name: "Esdeveniments" }).getByRole("button", { name: "Gala Gràfica" }).click();
+  await panel.getByRole("group", { name: "Esdeveniments" }).getByRole("button", { name: "Publicitat" }).click();
+  await panel.getByRole("button", { name: "Crea" }).click();
+  await expect(page.getByRole("heading", { name: "Etiquetes e2e" })).toBeVisible();
+
+  // in the table the tags are pills in a cell that opens a menu; changing them saves at once
+  await page.goto("/workspace/sponsors?q=Etiquetes e2e");
+  const cell = page.getByLabel(/^Esdeveniments · Etiquetes e2e/);
+  await expect(cell).toContainText("Gala Gràfica");
+  await cell.click();
+  await page.getByRole("group", { name: /^Tria: Esdeveniments · Etiquetes e2e/ }).getByRole("button", { name: "Congrés" }).click();
+  await page.reload();
+  await expect(page.getByLabel(/^Esdeveniments · Etiquetes e2e/)).toContainText("Congrés");
+
+  // a tab per event: this sponsor is in "Congrés" and "Gala Gràfica", not in "F. Sist. Impressió"
+  await page.goto("/workspace/sponsors?tab=congress&q=Etiquetes e2e");
+  await expect(page.getByLabel(/^Nom · Etiquetes e2e/)).toBeVisible();
+  await page.goto("/workspace/sponsors?tab=fsi&q=Etiquetes e2e");
+  await expect(page.getByLabel(/^Nom · Etiquetes e2e/)).toHaveCount(0);
+
+  // the chart counts per tag
+  await page.goto("/workspace/sponsors?view=chart&by=eventTags");
+  await expect(page.locator(".ws-chart").getByRole("link", { name: /^Gala Gràfica/ })).toContainText("1");
+
+  // quota status: a company marked as overdue shows in its tab, with its pill colour
+  await page.goto("/workspace/companies?new=1");
+  await panel.getByLabel("Nom", { exact: true }).fill("Impagadora e2e SL");
+  await panel.getByLabel("Quota").selectOption("overdue");
+  await panel.getByRole("button", { name: "Crea" }).click();
+  await expect(page.getByRole("heading", { name: "Impagadora e2e SL" })).toBeVisible();
+  await page.goto("/workspace/companies?tab=overdue");
+  await expect(page.getByRole("navigation", { name: "Vistes" }).getByRole("link", { name: /^Impagaments/ })).toBeVisible();
+  expect(await page.getByLabel(/^Quota · Impagadora e2e SL/).getAttribute("data-tone")).toBe("bad");
+});
+
+test("workspace: a company logo can be uploaded, shows instead of the initials, and can be removed", async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 800 });
+  await login(page);
+  const panel = page.getByRole("complementary", { name: "Fitxa" });
+  await page.goto("/workspace/companies?new=1");
+  await panel.getByLabel("Nom", { exact: true }).fill("Amb Logo SL");
+  await panel.getByRole("button", { name: "Crea" }).click();
+  await expect(page.getByRole("heading", { name: "Amb Logo SL" })).toBeVisible();
+
+  // a text file is refused; a real PNG becomes the logo
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  await panel.getByLabel("Imatge del logotip").setInputFiles({ name: "x.png", mimeType: "image/png", buffer: Buffer.from("no és una imatge") });
+  await panel.getByRole("button", { name: "Puja" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "ha de ser una imatge" })).toBeVisible();
+  await panel.getByLabel("Imatge del logotip").setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: png });
+  await panel.getByRole("button", { name: "Puja" }).click();
+  await expect(panel.locator("img.ws-logo.lg")).toBeVisible();
+  const id = new URL(page.url()).searchParams.get("open")!;
+  const res = await page.request.get(`/workspace/companies/${id}/logo`);
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"]).toBe("image/webp");
+  await page.goto("/workspace/companies?q=Amb Logo");
+  await expect(page.locator("img.ws-logo").first()).toBeVisible();
+
+  // removed: back to the initials, and the image is gone
+  await page.goto(`/workspace/companies?open=${id}`);
+  page.once("dialog", (d) => d.accept());
+  await panel.getByRole("button", { name: "Treu el logotip" }).click();
+  await expect(panel.locator("img.ws-logo")).toHaveCount(0);
+  expect((await page.request.get(`/workspace/companies/${id}/logo`)).status()).toBe(404);
 });

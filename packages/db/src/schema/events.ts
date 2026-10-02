@@ -1,5 +1,5 @@
 // Records engine (Sam): events and attendance, sponsors, visits (migration 0015).
-import { pgTable, uuid, text, timestamp, date, integer, bigint } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, date, integer, bigint, boolean } from "drizzle-orm/pg-core";
 import { users } from "./core";
 import { clients, people } from "./crm";
 import { costCenters, suppliers } from "./erp";
@@ -25,6 +25,8 @@ export const eventAttendance = pgTable("event_attendance", {
   personId: uuid("person_id").references(() => people.id, { onDelete: "set null" }),
   companyId: uuid("company_id").references(() => clients.id, { onDelete: "set null" }),
   status: text().notNull().default("invited"),
+  seats: text().array().notNull().default([]),
+  categories: text().array().notNull().default([]),
   notes: text().notNull().default(""),
   externalRef: text("external_ref"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -41,6 +43,12 @@ export const sponsors = pgTable("sponsors", {
   companyId: uuid("company_id").references(() => clients.id, { onDelete: "set null" }),
   supplierId: uuid("supplier_id").references(() => suppliers.id, { onDelete: "set null" }),
   notes: text().notNull().default(""),
+  eventTags: text("event_tags").array().notNull().default([]),
+  contacted: boolean().notNull().default(false),
+  lastContactOn: date("last_contact_on"),
+  contactEmail: text("contact_email").notNull().default(""),
+  proposal: text().notNull().default(""),
+  followUp: text("follow_up").notNull().default(""),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   externalRef: text("external_ref"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

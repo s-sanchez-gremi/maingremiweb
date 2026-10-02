@@ -8,6 +8,7 @@
     "start": "next start -p 3001",
     "lint": "eslint",
     "test": "vitest run --passWithNoTests",
+    "logos:find": "node --env-file=../../.env --import tsx scripts/find-logos.mts",
     "notion:import": "node --env-file=../../.env --import tsx scripts/notion-import.mts"
   },
   "dependencies": {
@@ -33,6 +34,7 @@
     "esbuild": "^0.28.2",
     "eslint": "^9",
     "eslint-config-next": "16.3.7",
+    "sharp": "^0.35.5",
     "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.2"

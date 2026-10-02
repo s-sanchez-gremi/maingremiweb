@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { checkEnv, shouldCheck } from "@apex/core/env-check";
 
 const good = {
-  NODE_ENV: "production", APP_ENV: "production", DATABASE_URL: "postgres://apex_app:Zr8tQ2vLw9@db.internal:5432/apex?sslmode=require", SITE_URL: "https://apex.example",
+  NODE_ENV: "production", APP_ENV: "production", DATABASE_URL: "postgres://apex_app:test-fixture-password@db.internal:5432/apex?sslmode=require", SITE_URL: "https://apex.example",
   S3_ENDPOINT: "https://s3.eu.example", S3_REGION: "eu-south-2", S3_BUCKET: "apex-media", S3_PRIVATE_BUCKET: "apex-private", S3_PUBLIC_URL: "https://media.apex.example",
-  S3_ACCESS_KEY: "AKIAEXAMPLE", S3_SECRET_KEY: "s3cr3t-value-0123456789", SMTP_URL: "smtp://user:pw@mail.example:587", MAIL_FROM: "Apex <no-reply@apex.example>",
-  CRON_SECRET: "a3f9c1d2e4b5a6978877665544332211", BOT_SECRET: "0123456789abcdef0123456789abcdef0123",
+  S3_ACCESS_KEY: "AKIAEXAMPLE", S3_SECRET_KEY: "test-fixture-s3-secret-key", SMTP_URL: "smtp://user:pw@mail.example:587", MAIL_FROM: "Apex <no-reply@apex.example>",
+  CRON_SECRET: "test-fixture-cron-secret-0000000000", BOT_SECRET: "test-fixture-bot-secret-00000000000",
 };
 
 describe("startup configuration check", () => {
@@ -28,8 +28,8 @@ describe("startup configuration check", () => {
     expect(checkEnv({ ...good, S3_SECRET_KEY: "apexapexapex" }).join()).toMatch(/development value/);
   });
   it("production must reach a managed database over an encrypted connection and name the S3 region", () => {
-    expect(checkEnv({ ...good, DATABASE_URL: "postgres://apex_app:Zr8tQ2vLw9@db.internal:5432/apex" }).join()).toMatch(/sslmode=require/);
-    expect(checkEnv({ ...good, APP_ENV: "staging", DATABASE_URL: "postgres://apex_app:Zr8tQ2vLw9@db.internal:5432/apex" })).toEqual([]);
+    expect(checkEnv({ ...good, DATABASE_URL: "postgres://apex_app:test-fixture-password@db.internal:5432/apex" }).join()).toMatch(/sslmode=require/);
+    expect(checkEnv({ ...good, APP_ENV: "staging", DATABASE_URL: "postgres://apex_app:test-fixture-password@db.internal:5432/apex" })).toEqual([]);
     expect(checkEnv({ ...good, S3_REGION: "" }).join()).toMatch(/S3_REGION/);
   });
   it("requires https in production (staging may use http), and two different buckets", () => {

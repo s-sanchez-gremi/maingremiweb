@@ -59,3 +59,7 @@ Companies: the main list ("Agremiats", 577 rows) plus "Empreses" (303) merge int
 - **Needs a legal basis first:** Newsletters (246) and Llistat Escola (1,814) are mailing lists with unknown consent; Borsa de treball (1,601), Ofertes borsa (103) and Alumnes EGA (37) hold CVs and job-seeker data.
 - **Not importable through the API:** Printing Our Future 16/10/25 (58 rows: the pages are only numbers and a computed e-mail column that Notion does not return).
 - **Not CRM data:** Manuals, Cronograma Revista Trimestral, Graella disponibilitat màquines, Feigraf-Neobis, Questionari IA (survey answers), Concurs 2026 (media files), Tasques (6 rows, not tied to a project), People (Notion template), Junta Directiva 2025 and Assemblea (rollups only, no names).
+
+
+## 8. Fields filled by later passes
+Migration 0019: *Cuota* → company `fee_status` (Corrent pagament / Impagament / Sense dades); sponsors' *esdeveniments*, *contactats*, *últim contacte*, *persona de contacte* (only when it is an e-mail), *proposta*, *seguiment* → their own fields (the rest stays in the notes); gala *SEIENTS* → seat tags (platea, llotja, llotja sponsor, vip, nominal) and *Categoria* → free category tags. Re-running fills them on rows imported earlier without touching what people edited since.

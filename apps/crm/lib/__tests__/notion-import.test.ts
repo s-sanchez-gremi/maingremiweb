@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@apex/db";
 import { clients, eventAttendance, events, feeTiers, jobSeekers, members, people, sponsors, suppliers, trainingCourses, visits, users } from "@apex/db/schema";
-import { mergeCompanies } from "../notion-import/companies";
+import { logoOf, mergeCompanies } from "../notion-import/companies";
 import { queryDatabase, toRow, flattenProp, mask, type Row } from "../notion-import/notion";
 import { runImport } from "../notion-import";
 
@@ -51,12 +51,23 @@ describe("reading Notion", () => {
   it("masks names for the report", () => expect(mask("Anna Puig")).toBe("A••• P•••"));
 });
 
+describe("logos", () => {
+  const page = (files: unknown[]) => toRow({ id: "p1", properties: { Empresa: { type: "title", title: [{ plain_text: "Vila SL" }] }, Logotip: { type: "files", files } } as never });
+  it("keeps the download links of files apart from the plain values and picks the first image of the logo column", () => {
+    const r = page([{ name: "memoria.pdf", type: "file", file: { url: "https://x/m.pdf" } }, { name: "logo.png", type: "file", file: { url: "https://x/l.png?sig=1" } }]);
+    expect(r.props["Logotip"]).toEqual(["memoria.pdf", "logo.png"]);
+    expect(logoOf(r)).toBe("https://x/l.png?sig=1");
+    expect(logoOf(page([]))).toBe("");
+  });
+});
+
 describe("companies", () => {
   it("merges pages of the same company by CIF (spaces/case ignored), then by name, keeping the strongest status", () => {
-    const m = mergeCompanies(rows(company({ name: "Vila SL", cif: "B 123", agremiat: "NO AGREMIAT" }), company({ name: "VILA, S.L.", cif: "b123", agremiat: "agremiat", tel: "937" }), company({ name: "Altres", cif: "" }), company({ name: "altres" })));
+    const m = mergeCompanies(rows(company({ name: "Vila SL", cif: "B 123", agremiat: "NO AGREMIAT" }), company({ name: "VILA, S.L.", cif: "b123", agremiat: "agremiat", tel: "937 000 111" }), company({ name: "Altres", cif: "", tel: "0" }), company({ name: "altres" })));
     expect(m).toHaveLength(2);
     const vila = m.find((c) => c.taxId)!;
-    expect([vila.ids.length, vila.memberStatus, vila.phone]).toEqual([2, "member", "937"]);
+    expect([vila.ids.length, vila.memberStatus, vila.phone]).toEqual([2, "member", "937 000 111"]);
+    expect(m.find((c) => !c.taxId)!.phone).toBe(""); // the placeholder "0" is not a phone
   });
   it("imports companies with all fields, the contact as a person, parent link, ERP member and fee tier", async () => {
     const parent = company({ name: "Grup Gràfic", cif: "A1", amount: 600 });

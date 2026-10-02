@@ -1,6 +1,6 @@
 // The records engine's data layer: list (search, filters, sort, paging), load, save, delete, relation choices and CSV,
 // for any Entity. Plain SQL through Drizzle; the entity's table decides the columns.
-import { and, asc, count, desc, eq, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
 import { db } from "@apex/db";
 import { matchAll } from "@apex/core/search";
 import type { Entity } from "./entity";
@@ -11,15 +11,21 @@ import { entityByKey } from "./registry";
 
 export const PAGE_SIZE = 50;
 export type Row = Record<string, unknown> & { id: string };
-export type ListQuery = { archived?: boolean; q?: string; filters?: Record<string, string>; sort?: string; dir?: "asc" | "desc"; page?: number };
+export type ListQuery = {
+  archived?: boolean; q?: string; filters?: Record<string, string>; sort?: string; dir?: "asc" | "desc"; page?: number;
+  missing?: string[];   // fields that must be blank (a "Sense CIF" tab)
+  match?: Record<string, string>; // field ~ regular expression (from a tab definition)
+  group?: string;       // list rows grouped: this field sorts first (select fields in the order of their choices)
+  ids?: string[];       // only these records (export of a selection)
+};
 export type Choices = Record<string, { value: string; label: string }[]>;
 
 type Cols = Record<string, never>;
 const cols = (e: Entity) => e.table as unknown as Cols;
 
 /** Only these fields can be filtered on (select, relation, checkbox); anything else in the query string is ignored. */
-export const filterFields = (e: Entity) => e.fields.filter((f) => f.filter && (f.type === "select" || f.type === "relation" || f.type === "checkbox"));
-export const sortFields = (e: Entity) => e.fields.filter((f) => f.type !== "textarea");
+export const filterFields = (e: Entity) => e.fields.filter((f) => f.filter && (f.type === "select" || f.type === "relation" || f.type === "checkbox" || f.type === "text" || f.type === "tags"));
+export const sortFields = (e: Entity) => e.fields.filter((f) => f.type !== "textarea" && f.type !== "tags");
 
 function where(e: Entity, q: ListQuery): SQL | undefined {
   const t = cols(e);
@@ -28,8 +34,11 @@ function where(e: Entity, q: ListQuery): SQL | undefined {
   for (const f of filterFields(e)) {
     const v = q.filters?.[f.name];
     if (v === undefined || v === "") continue;
-    parts.push(f.type === "checkbox" ? eq(t[f.name], v === "1") : eq(t[f.name], v));
+    parts.push(f.type === "checkbox" ? eq(t[f.name], v === "1") : f.type === "tags" ? sql`${t[f.name]} @> ARRAY[${v}]::text[]` : eq(t[f.name], v));
   }
+  for (const name of q.missing ?? []) if (e.fields.some((f) => f.name === name)) parts.push(or(isNull(t[name]), eq(t[name], "")));
+  for (const [name, re] of Object.entries(q.match ?? {})) if (e.fields.some((f) => f.name === name)) parts.push(sql`${t[name]} ~ ${re}`);
+  if (q.ids?.length) parts.push(inArray(t.id, q.ids));
   if (e.archivable) parts.push(q.archived ? isNotNull(t.archivedAt) : isNull(t.archivedAt));
   const live = parts.filter((p): p is SQL => !!p);
   return live.length ? and(...live) : undefined;
@@ -39,14 +48,51 @@ function order(e: Entity, q: ListQuery) {
   const t = cols(e);
   const col = sortFields(e).find((f) => f.name === q.sort)?.name ?? e.sort ?? "name";
   const dir = q.dir ?? (col === (e.sort ?? "name") ? e.sortDir : undefined) ?? "asc";
-  return [dir === "desc" ? desc(t[col]) : asc(t[col]), asc(t.id)];
+  const main = [dir === "desc" ? desc(t[col]) : asc(t[col]), asc(t.id)];
+  const g = e.fields.find((f) => f.name === q.group && f.type !== "textarea");
+  if (!g) return main;
+  const first = g.type === "select" && g.choices?.length
+    ? sql`array_position(ARRAY[${sql.join(g.choices.map(([v]) => sql`${v}`), sql`, `)}]::text[], ${t[g.name]}::text)`
+    : asc(t[g.name]);
+  return [first, ...main];
 }
 
-export async function listRecords(e: Entity, q: ListQuery, opts: { all?: boolean } = {}) {
+/** How many records each value of `field` has (for the group headers); blank values are counted under "". */
+export async function groupCounts(e: Entity, q: ListQuery, field: string) {
+  const f = e.fields.find((x) => x.name === field);
+  if (!f) return new Map<string, number>();
+  const t = cols(e);
+  if (f.type === "tags") { // one count per tag (a record with two tags is counted under both)
+    const rows = (await db.execute(sql`select tag as v, count(*)::int as n from (select unnest(${t[field]}) as tag from ${e.table} where ${where(e, q) ?? sql`true`}) s group by tag`)) as unknown as { v: string; n: number }[];
+    return new Map(rows.map((r) => [String(r.v), Number(r.n)]));
+  }
+  const rows = await db.select({ v: t[field], n: count() }).from(e.table).where(where(e, q)).groupBy(t[field]);
+  const out = new Map<string, number>();
+  for (const r of rows) out.set(r.v === null || r.v === undefined ? "" : String(r.v), (out.get(r.v === null || r.v === undefined ? "" : String(r.v)) ?? 0) + Number(r.n));
+  return out;
+}
+
+/** The values a text field takes, with how many records have each (the options of a filter on a text field such as province). */
+export async function facets(e: Entity, field: string, limit = 60) {
+  const t = cols(e);
+  if (e.fields.find((f) => f.name === field)?.type === "tags") {
+    const rows = (await db.execute(sql`select tag as v, count(*)::int as n from (select unnest(${t[field]}) as tag from ${e.table} ${e.archivable ? sql`where ${t.archivedAt} is null` : sql``}) s group by tag order by n desc limit ${limit}`)) as unknown as { v: string; n: number }[];
+    return rows.map((r) => ({ value: String(r.v), label: `${r.v} (${Number(r.n).toLocaleString("ca-ES")})` }));
+  }
+  const rows = await db.select({ v: t[field], n: count() }).from(e.table).where(and(isNotNull(t[field]), sql`${t[field]} <> ''`, e.archivable ? isNull(t.archivedAt) : undefined)).groupBy(t[field]).orderBy(desc(count())).limit(limit);
+  return rows.map((r) => ({ value: String(r.v), label: `${r.v} (${Number(r.n).toLocaleString("ca-ES")})` }));
+}
+
+export async function countRecords(e: Entity, q: ListQuery) {
+  const [{ n }] = await db.select({ n: count() }).from(e.table).where(where(e, q));
+  return Number(n);
+}
+
+export async function listRecords(e: Entity, q: ListQuery, opts: { all?: boolean; limit?: number } = {}) {
   const w = where(e, q);
   const page = Math.max(1, q.page ?? 1);
   const base = db.select().from(e.table).where(w).orderBy(...order(e, q));
-  const rows = (await (opts.all ? base : base.limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE))) as Row[];
+  const rows = (await (opts.all ? base : opts.limit ? base.limit(opts.limit) : base.limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE))) as Row[];
   const [{ n }] = await db.select({ n: count() }).from(e.table).where(w);
   return { rows, total: Number(n), page, pages: Math.max(1, Math.ceil(Number(n) / PAGE_SIZE)) };
 }
@@ -102,7 +148,7 @@ export function diffRecord(e: Entity, before: Row, after: Record<string, unknown
   }
   return out;
 }
-const norm = (v: unknown) => (v === null || v === undefined || v === "" ? "" : String(v));
+const norm = (v: unknown) => (v === null || v === undefined || v === "" ? "" : Array.isArray(v) ? v.join("|") : String(v));
 const show = (f: Field, v: unknown) => (f.type === "relation" ? norm(v) : showValue(f, v)); // relations show the id; the page resolves the name
 
 async function nameOf(f: Field, id: string) {

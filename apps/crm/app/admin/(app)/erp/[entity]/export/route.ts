@@ -12,7 +12,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ entity: 
   if (!user) return new Response("Unauthorized", { status: 401 });
   const e = screenEntity((await params).entity);
   if (!e || !can(user, e.perm)) return new Response("Not found", { status: 404 });
-  const q = queryOf(e, Object.fromEntries(new URL(req.url).searchParams));
+  const q = queryOf(e, Object.fromEntries(new URL(req.url).searchParams), user.id);
   const [{ rows }, choices] = await Promise.all([listRecords(e, q, { all: true }), relationChoices(e)]);
   return new Response(recordsToCsv(e, rows, choices), { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="${e.key}.csv"`, "cache-control": "no-store" } });
 }
