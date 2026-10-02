@@ -12,6 +12,7 @@ import { BulkBar } from "@/components/workspace/BulkBar";
 import { Chart } from "@/components/workspace/Chart";
 import { Cell } from "@/components/workspace/Cell";
 import { ColumnsMenu } from "@/components/workspace/ColumnsMenu";
+import { TagsCell } from "@/components/workspace/Tags";
 import { GroupToggle } from "@/components/workspace/GroupToggle";
 import { virtualCols } from "@/components/workspace/virtual";
 import { Icon } from "@/components/workspace/icons";
@@ -38,7 +39,8 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
   const by = selects.find((f) => f.name === sp.by) ?? selects.find((f) => /status/i.test(f.name)) ?? selects[0];
   const board = sp.view === "board" && !!by;
   const groupableAll = (e.groupBy ?? selects.map((f) => f.name)).map((n) => e.fields.find((f) => f.name === n)!).filter(Boolean);
-  const chart = sp.view === "chart" && groupableAll.length > 0;
+  const chartFields = [...new Set([...groupableAll, ...e.fields.filter((f) => f.type === "tags")])];
+  const chart = sp.view === "chart" && chartFields.length > 0;
   const table = !board && !chart;
   const [{ rows, total, page, pages }, choices] = await Promise.all([listRecords(e, q, board ? { limit: BOARD_MAX } : chart ? { limit: 1 } : {}), relationChoices(e)]);
   const computed = await loadComputed(e, rows.map((r) => r.id));
@@ -49,8 +51,8 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
   const groupable = groupableAll;
   const groupField = table ? groupable.find((f) => f.name === q.group) : undefined;
   const gCounts = groupField ? await groupCounts(e, { ...q, group: undefined, page: undefined }, groupField.name) : new Map<string, number>();
-  const facetOpts: Record<string, { value: string; label: string }[]> = Object.fromEntries(await Promise.all(filterFields(e).filter((f) => f.type === "text").map(async (f) => [f.name, await facets(e, f.name)] as const)));
-  const chartBy = chart ? groupableAll.find((f) => f.name === sp.by) ?? groupableAll[0] : undefined;
+  const facetOpts: Record<string, { value: string; label: string }[]> = Object.fromEntries(await Promise.all(filterFields(e).filter((f) => f.type === "text" || (f.type === "tags" && !f.choices)).map(async (f) => [f.name, await facets(e, f.name)] as const)));
+  const chartBy = chart ? chartFields.find((f) => f.name === sp.by) ?? chartFields[0] : undefined;
   const chartCounts = chartBy ? await groupCounts(e, { ...q, group: undefined, page: undefined }, chartBy.name) : new Map<string, number>();
   const inviteEvents = e.bulk?.invite
     ? (await db.select({ id: events.id, name: events.name, on: events.startsOn }).from(events).where(ne(events.status, "cancelled")).orderBy(desc(events.startsOn)).limit(40)).map((x) => ({ value: x.id, label: `${x.name}${x.on ? ` · ${x.on}` : ""}` }))
@@ -87,14 +89,14 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
     return <span className="ws-mono" data-t={h % 4} aria-hidden>{ini || "·"}</span>;
   };
   const BIG = 60; // a relation with more choices than this is edited in the side panel, not in a table cell
-  const optsOf = (f: Field) => (f.type === "text" ? facetOpts[f.name] ?? [] : f.type === "relation" ? choices[choiceKey(f)] ?? [] : (f.choices ?? []).map(([value, label]) => ({ value, label })));
-  const raw = (f: Field, v: unknown) => (f.type === "checkbox" ? (v ? "on" : "") : f.type === "relation" || f.type === "select" ? String(v ?? "") : FIELD_TYPES[f.type].show(v, f));
+  const optsOf = (f: Field) => (f.type === "text" || (f.type === "tags" && !f.choices) ? facetOpts[f.name] ?? [] : f.type === "tags" ? (f.choices ?? []).map(([value, label]) => ({ value, label })) : f.type === "relation" ? choices[choiceKey(f)] ?? [] : (f.choices ?? []).map(([value, label]) => ({ value, label })));
+  const raw = (f: Field, v: unknown) => (f.type === "tags" ? (Array.isArray(v) ? v.join("|") : "") : f.type === "checkbox" ? (v ? "on" : "") : f.type === "relation" || f.type === "select" ? String(v ?? "") : FIELD_TYPES[f.type].show(v, f));
   const filters = filterFields(e);
   const sortable = new Set(sortFields(e).map((f) => f.name));
   const opening = sp.open && /^[0-9a-f-]{36}$/.test(sp.open) ? sp.open : null;
 
   const boardColumns = by ? [...(by.choices ?? []).map(([value, label]) => ({ value, label })), ...(rows.some((r) => !r[by.name]) && !by.choices?.some(([v]) => v === "") ? [{ value: "", label: "Sense valor" }] : [])] : [];
-  const textOf = (f: Field, v: unknown) => (f.type === "relation" ? optsOf(f).find((o) => o.value === String(v))?.label : f.type === "select" ? f.choices?.find(([x]) => x === v)?.[1] : FIELD_TYPES[f.type].show(v, f));
+  const textOf = (f: Field, v: unknown) => (f.type === "tags" ? FIELD_TYPES.tags.show(v, f) || undefined : f.type === "relation" ? optsOf(f).find((o) => o.value === String(v))?.label : f.type === "select" ? f.choices?.find(([x]) => x === v)?.[1] : FIELD_TYPES[f.type].show(v, f));
   const titleField = (r: (typeof rows)[number]) => e.boardTitle?.find((n) => r[n] && textOf(e.fields.find((f) => f.name === n)!, r[n]));
   const cardTitle = (r: (typeof rows)[number]) => { const n = titleField(r); return n ? textOf(e.fields.find((f) => f.name === n)!, r[n])! : e.summary(r); };
   const meta = (r: (typeof rows)[number]) => {
@@ -113,7 +115,7 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
   const boardCards: BoardCard[] = board && by ? rows.map((r) => ({ id: r.id, title: cardTitle(r), meta: meta(r), value: String(r[by.name] ?? ""), href: href({ open: r.id, new: undefined }) })) : [];
 
   // Rows in groups when the table is grouped (a header per value with its TOTAL count, even if the page shows only some of the rows).
-  const groupLabel = (f: Field, v: string) => (v === "" ? "Sense valor" : f.type === "select" ? f.choices?.find(([x]) => x === v)?.[1] ?? v : v);
+  const groupLabel = (f: Field, v: string) => (v === "" ? "Sense valor" : (f.type === "select" || f.type === "tags") ? f.choices?.find(([x]) => x === v)?.[1] ?? v : v);
   const groups: { key: string | null; label: string; rows: typeof rows }[] = [];
   if (!groupField) groups.push({ key: null, label: "", rows });
   else for (const r of rows) {
@@ -161,9 +163,9 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
             </AutoSelect>
           )}
           {chart && <input type="hidden" name="view" value="chart" />}
-          {chart && groupableAll.length > 1 && (
+          {chart && chartFields.length > 1 && (
             <AutoSelect key={`chart-by:${chartBy!.name}`} name="by" defaultValue={chartBy!.name} aria-label="Agrupa per">
-              {groupableAll.map((f) => <option key={f.name} value={f.name}>Per {f.label.toLowerCase()}</option>)}
+              {chartFields.map((f) => <option key={f.name} value={f.name}>Per {f.label.toLowerCase()}</option>)}
             </AutoSelect>
           )}
           {board && selects.length > 1 && (
@@ -186,11 +188,11 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
             </nav>
           )}
           {table && <ColumnsMenu entity={e.key} options={colOptions} visible={visibleKeys} isDefault={isDefault} sets={e.columnSets} />}
-          {(by || groupableAll.length > 0) && (
+          {(by || chartFields.length > 0) && (
             <nav className="ws-seg" aria-label="Vista">
               <Link href={href({ view: undefined, by: undefined })} aria-current={table ? "page" : undefined}><Icon name="table" size={14} /><span className="ws-lbl">Taula</span></Link>
               {by && <Link href={href({ view: "board", by: board ? sp.by : undefined, page: undefined })} aria-current={board ? "page" : undefined}><Icon name="board" size={14} /><span className="ws-lbl">Tauler</span></Link>}
-              {groupableAll.length > 0 && <Link href={href({ view: "chart", by: chart ? sp.by : undefined, page: undefined })} aria-current={chart ? "page" : undefined}><Icon name="chart" size={14} /><span className="ws-lbl">Gràfic</span></Link>}
+              {chartFields.length > 0 && <Link href={href({ view: "chart", by: chart ? sp.by : undefined, page: undefined })} aria-current={chart ? "page" : undefined}><Icon name="chart" size={14} /><span className="ws-lbl">Gràfic</span></Link>}
             </nav>
           )}
           <details className="ws-menu">
@@ -245,7 +247,9 @@ export default async function WorkspaceTable({ params, searchParams }: { params:
                   <tr key={r.id} aria-selected={opening === r.id || undefined}>
                     {cols.map(({ key, field: f, v }) => {
                       if (!f) return <td key={key} className={`ws-t-virtual${v!.num ? " ws-num" : ""}`} style={{ minWidth: v!.min }}><span className="ws-virtual">{v!.render({ row: r, data: computed[r.id] ?? {}, open: (t) => href({ open: r.id, new: undefined, s: t }) })}</span></td>;
-                      const cell = <Cell entity={e.key} id={r.id} name={f.name} type={f.type} value={raw(f, r[f.name])} options={f.type === "relation" && optsOf(f).length > BIG ? undefined : optsOf(f)} display={f.type === "relation" ? optsOf(f).find((o) => o.value === raw(f, r[f.name]))?.label : undefined} required={f.required} label={`${f.label} · ${e.summary(r)}`} />;
+                      const cell = f.type === "tags"
+                        ? <TagsCell entity={e.key} id={r.id} name={f.name} value={(r[f.name] as string[]) ?? []} choices={f.choices} label={`${f.label} · ${e.summary(r)}`} />
+                        : <Cell entity={e.key} id={r.id} name={f.name} type={f.type} value={raw(f, r[f.name])} options={f.type === "relation" && optsOf(f).length > BIG ? undefined : optsOf(f)} display={f.type === "relation" ? optsOf(f).find((o) => o.value === raw(f, r[f.name]))?.label : undefined} required={f.required} label={`${f.label} · ${e.summary(r)}`} />;
                       if (f !== primary) return <td key={key} className={`ws-t-${f.type}${["number", "money", "percent"].includes(f.type) ? " ws-num" : ""}`}>{cell}</td>;
                       const sub = e.subline?.(r);
                       return (

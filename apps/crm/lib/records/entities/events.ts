@@ -14,6 +14,8 @@ const ATTENDANCE = [["invited", "Convidat"], ["confirmed", "Confirmat"], ["atten
 const SPONSOR_KINDS = [["sponsor", "Patrocinador"], ["collaborator", "Col·laborador"], ["supplier", "Proveïdor"]] as const;
 const SPONSOR_LEVELS = [["", "—"], ["gold", "Or"], ["silver", "Plata"], ["bronze", "Bronze"], ["other", "Altres"]] as const;
 const SPONSOR_STATUS = [["prospect", "Potencial"], ["confirmed", "Confirmat"], ["active", "Actiu"], ["ended", "Finalitzat"]] as const;
+const SPONSOR_EVENTS = [["congress", "Congrés"], ["fsi", "F. Sist. Impressió"], ["gala", "Gala Gràfica"], ["ads", "Publicitat"]] as const;
+const SEATS = [["platea", "Platea"], ["llotja", "Llotja"], ["llotja_sponsor", "Llotja sponsor"], ["vip", "VIP"], ["nominal", "Nominal"]] as const;
 const VISIT_KINDS = [["new_member", "Nou soci"], ["follow_up", "Seguiment"], ["commercial", "Comercial"], ["other", "Altres"]] as const;
 
 export const eventEntities: Entity[] = [
@@ -31,9 +33,18 @@ export const eventEntities: Entity[] = [
   {
     key: "attendance", title: "Assistència", crumb: "Esdeveniments", perm, table: eventAttendance, basePath: "/workspace/attendance", noHistory: true,
     sort: "status", label: "status",
+    views: [
+      { key: "platea", label: "Platea", filters: { seats: "platea" } },
+      { key: "llotja", label: "Llotja", filters: { seats: "llotja" } },
+      { key: "llotja-sponsor", label: "Llotja sponsor", filters: { seats: "llotja_sponsor" } },
+      { key: "vip", label: "VIP", filters: { seats: "vip" } },
+      { key: "winners", label: "Guanyadors", filters: { categories: "guanyadors" } },
+      { key: "sponsors", label: "Patrocinadors", filters: { categories: "patrocinadors" } },
+    ],
     fields: [
       f("eventId", "Esdeveniment", "relation", { to: "events", required: true, filter: true }), f("personId", "Persona", "relation", { to: "people" }),
-      f("companyId", "Empresa", "relation", { to: "companies" }), f("status", "Estat", "select", { filter: true, choices: ATTENDANCE }), f("notes", "Notes", "text"),
+      f("companyId", "Empresa", "relation", { to: "companies" }), f("status", "Estat", "select", { filter: true, choices: ATTENDANCE }),
+      f("seats", "Seients", "tags", { filter: true, choices: SEATS }), f("categories", "Categoria", "tags", { filter: true }), f("notes", "Notes", "text"),
     ],
     summary: (r) => `Assistència · ${label(ATTENDANCE, r.status)}`, boardTitle: ["personId", "companyId"],
     hint: "Una persona només pot constar una vegada per esdeveniment.",
@@ -43,9 +54,19 @@ export const eventEntities: Entity[] = [
     search: ["name", "notes"], sort: "year", sortDir: "desc",
     fields: [
       f("name", "Nom", "text", { required: true }), f("kind", "Tipus", "select", { filter: true, choices: SPONSOR_KINDS }), f("level", "Nivell", "select", { filter: true, choices: SPONSOR_LEVELS }),
-      f("status", "Estat", "select", { filter: true, choices: SPONSOR_STATUS }), f("year", "Any", "number"), f("amountCents", "Import (€)", "money"),
+      f("status", "Estat", "select", { filter: true, choices: SPONSOR_STATUS }), f("eventTags", "Esdeveniments", "tags", { filter: true, choices: SPONSOR_EVENTS }),
+      f("contacted", "Contactat", "checkbox", { filter: true }), f("lastContactOn", "Últim contacte", "date"), f("contactEmail", "Persona de contacte", "email"),
+      f("proposal", "Proposta", "text"), f("followUp", "Seguiment", "text"), f("year", "Any", "number"), f("amountCents", "Import (€)", "money"),
       f("companyId", "Empresa", "relation", { to: "companies" }), f("supplierId", "Proveïdor (ERP)", "relation", { to: "suppliers" }), f("notes", "Notes", "textarea", { wide: true }),
     ],
+    views: [
+      { key: "gala", label: "Gala Gràfica", filters: { eventTags: "gala" } },
+      { key: "congress", label: "Congrés", filters: { eventTags: "congress" } },
+      { key: "fsi", label: "F. Sist. Impressió", filters: { eventTags: "fsi" } },
+      { key: "ads", label: "Publicitat", filters: { eventTags: "ads" } },
+      { key: "to-contact", label: "Per contactar", filters: { contacted: "0" } },
+    ],
+    defaultColumns: ["name", "status", "eventTags", "contacted", "lastContactOn", "contactEmail", "proposal", "followUp", "amountCents", "companyId"],
     summary: (r) => `${r.name}${r.year ? ` · ${r.year}` : ""}`,
   },
   {

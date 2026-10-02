@@ -14,6 +14,7 @@ export const crmEntities: Entity[] = [
     fields: [
       f("name", "Nom", "text", { required: true }),
       f("memberStatus", "Estat", "select", { filter: true, choices: [["member", "Agremiada"], ["former", "Exagremiada"], ["prospect", "No agremiada"]] }),
+      f("feeStatus", "Quota", "select", { filter: true, choices: [["paid", "Al corrent"], ["overdue", "Impagament"], ["unknown", "Sense dades"]] }),
       f("taxId", "NIF/CIF", "text"), f("customerNumber", "Núm. de client", "text"),
       f("email", "Correu", "email"), f("emailBilling", "Correu de notificacions", "email"), f("emailOther", "Correu de newsletter", "email"),
       f("phone", "Telèfon", "phone"), f("phoneOther", "Altre telèfon", "phone"), f("website", "Web", "url"),
@@ -29,15 +30,16 @@ export const crmEntities: Entity[] = [
       { key: "member", label: "Agremiades", filters: { memberStatus: "member" } },
       { key: "former", label: "Exagremiades", filters: { memberStatus: "former" } },
       { key: "prospect", label: "No agremiades", filters: { memberStatus: "prospect" } },
+      { key: "overdue", label: "Impagaments", filters: { feeStatus: "overdue" } },
       { key: "no-taxid", label: "Sense CIF", missing: ["taxId"] },
       { key: "no-email", label: "Sense correu", missing: ["email"] },
       { key: "self-employed", label: "Autònoms", match: { taxId: "[A-Za-z]$" } }, // tax id ending in a letter (a personal NIF), as in Notion's AUTONOMS view
     ],
-    groupBy: ["memberStatus", "province", "activity"],
-    defaultColumns: ["name", "memberStatus", "place", "contact", "people", "lastVisit", "tier"],
+    groupBy: ["memberStatus", "feeStatus", "province", "activity"],
+    defaultColumns: ["name", "memberStatus", "feeStatus", "place", "contact", "people", "lastVisit", "tier"],
     columnSets: [
-      { label: "Resum", keys: ["name", "memberStatus", "place", "contact", "people", "lastVisit", "tier"] },
-      { label: "Empresa", keys: ["name", "memberStatus", "taxId", "customerNumber", "activity", "employees", "foundedYear", "tier", "getsMagazine"] },
+      { label: "Resum", keys: ["name", "memberStatus", "feeStatus", "place", "contact", "people", "lastVisit", "tier"] },
+      { label: "Empresa", keys: ["name", "memberStatus", "feeStatus", "taxId", "customerNumber", "activity", "employees", "foundedYear", "tier", "getsMagazine"] },
       { label: "Adreça", keys: ["name", "taxId", "address", "postalCode", "city", "province", "getsMagazine"] },
       { label: "Correu i telèfon", keys: ["name", "memberStatus", "email", "emailBilling", "emailOther", "phone", "phoneOther", "website"] },
     ],

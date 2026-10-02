@@ -13,7 +13,7 @@ import { Input } from "./RecordScreen";
 
 const when = (d: Date) => d.toLocaleString("ca-ES", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Madrid" });
 const kb = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
-const blank = (v: unknown) => v === null || v === undefined || v === "" || v === 0;
+const blank = (v: unknown) => v === null || v === undefined || v === "" || v === 0 || (Array.isArray(v) && v.length === 0);
 
 /** `workspace`: shown in the workspace side sheet (header card, tabs; links and redirects stay inside the workspace). */
 export async function RecordDetail({ entity: e, id, sp, workspace, tab, tabHref, computed }: {

@@ -414,3 +414,29 @@ tr:hover .ws-open, .ws-open:focus-visible, tr[aria-selected] .ws-open { opacity:
 @media (max-width: 900px) { .ws-chartwrap { margin: 0 -14px; overflow: visible; } .ws-chart li > a, .ws-chart li > div { grid-template-columns: 110px minmax(0, 1fr) 70px; gap: 8px; } }
 .ws .ws-content .ws-chart li a { color: inherit; }
 .ws-cols > div { left: 0; right: auto; max-width: calc(100vw - 24px); }
+
+
+/* ---------- Tags (several choices on a record) ---------- */
+.ws-tag { display: inline-flex; align-items: center; gap: 4px; font: inherit; font-size: 12.5px; font-weight: 500; line-height: 1.3; padding: 1px 9px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--ink); white-space: nowrap; border: 0; }
+.ws button.ws-tag { cursor: pointer; transition: background .12s, box-shadow .12s; }
+.ws button.ws-tag:hover { background: color-mix(in srgb, var(--ink) 12%, transparent); }
+.ws button.ws-tag[aria-pressed="true"] { background: var(--ws-tint); color: var(--accent-hover); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
+.ws button.ws-tag:focus-visible { outline: 0; box-shadow: var(--ws-ring); }
+.ws-tags-editor { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.ws .ws-tags-editor input { flex: 1 1 120px; min-width: 100px; width: auto; border: 0; background: transparent; padding: 2px 4px; font-size: 13px; min-height: 0; box-shadow: none; }
+.ws .ws-tags-editor input:focus { outline: 0; box-shadow: none; }
+.ws-tagscell { position: relative; }
+.ws-tagscell > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: nowrap; gap: 4px; align-items: center; min-height: 28px; padding: 2px 8px; border-radius: 8px; overflow: hidden; }
+.ws-tagscell > summary::-webkit-details-marker { display: none; }
+.ws-tagscell > summary:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+.ws-tagscell[open] > summary { background: var(--surface); box-shadow: 0 0 0 1.5px var(--accent), var(--ws-ring); }
+.ws-tagscell > summary:focus-visible { outline: 0; box-shadow: var(--ws-ring); }
+.ws-tagscell > div { position: absolute; left: 0; top: calc(100% + 4px); z-index: 6; min-width: 240px; max-width: 360px; padding: 8px; background: var(--surface); border-radius: 12px; box-shadow: var(--ws-pop); animation: ws-pop .16s var(--ws-ease); }
+.ws-bad-inline { margin: 6px 0 0; font-size: 12px; color: var(--danger); }
+/* the form version: a row of the grouped list, like the other fields */
+.ws .ws-fields > .ws-tagsrow, .ws .ws-fields > details > .ws-tagsrow { display: grid; grid-template-columns: minmax(90px, 34%) minmax(0, 1fr); align-items: start; gap: 8px; padding: 6px 10px; min-height: 30px; font-size: 12.5px; font-weight: 500; color: var(--text2); border-bottom: 1px solid var(--ws-hair); }
+.ws .ws-fields > .ws-tagsrow > span:first-child { padding-top: 3px; }
+.ws .ws-tagsrow .ws-tags-editor { justify-content: flex-end; }
+.ws .ws-tagsrow button.ws-tag { color: var(--ink); }
+.ws .ws-tagsrow button.ws-tag[aria-pressed="true"] { color: var(--accent-hover); }
+.ws-card ul .ws-tag { background: none; padding: 0; }

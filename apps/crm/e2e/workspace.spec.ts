@@ -306,3 +306,46 @@ test("workspace: chart view, filters on text fields, column presets, and a per-p
   await expect(page).toHaveURL(/tab=mine/);
   await expect(page.getByText("Cap resultat")).toBeVisible();
 });
+
+test("workspace: tags on sponsors (edit in the table, filter by tab, chart) and the quota status of companies", async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 800 });
+  await login(page);
+  const panel = page.getByRole("complementary", { name: "Fitxa" });
+
+  // a sponsor with two event tags chosen in the form
+  await page.goto("/workspace/sponsors?new=1");
+  await panel.getByLabel("Nom", { exact: true }).fill("Etiquetes e2e");
+  await panel.getByRole("group", { name: "Esdeveniments" }).getByRole("button", { name: "Gala Gràfica" }).click();
+  await panel.getByRole("group", { name: "Esdeveniments" }).getByRole("button", { name: "Publicitat" }).click();
+  await panel.getByRole("button", { name: "Crea" }).click();
+  await expect(page.getByRole("heading", { name: "Etiquetes e2e" })).toBeVisible();
+
+  // in the table the tags are pills in a cell that opens a menu; changing them saves at once
+  await page.goto("/workspace/sponsors?q=Etiquetes e2e");
+  const cell = page.getByLabel(/^Esdeveniments · Etiquetes e2e/);
+  await expect(cell).toContainText("Gala Gràfica");
+  await cell.click();
+  await page.getByRole("group", { name: /^Tria: Esdeveniments · Etiquetes e2e/ }).getByRole("button", { name: "Congrés" }).click();
+  await page.reload();
+  await expect(page.getByLabel(/^Esdeveniments · Etiquetes e2e/)).toContainText("Congrés");
+
+  // a tab per event: this sponsor is in "Congrés" and "Gala Gràfica", not in "F. Sist. Impressió"
+  await page.goto("/workspace/sponsors?tab=congress&q=Etiquetes e2e");
+  await expect(page.getByLabel(/^Nom · Etiquetes e2e/)).toBeVisible();
+  await page.goto("/workspace/sponsors?tab=fsi&q=Etiquetes e2e");
+  await expect(page.getByLabel(/^Nom · Etiquetes e2e/)).toHaveCount(0);
+
+  // the chart counts per tag
+  await page.goto("/workspace/sponsors?view=chart&by=eventTags");
+  await expect(page.locator(".ws-chart").getByRole("link", { name: /^Gala Gràfica/ })).toContainText("1");
+
+  // quota status: a company marked as overdue shows in its tab, with its pill colour
+  await page.goto("/workspace/companies?new=1");
+  await panel.getByLabel("Nom", { exact: true }).fill("Impagadora e2e SL");
+  await panel.getByLabel("Quota").selectOption("overdue");
+  await panel.getByRole("button", { name: "Crea" }).click();
+  await expect(page.getByRole("heading", { name: "Impagadora e2e SL" })).toBeVisible();
+  await page.goto("/workspace/companies?tab=overdue");
+  await expect(page.getByRole("navigation", { name: "Vistes" }).getByRole("link", { name: /^Impagaments/ })).toBeVisible();
+  expect(await page.getByLabel(/^Quota · Impagadora e2e SL/).getAttribute("data-tone")).toBe("bad");
+});

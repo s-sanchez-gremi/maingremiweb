@@ -36,6 +36,9 @@ export function toCompany(r: Row): Company | null {
   };
 }
 
+// Notion's "Cuota" status: Corrent pagament / Impagament / Sense dades.
+export const feeOf = (cuota: string): "paid" | "overdue" | "unknown" => (cuota === "Corrent pagament" ? "paid" : cuota === "Impagament" ? "overdue" : "unknown");
+
 /** Merge pages describing the same company: first non-empty value wins (oldest page first); the strongest member status wins. */
 export function mergeCompanies(rows: Row[]) {
   const cands = rows.map(toCompany).filter((c): c is Company => !!c).sort((a, b) => a.created.localeCompare(b.created));
@@ -100,12 +103,13 @@ export async function importCompanies(ctx: Ctx, rows: Row[], opts: { forceStatus
       if (c.employees !== null && (ctx.overwrite || existing.employees === null)) patch.employees = c.employees;
       if (c.foundedYear !== null && (ctx.overwrite || existing.foundedYear === null)) patch.foundedYear = c.foundedYear;
       if (c.getsMagazine && !existing.getsMagazine) patch.getsMagazine = true;
+      if (feeOf(c.cuota) !== "unknown" && (ctx.overwrite || existing.feeStatus === "unknown")) patch.feeStatus = feeOf(c.cuota);
       if (opts.forceStatus === "former" && existing.memberStatus === "member") bump(report, "also a CURRENT member elsewhere (status left unchanged, check by hand)");
       if (c.memberStatus !== "prospect" && (ctx.overwrite || existing.memberStatus === "prospect")) patch.memberStatus = c.memberStatus;
       if (!existing.externalRef) patch.externalRef = c.ids[0];
       if (Object.keys(patch).length) { await db.update(clients).set(patch).where(eq(clients.id, id)); report.updated++; } else report.skipped++;
     } else {
-      const [row] = await db.insert(clients).values({ ...Object.fromEntries(COLS.map((k) => [k, c[k]])), memberStatus: c.memberStatus, employees: c.employees, foundedYear: c.foundedYear, getsMagazine: c.getsMagazine, externalRef: c.ids[0] } as typeof clients.$inferInsert).returning({ id: clients.id });
+      const [row] = await db.insert(clients).values({ ...Object.fromEntries(COLS.map((k) => [k, c[k]])), memberStatus: c.memberStatus, feeStatus: feeOf(c.cuota), employees: c.employees, foundedYear: c.foundedYear, getsMagazine: c.getsMagazine, externalRef: c.ids[0] } as typeof clients.$inferInsert).returning({ id: clients.id });
       id = row.id; report.created++;
       { const k = canon(c.name); if (k) byCanon.set(k, [...(byCanon.get(k) ?? []), id]); }
       if (report.samples.length < 5) report.samples.push(`${mask(c.name)} · ${c.memberStatus}`);

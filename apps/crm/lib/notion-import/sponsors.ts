@@ -1,7 +1,7 @@
 // Notion "Patrocinadors": a sponsor PROSPECT pipeline (who we approached for which event, last contact, follow-up, proposal, budget).
 // Each row becomes a Sponsor (status "Potencial"); everything the structure has no column for is kept as readable lines in the notes,
 // the company is linked when its name matches exactly one company, and a budget that is a plain amount becomes the amount.
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { sponsors } from "@apex/db/schema";
 import { parseEuros } from "@apex/core/money";
 import type { Ctx } from "./companies";
@@ -32,10 +32,23 @@ export async function importSponsors(ctx: Ctx, rows: Row[], idmap: Map<string, s
       line("Proposta", str(p["proposta"])), line("Pressupost", amountCents === null ? budget : ""), line("Desglossament", str(p["desglossament press."])),
       line("Seguiment", str(p["seguiment"])), line("Històric", str(p["històric"])),
     ].filter(Boolean).join("\n");
-    const vals = { name, kind: "sponsor", status: "prospect", year: null, amountCents, companyId, notes, externalRef: r.id };
+    // the pipeline columns of the Notion sheet are real fields now
+    const EVENT: Record<string, string> = { "congrés": "congress", "f. sist. impressió": "fsi", "gala gràfica": "gala", publicitat: "ads" };
+    const eventTags = [...new Set((Array.isArray(p["esdeveniments"]) ? (p["esdeveniments"] as string[]) : []).map((t) => EVENT[t.trim().toLowerCase()]).filter(Boolean))];
+    const lastContact = str(p["últim contacte"]).match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? null;
+    const email = str(p["persona de contacte"]);
+    const pipeline = { eventTags, contacted: p["contactats"] === true, lastContactOn: lastContact, contactEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "", proposal: str(p["proposta"]).slice(0, 500), followUp: str(p["seguiment"]).slice(0, 500) };
+    const vals = { name, kind: "sponsor", status: "prospect", year: null, amountCents, companyId, notes, ...pipeline, externalRef: r.id };
     if (companyId) bump(report, "linked to a company");
     const [exists] = await db.select({ id: sponsors.id }).from(sponsors).where(eq(sponsors.externalRef, r.id));
-    if (exists) { if (ctx.overwrite) { await db.update(sponsors).set(vals).where(eq(sponsors.id, exists.id)); report.updated++; } else report.skipped++; continue; }
+    if (exists) {
+      if (ctx.overwrite) { await db.update(sponsors).set(vals).where(eq(sponsors.id, exists.id)); report.updated++; }
+      else { // rows imported before the pipeline fields existed: fill them once
+        const upd = await db.update(sponsors).set(pipeline).where(and(eq(sponsors.id, exists.id), sql`cardinality(${sponsors.eventTags}) = 0 and not ${sponsors.contacted} and ${sponsors.lastContactOn} is null and ${sponsors.proposal} = ''`)).returning({ id: sponsors.id });
+        if (upd.length) report.updated++; else report.skipped++;
+      }
+      continue;
+    }
     await db.insert(sponsors).values(vals);
     report.created++;
     if (report.samples.length < 5) report.samples.push(mask(name));

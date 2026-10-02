@@ -8,6 +8,7 @@ import { deleteRecordAction, saveRecordAction } from "@/lib/records/actions";
 import type { Entity } from "@/lib/records/entity";
 import { choiceKey, filterFields, listRecords, relationChoices, sortFields, type Choices, type ListQuery, type Row } from "@/lib/records/engine";
 import { FIELD_TYPES, type Field } from "@/lib/records/fieldTypes";
+import { TagsInput } from "@/components/workspace/Tags";
 
 export type RecordParams = { saved?: string; error?: string; q?: string; sort?: string; dir?: string; page?: string; [filter: string]: string | undefined };
 
@@ -35,6 +36,7 @@ const href = (e: Entity, sp: RecordParams, extra: Record<string, string | undefi
 export function Input({ f, row, choices }: { f: Field; row?: Row; choices: Choices }) {
   const v = row?.[f.name];
   if (f.type === "checkbox") return <label className="row" style={{ justifyContent: "flex-start", gap: 8 }}><input type="checkbox" name={f.name} defaultChecked={row ? !!v : true} />{f.label}</label>;
+  if (f.type === "tags") return <div className="ws-tagsrow" style={f.wide ? { gridColumn: "1 / -1" } : undefined}><span>{f.label}</span><TagsInput name={f.name} label={f.label} defaultValue={Array.isArray(v) ? (v as string[]) : []} choices={f.choices} /></div>;
   if (f.type === "textarea") return <label style={f.wide ? { gridColumn: "1 / -1" } : undefined}>{f.label}<textarea name={f.name} defaultValue={String(v ?? "")} /></label>;
   if (f.type === "select" || f.type === "relation") {
     const list = f.type === "select" ? (f.choices ?? []).map(([value, label]) => ({ value, label })) : choices[choiceKey(f)] ?? [];

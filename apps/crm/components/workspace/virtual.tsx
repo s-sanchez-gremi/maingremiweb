@@ -21,7 +21,7 @@ const companies: VirtualCol[] = [
   { key: "people", label: "Persones", min: 80, num: true, tile: true, render: ({ data, open }) => (data.people ? <Link href={open("people.companyId")} className="ws-count-link">{data.people}</Link> : dash) },
   { key: "events", label: "Esdeveniments", min: 110, num: true, tile: true, render: ({ data, open }) => (data.events ? <Link href={open("attendance.companyId")} className="ws-count-link">{data.events}</Link> : dash) },
   { key: "lastVisit", label: "Última visita", min: 100, tile: true, render: ({ data }) => (data.lastVisit ? month(String(data.lastVisit)) : dash) },
-  { key: "tier", label: "Quota", min: 90, tile: true, render: ({ data }) => (data.tier ? String(data.tier) : dash) },
+  { key: "tier", label: "Tram de quota", min: 100, tile: true, render: ({ data }) => (data.tier ? String(data.tier) : dash) },
 ];
 
 export const VIRTUAL: Record<string, VirtualCol[]> = { companies };

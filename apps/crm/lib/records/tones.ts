@@ -13,6 +13,7 @@ const TONES: Record<string, Tone> = {
   // sponsors
   ended: "muted", gold: "warn", silver: "muted",
   // shared
+  paid: "good", overdue: "bad", unknown: "muted",
   active: "good", open: "info", closed: "muted", placed: "good", withdrawn: "muted", left: "bad",
   income: "good", expense: "muted", annual: "info", quarterly: "info", monthly: "info",
 };
