@@ -23,14 +23,14 @@ export async function RecordDetail({ entity: e, id, sp, workspace }: { entity: E
   const hidden = <><input type="hidden" name="entity" value={e.key} /><input type="hidden" name="id" value={id} /><input type="hidden" name="back" value={page} /></>;
   return (
     <>
-      {workspace ? <h2 className="peek-title">{e.summary(r)}</h2> : <div className="top"><div><div className="crumb"><Link href={e.basePath}>{e.title}</Link></div><h1>{e.summary(r)}</h1></div></div>}
+      {workspace ? <div className="peek-head"><p className="ws-eyebrow">{e.title}</p><h2 className="peek-title">{e.summary(r)}</h2></div> : <div className="top"><div><div className="crumb"><Link href={e.basePath}>{e.title}</Link></div><h1>{e.summary(r)}</h1></div></div>}
       <div className="body" style={{ display: "grid", gap: 14 }}>
         {sp.saved && <p role="status" className="msg ok">Desat.</p>}
         {sp.error && <p role="alert" className="msg err">{sp.error}</p>}
         {archived && <p className="msg">Aquest registre està arxivat.</p>}
         <section className="card" aria-label="Dades">
           <h3>Dades</h3>
-          <form action={saveRecordAction} style={grid}>
+          <form action={saveRecordAction} style={grid} className="ws-fields">
             {hidden}
             {e.fields.map((f) => <Input key={f.name} f={f} row={r} choices={choices} />)}
             <div style={{ gridColumn: "1 / -1" }}><button className="btn primary" type="submit">Desa</button></div>

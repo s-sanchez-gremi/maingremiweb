@@ -36,7 +36,7 @@ export function Cell({ entity, id, name, type, value, options, display, required
         {(options ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
     );
-  } else if (type === "date") input = <input {...common} type="date" value={v} onChange={(e) => setV(e.target.value)} onBlur={() => save(v)} />;
+  } else if (type === "date") input = <input {...common} type="date" data-empty={v === "" ? "" : undefined} value={v} onChange={(e) => setV(e.target.value)} onBlur={() => save(v)} />;
   else if (type === "textarea") input = <textarea {...common} rows={1} value={v} onChange={(e) => setV(e.target.value)} onBlur={() => save(v)} />;
   else input = <input {...common} type="text" inputMode={type === "money" || type === "percent" ? "decimal" : type === "number" ? "numeric" : undefined} value={v} onChange={(e) => setV(e.target.value)} onBlur={() => save(v)} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />;
   return <span className="ws-cellwrap">{input}{state === "ok" && <span className="ws-ok" aria-hidden><Icon name="check" size={13} /></span>}{state === "err" && <span className="ws-bad" role="alert">{msg}</span>}</span>;

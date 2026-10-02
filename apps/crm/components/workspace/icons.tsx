@@ -23,6 +23,7 @@ const PATHS: Record<string, ReactNode> = {
   download: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />,
   archive: <><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4" /></>,
   expand: <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />,
+  more: <><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>,
   close: <path d="M18 6 6 18M6 6l12 12" />,
   check: <path d="M20 6 9 17l-5-5" />,
   back: <path d="m15 18-6-6 6-6" />,
