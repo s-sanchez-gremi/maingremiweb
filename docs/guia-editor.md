@@ -59,10 +59,12 @@ Només hi ha el format bàsic, i és a propòsit:
 
 ## 4. Imatges i fitxers
 
-1. A **Fitxers**, puja la imatge o el PDF (màxim 15 MB). No s'accepten SVG.
-2. El sistema la redueix i la optimitza sol. No cal preparar-la.
-3. **El text alternatiu és obligatori en cada idioma.** Descriu què es veu, en una frase, per a qui no pot veure la imatge. Sense ell, no es pot publicar la pàgina.
-4. Un fitxer que s'està fent servir en alguna pàgina no es pot esborrar.
+1. A **Biblioteca de mitjans**, arrossega els fitxers a la zona de pujada (o tria'ls de l'ordinador). S'accepten imatges (JPG, PNG, WebP, GIF), PDF, Word, Excel i PowerPoint, fins a 15 MB cada un. No s'accepten SVG.
+2. El sistema redueix i optimitza les imatges sol (les guarda en WebP, fins a 1.600 px d'ample). No cal preparar-les.
+3. Cada fitxer té un **enllaç públic** (per exemple `https://…/fitxers/1a2b3c4d/circular.pdf`). Prem **Copia l'enllaç** i enganxa'l en un correu, un missatge o el text d'una pàgina. **Qualsevol persona amb l'enllaç el pot obrir**: no hi pengis documents interns ni amb dades personals.
+4. Si elimines un fitxer, els enllaços que hagis enviat deixen de funcionar.
+5. **El text alternatiu és obligatori en cada idioma.** Descriu què es veu, en una frase, per a qui no pot veure la imatge. Sense ell, no es pot publicar la pàgina.
+6. Un fitxer que s'està fent servir en alguna pàgina (com a imatge o amb el seu enllaç) no es pot esborrar.
 
 ## 5. Traduccions
 
