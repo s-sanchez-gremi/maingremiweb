@@ -29,17 +29,17 @@ export default defineConfig({
     {
       command: `${build}pnpm exec next start -p ${WEB_PORT}`,
       cwd: "../apps/web", url: `${WEB_URL}/robots.txt`, timeout: 600_000, reuseExistingServer: false,
-      env: { ...base, DATABASE_URL: E2E_WEB_DB, NEXT_DIST_DIR: ".next-e2e", CRM_INTERNAL_URL: CRM_URL },   // /api/forms/* is forwarded to the CRM app (no Caddy here)
+      env: { ...base, DATABASE_URL: E2E_WEB_DB, NEXT_DIST_DIR: ".next-e2e", FORMS_INTERNAL_URL: FORMS_URL },   // /api/forms/* is forwarded to the Forms app (no Caddy here)
     },
     {
       command: `${build}pnpm exec next start -p ${CRM_PORT}`,
       cwd: "../apps/crm", url: `${CRM_URL}/robots.txt`, timeout: 600_000, reuseExistingServer: false,
-      env: { ...base, DATABASE_URL: E2E_CRM_DB, NEXT_DIST_DIR: ".next-e2e", WEB_INTERNAL_URL: WEB_URL },   // after a form changes, the CRM app expires the website's cache
+      env: { ...base, DATABASE_URL: E2E_CRM_DB, NEXT_DIST_DIR: ".next-e2e", FORMS_URL },   // links from the CRM to the responses of a form
     },
     {
       command: `${build}pnpm exec next start -p ${FORMS_PORT}`,
       cwd: "../apps/forms", url: `${FORMS_URL}/robots.txt`, timeout: 600_000, reuseExistingServer: false,
-      env: { ...base, DATABASE_URL: E2E_FORMS_DB, NEXT_DIST_DIR: ".next-e2e" },
+      env: { ...base, DATABASE_URL: E2E_FORMS_DB, NEXT_DIST_DIR: ".next-e2e", WEB_INTERNAL_URL: WEB_URL },   // after a form changes, the Forms app expires the website's cache
     },
   ],
 });

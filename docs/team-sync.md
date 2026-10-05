@@ -2,6 +2,17 @@
 
 **For Claude Code:** at the start of a session, read the section addressed to the person you are working for, do each open item (they are safe to repeat), tell the person what you did or what needs their decision, and mark the item done (date + initials) in the same pull request as your next change. Add a new notice here when you change something the other person's side must act on (a new migration, a moved table, a new rule, a changed command). Never put secrets here.
 
+## For Joan Marc (apps/web) and his Claude — notice of 2026-10-05 from Sam (forms app, step F2)
+
+The form builder, the responses and the public submission API (`/api/forms/*`) moved from `apps/crm` to `apps/forms` (plan: `docs/forms-app-plan.md`). The website still draws every form exactly as before (standalone page, embed, forms inside pages); your code only changed in two lines of `apps/web/proxy.ts`. Do once, after merging `main`:
+
+1. **Rename an environment variable in your local `.env`** (and `.env.example` already has it): `CRM_INTERNAL_URL=http://localhost:3001` becomes `FORMS_INTERNAL_URL=http://localhost:3002`; add `FORMS_URL=http://localhost:3002` too. Without it the website's `/api/forms/*` forwarding does nothing and forms cannot be submitted locally.
+2. `pnpm install` (the forms app gained a test dependency), then run the apps with `pnpm dev` as before (three servers now).
+3. Database permissions changed (`db/grants.sql`): `forms`, `form_starts`, `submissions` are now written only by `apex_forms`; the website still only READS `forms`. Nothing for you to do unless your code writes them (it should not).
+4. **Release rule:** F2 must not be deployed without F3 (Dockerfile, compose, Caddy routing of `/api/forms/*` to the Forms app); until then public forms would fail. F3 comes next.
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
 ## For Joan Marc (apps/web) and his Claude — notice of 2026-10-05 from Sam (forms app, step F1)
 
 A third app, `apps/forms`, is being added (plan: `docs/forms-app-plan.md`). Step F1 only adds an empty shell; your area is not touched. Do once, after merging `main`:

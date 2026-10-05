@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { destroySession, requireUser } from "@apex/core/auth";
+import { FormsNav } from "@/components/admin/FormsNav";
 
 async function logout() {
   "use server";
@@ -9,18 +10,12 @@ async function logout() {
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
-  const crmUrl = process.env.CRM_URL;
-  const webAdminUrl = process.env.WEB_ADMIN_URL;
   return (
     <div className="shell">
       <aside className="side">
         <div>
           <div className="logo">APEX <span style={{ fontSize: 12, letterSpacing: 2 }}>FORMULARIS</span></div>
-          <nav aria-label="Menú principal">
-            <a href="/admin">Tauler</a>
-            {crmUrl && <a href={`${crmUrl}/admin`}>CRM ↗</a>}
-            {webAdminUrl && <a href={webAdminUrl}>Web ↗</a>}
-          </nav>
+          <FormsNav crmUrl={process.env.CRM_URL} webAdminUrl={process.env.WEB_ADMIN_URL} />
         </div>
         <div className="who">
           <span>{user.email}</span>
