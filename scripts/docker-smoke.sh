@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Builds the production image and proves it really works for BOTH apps: migrates a FRESH database, starts the website and the CRM app
-# from the same image, serves pages, refuses bad config.
+# Builds the production image and proves it really works for ALL THREE apps: migrates a FRESH database, starts the website, the CRM app
+# and the Forms app from the same image, serves pages, refuses bad config.
 # Needs the local services (docker compose up -d). Works on macOS and Linux (joins the compose network, publishes a port).
 # Usage: ./scripts/docker-smoke.sh
 set -euo pipefail
@@ -8,9 +8,10 @@ cd "$(dirname "$0")/.."
 IMAGE="${IMAGE:-apex-smoke}"
 NAME=apex-smoke-$$
 CRM_NAME=apex-smoke-crm-$$
-PORT="${SMOKE_PORT:-3300}"; CRM_PORT=$((PORT + 1))
+FORMS_NAME=apex-smoke-forms-$$
+PORT="${SMOKE_PORT:-3300}"; CRM_PORT=$((PORT + 1)); FORMS_PORT=$((PORT + 2))
 DB=apex_smoke
-cleanup() { docker rm -f "$NAME" "$CRM_NAME" >/dev/null 2>&1 || true; }
+cleanup() { docker rm -f "$NAME" "$CRM_NAME" "$FORMS_NAME" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
 NET=$(docker inspect "$(docker compose ps -q db)" --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}')
@@ -42,6 +43,11 @@ set +e
 OUT=$(docker run --rm --network "$NET" "${ENVS[@]}" -e CRON_SECRET=change-me "$IMAGE" start-crm 2>&1); CODE=$?
 set -e
 if [ "$CODE" -ne 0 ] && grep -q "refusing to start" <<<"$OUT"; then echo "ok: CRM app refused too (exit $CODE)"; else echo "FAIL: crm exit=$CODE"; echo "$OUT" | tail -5; exit 1; fi
+
+set +e
+OUT=$(docker run --rm --network "$NET" "${ENVS[@]}" -e BOT_SECRET=change-me "$IMAGE" start-forms 2>&1); CODE=$?
+set -e
+if [ "$CODE" -ne 0 ] && grep -q "refusing to start" <<<"$OUT"; then echo "ok: Forms app refuses a placeholder bot secret (exit $CODE)"; else echo "FAIL: forms exit=$CODE"; echo "$OUT" | tail -5; exit 1; fi
 
 echo "== start the website (applies migrations to the fresh database first)"
 docker run -d --name "$NAME" --network "$NET" -p "$PORT:3000" "${ENVS[@]}" "$IMAGE" >/dev/null
@@ -87,9 +93,24 @@ chk_crm /admin/login 200
 chk_crm /portal/login 200
 chk_crm /robots.txt 200
 chk_crm /ca 404                           # the CRM app does not serve the public site
-chk_crm /api/forms/no-existeix/challenge 404
+chk_crm /api/forms/no-existeix/challenge 404   # the public form API moved to the Forms app
 CH="$(curl -sI "localhost:$CRM_PORT/admin/login")"
 grep -qi "x-frame-options: deny" <<<"$CH" && grep -qi "content-security-policy" <<<"$CH" && echo "ok: crm is not frameable and sends a Content-Security-Policy" || { echo "FAIL: crm security headers"; exit 1; }
 grep -qi "disallow: /" <<<"$(curl -s "localhost:$CRM_PORT/robots.txt")" && echo "ok: crm robots.txt disallows everything"
 echo "ok: crm container health: $(docker inspect -f '{{.State.Health.Status}}' "$CRM_NAME")"
+
+echo "== start the Forms app (same image, command start-forms; it never migrates)"
+docker run -d --name "$FORMS_NAME" --network "$NET" -p "$FORMS_PORT:3000" "${ENVS[@]}" "$IMAGE" start-forms >/dev/null
+for i in $(seq 1 60); do curl -fsS "localhost:$FORMS_PORT/api/health" >/dev/null 2>&1 && break; sleep 1; [ "$i" = 60 ] && { docker logs "$FORMS_NAME" | tail -30; echo "FAIL: the Forms app did not become healthy"; exit 1; }; done
+chk_forms() { local code; code=$(curl -s -o /dev/null -w "%{http_code}" "localhost:$FORMS_PORT$1"); [ "$code" = "$2" ] || { echo "FAIL: forms $1 returned $code, expected $2"; docker logs "$FORMS_NAME" | tail -20; exit 1; }; echo "ok: forms $1 -> $code"; }
+chk_forms /api/health 200
+chk_forms /admin/login 200
+chk_forms /robots.txt 200
+chk_forms /ca 404                         # the Forms app does not serve the public site
+chk_forms /portal/login 404               # nor the client portal
+chk_forms /api/forms/no-existeix/challenge 404   # a form that does not exist: a real answer from the Forms app, not a crash
+FH="$(curl -sI "localhost:$FORMS_PORT/admin/login")"
+grep -qi "x-frame-options: deny" <<<"$FH" && grep -qi "content-security-policy" <<<"$FH" && echo "ok: forms is not frameable and sends a Content-Security-Policy" || { echo "FAIL: forms security headers"; exit 1; }
+grep -qi "disallow: /" <<<"$(curl -s "localhost:$FORMS_PORT/robots.txt")" && echo "ok: forms robots.txt disallows everything"
+echo "ok: forms container health: $(docker inspect -f '{{.State.Health.Status}}' "$FORMS_NAME")"
 echo "SMOKE TEST PASSED"

@@ -2,6 +2,7 @@
 # docker run apex                -> the website + CMS (same as start-web); applies migrations first when AUTO_MIGRATE=1 (e.g. a single container on staging)
 # docker run apex start-web      -> the website + CMS
 # docker run apex start-crm      -> the CRM app (never migrates: only one process may, the website's or the deploy's `migrate` step)
+# docker run apex start-forms    -> the Forms app (builder, responses, public submission API; never migrates either)
 # docker run apex migrate        -> only apply pending database migrations, then exit (the deploy script runs this before starting a release)
 set -e
 export MIGRATIONS_DIR=/app/db/migrations
@@ -11,5 +12,6 @@ case "${1:-start}" in
     if [ "${AUTO_MIGRATE:-0}" = "1" ]; then node /app/migrate.mjs; fi
     exec node /app/apps/web/server.js ;;
   start-crm) exec node /app/apps/crm/server.js ;;
+  start-forms) exec node /app/apps/forms/server.js ;;
   *) exec "$@" ;;
 esac

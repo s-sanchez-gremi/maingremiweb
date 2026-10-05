@@ -1,4 +1,4 @@
-# STAGING on a small server: the two apps, PostgreSQL in Docker, and Caddy. (Production uses IONOS Managed PostgreSQL instead: compose.yml.)
+# STAGING on a small server: the three apps, PostgreSQL in Docker, and Caddy. (Production uses IONOS Managed PostgreSQL instead: compose.yml.)
 # The database is reachable only from the app (no published port). Its data lives in the "pgdata" volume and is backed up
 # to S3 like production (deploy/backup.sh with DOCKER_NETWORK=<project>_default).
 name: ${APEX_ENV:-apex-staging}
@@ -52,6 +52,21 @@ services:
       driver: json-file
       options: { max-size: "20m", max-file: "5" }
 
+  forms:
+    image: ${APEX_IMAGE:-ghcr.io/OWNER/apex}:${APEX_TAG_FORMS:-latest}
+    command: ["start-forms"]
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: "3000"
+      DATABASE_URL: ${DATABASE_URL_FORMS:-${DATABASE_URL}}
+    depends_on:
+      db: { condition: service_healthy }
+    expose: ["3000"]
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
   caddy:
     image: caddy:2
     restart: unless-stopped
@@ -61,6 +76,7 @@ services:
     environment:
       SITE_DOMAIN: ${SITE_DOMAIN:?set SITE_DOMAIN in .env}
       CRM_DOMAIN: ${CRM_DOMAIN:-crm.${SITE_DOMAIN}}   # where the CRM app lives (DNS record needed, like the main domain)
+      FORMS_DOMAIN: ${FORMS_DOMAIN:-forms.${SITE_DOMAIN}}   # where the Forms app (builder, responses) lives (own DNS record and certificate)
       ADMIN_ALLOWED_IPS: ${ADMIN_ALLOWED_IPS:-}   # who may open the admins; empty = nobody
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
