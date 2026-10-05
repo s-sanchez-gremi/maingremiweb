@@ -2,7 +2,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import postgres from "postgres";
-import { E2E_DB, WEB_URL as WEB } from "@apex/e2e/constants"; // public pages are drawn by the website; the API, admin and leads live in the CRM app
+import { CRM_URL as CRM, E2E_DB, WEB_URL as WEB } from "@apex/e2e/constants"; // public pages are drawn by the website; the API and the builder live in the Forms app; leads and projects in the CRM app
 import { solve } from "@apex/forms/pow";
 
 const MAILPIT = "http://localhost:8025/api/v1";
@@ -46,6 +46,15 @@ async function waitMail(to: string) {
     await new Promise((res) => setTimeout(res, 250));
   }
   throw new Error(`no email to ${to}`);
+}
+
+// The CRM app has its own login and session cookie (the same accounts): tests that cross into it sign in there too.
+async function loginCrm(page: Page) {
+  await page.goto(CRM + "/admin/login");
+  await page.getByLabel("Correu electrònic").fill("admin@e2e.test");
+  await page.getByLabel("Contrasenya").fill(process.env.E2E_ADMIN_PASSWORD!);
+  await page.getByRole("button", { name: "Entra" }).click();
+  await expect(page.getByRole("heading", { name: "Tauler" })).toBeVisible();
 }
 
 test.beforeAll(async () => { await sql`delete from forms`; await sql`delete from contacts`; await sql`delete from newsletter_optins`; await clearMail(); });
@@ -242,43 +251,10 @@ test("uploads are private and identified by content; staff download through sign
   expect(body).toContain("'=HYPERLINK");
   expect(body).toContain("cv.pdf");
 
-  // responses screen shows the file link and the consent; the leads screen shows the contact with its source
+  // responses screen shows the file link
   await page.goto(`/admin/forms/${id}/submissions`);
   await expect(page.getByRole("link", { name: "cv.pdf" })).toBeVisible();
-  await page.goto("/admin/leads");
-  await expect(page.getByText("eva@e2e.test")).toBeVisible();
-
-  // lead follow-up: status, note, conversion into a client
-  await page.getByRole("link", { name: /HYPERLINK/ }).first().click();
-  await page.getByLabel("Estat").selectOption("contacted");
-  await page.getByRole("button", { name: "Desa", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("Desat");
-  await page.getByLabel("Nova nota").fill("Trucar dimarts");
-  await page.getByRole("button", { name: "Afegeix la nota" }).click();
-  await expect(page.getByText("Trucar dimarts")).toBeVisible();
-  await page.getByRole("button", { name: "Converteix en client" }).click();
-  await expect(page).toHaveURL(/\/admin\/clients\/[0-9a-f-]{36}/);
-  expect(await count("clients", sql`where email = 'eva@e2e.test'`)).toBe(1);
-  await page.goto("/admin/leads?status=won&q=eva");
-  await expect(page.getByText("eva@e2e.test")).toBeVisible();
-  await page.goto("/admin/leads?view=people&q=" + encodeURIComponent("e2e.test"));
-  await expect(page.getByRole("columnheader", { name: "Peticions" })).toBeVisible();
-  await expect(page.getByText("eva@e2e.test")).toBeVisible();
-  await page.goto("/admin/search?q=eva%40e2e");
-  await expect(page.getByRole("heading", { name: /Contactes i peticions/ })).toBeVisible();
-  await page.goto("/admin/leads?status=lost");
-  await expect(page.getByText("eva@e2e.test")).toHaveCount(0);
-
-  // right to erasure: contact, lead, notes, the client made from it, submission, file
-  await page.goto("/admin/leads?q=eva");
-  await page.getByRole("link", { name: /HYPERLINK/ }).first().click();
-  page.once("dialog", (d) => d.accept());
-  await page.getByRole("button", { name: "Elimina les dades" }).first().click();
-  await expect(page.getByRole("status")).toContainText("eliminats");
-  expect(await count("clients", sql`where email = 'eva@e2e.test'`)).toBe(0);
-  expect(await count("contacts", sql`where email = 'eva@e2e.test'`)).toBe(0);
-  expect(await count("submissions", sql`where form_id = ${id}`)).toBe(0);
-  expect((await fetch(signed)).status).toBe(404); // the stored file is really gone
+  // the CRM side of a response (lead follow-up, conversion, erasure) is tested in apps/crm/e2e/leads.spec.ts
 });
 
 test("newsletter opt-in is its own box, unticked by default, stored separately from consent", async ({ page }) => {
@@ -350,8 +326,8 @@ test("a form inside a landing page tags the lead with that page and its theme", 
 });
 
 test("projects module: create a client and a project, point a form at it, and the response shows up on the project", async ({ page, request }) => {
-  await login(page);
-  await page.goto("/workspace/companies?new=1"); // companies are created in the workspace; projects and portal access stay on the client page
+  await loginCrm(page);
+  await page.goto(CRM + "/workspace/companies?new=1"); // companies are created in the workspace; projects and portal access stay on the client page
   const sheet = page.getByRole("complementary", { name: "Fitxa" });
   await sheet.getByLabel("Nom", { exact: true }).fill("Rovellosa Packaging");
   await sheet.getByRole("button", { name: "Crea" }).click();
@@ -374,6 +350,7 @@ test("projects module: create a client and a project, point a form at it, and th
   const em = F("email", { label: L("Correu"), required: "yes" });
   const formId = await seedForm("brief-web", [nom, em], { destination: "project", consent: L("Accepto") });
   await sql`update forms set target_project_id = ${projectId} where id = ${formId}`;
+  await login(page); // the builder is in the Forms app
   await page.goto(`/admin/forms/${formId}`);
   await expect(page.getByLabel("Adjunta les respostes a")).toHaveValue(`project:${projectId}`);
   await page.getByRole("button", { name: "Desa", exact: true }).click();
@@ -385,7 +362,7 @@ test("projects module: create a client and a project, point a form at it, and th
 
   await page.goto(projectUrl);
   await expect(page.getByText("Nom: Marta")).toBeVisible();
-  await page.goto("/admin/projects");
+  await page.goto(CRM + "/admin/projects");
   await expect(page.getByRole("row", { name: /Web corporativa/ })).toContainText("1");
 
   // an editor of the form must choose a target before saving

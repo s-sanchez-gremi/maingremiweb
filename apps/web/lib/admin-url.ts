@@ -1,3 +1,3 @@
-// Where the CMS admin app lives, for links from the website to it (staff bar, preview). Empty = same address as the website,
-// which is how production works (Caddy sends /admin/* to the admin app); in development each app has its own port, so set ADMIN_URL.
+// Where the CMS admin app lives, for links from the website to it (staff bar, preview): its own host in production
+// (https://admin.<domain>), its own port in development. Empty only if the admin were served from the website's own address.
 export const adminUrl = () => (process.env.ADMIN_URL ?? "").replace(/\/$/, "");

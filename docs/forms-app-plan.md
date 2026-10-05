@@ -1,6 +1,6 @@
 # Plan: Forms as its own app (`apps/forms`), the Fillout replacement
 
-Status: **approved 2026-10-05 (decisions in section 8); F1 next.** Follows the same procedure as `docs/split-plan.md` (web / crm). Feature backlog: `docs/forms-v2-plan.md`. Owner: Sam. Needs a read from Joan Marc (it touches the public form pages and Caddy).
+Status: **approved 2026-10-05 (decisions in section 8). F1 (scaffold) and F2 (move forms) done; F3 next. F2 must not be released without F3.** Follows the same procedure as `docs/split-plan.md` (web / crm). Feature backlog: `docs/forms-v2-plan.md`. Owner: Sam. Needs a read from Joan Marc (it touches the public form pages and Caddy).
 
 ## 1. Goal
 Forms (builder, responses, submission pipeline, and the new Fillout-like features) live in a **third app, `apps/forms`**, in the same repository and the same Postgres database, so that new forms work cannot break the public website, the CMS admin or the CRM/workspace, and vice versa. Same three guarantees as the first split:
@@ -35,6 +35,8 @@ Table ownership after the move: **forms app** = `forms`, `form_starts`, `submiss
 ## 5. Steps (each its own PR, each passing `pnpm verify`)
 - **F0. Preconditions.** Merge or park open work touching `apps/crm/lib/forms*`; agree with Joan Marc a short freeze on `packages/forms`, `proxy.ts` forms forwarding and `deploy/Caddyfile`.
 - **F1. Scaffold `apps/forms`** (about 0.5 day): Next app, port 3002, own login and cookie, layout using `@apex/ui` tokens, `/api/health`, `/api/cron/tick`, robots disallow all, `pnpm dev` starts three apps, e2e runner gets a third port and `apex_forms` role. Empty but green in CI.
+- **F1 done:** `apps/forms` (port 3002) exists with login, health, tick, robots, CSP and an e2e smoke test; role `apex_forms` has the shared tables only; the boundary check and drill cover it. Not yet in the Dockerfile or compose (F3).
+- **F2 done (deviation from section 2):** the standalone page, the embed and forms inside pages stay in `apps/web` (they need the site shell and the consent banner and only read `forms`), so nothing about respondent URLs or the website changed; only `/api/forms/*`, the builder, the responses and their tests moved. The pipeline code was already in `packages/forms` (no separate `destinations` folder was needed yet). Grants: `apex_forms` owns `forms`, `form_starts`, `submissions`; the CRM keeps read-only access to `forms` and `submissions`.
 - **F2. Move forms from the CRM (about 1 day, `git mv` to keep history):** builder, responses, CSV export, submit/challenge/start API, pipeline glue, tests. CRM and web menus link across (`FORMS_URL`, `WEB_ADMIN_URL`/`CRM_URL`). The CRM stops calling it. The cache refresh call (`WEB_INTERNAL_URL`) moves with it. Option A destinations extracted to `packages/forms/destinations`.
 - **F3. Deploy and edge (about 0.5 day):** Dockerfile `start-forms`, compose service `forms`, `deploy.sh [all|web|crm|forms]` with per-app rollback, Caddy: `FORMS_DOMAIN` locked to `ADMIN_ALLOWED_IPS`, public `/api/forms/*` and the standalone/embed pages open; extend `scripts/caddy-drill.sh` and `deploy-drill.sh`.
 - **F4. Database user and boundary tests (about 0.5 day):** `apex_forms` in `db/grants.sql`, `boundary-drill.sh` proves allowed and refused writes, `check-boundaries.sh` and its self-test cover the new app.

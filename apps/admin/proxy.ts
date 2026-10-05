@@ -1,7 +1,7 @@
 // Every response gets a Content-Security-Policy (built per request) and the admin can never be framed.
 // There are no language prefixes here: the admin app serves /admin (staff) and /api (media upload, health, cron).
-// The content editor frames the website's live preview (/admin/preview): behind Caddy that is the same origin; in development
-// it is the website's own port (WEB_PREVIEW_URL), which the CSP of the editor page then allows.
+// The content editor frames the website's live preview (/admin/preview), which is served from another origin: the website's host in
+// production, its own port in development (WEB_PREVIEW_URL). The CSP of the editor page allows exactly that origin.
 import { NextResponse, type NextRequest } from "next/server";
 import { buildCsp, kindOf } from "@apex/core/csp";
 

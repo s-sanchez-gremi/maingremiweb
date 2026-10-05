@@ -6,9 +6,9 @@
 // renders the draft like the public site and may be framed by our own origin only).
 export type Kind = "public" | "embed" | "admin" | "editor" | "preview";
 
-// previewOrigin / editorOrigin / adminOrigin are only for the two-origin setup of development and tests, where the CMS admin and the
-// website run on different ports: the editor may frame the website's preview there, the preview may be framed by the admin, and the
-// website's staff bar may post to the admin. Behind Caddy (production) everything is one origin and none of them is set.
+// previewOrigin / editorOrigin / adminOrigin are for the CMS admin living on another origin than the website (its own port in
+// development and tests, its own host in production): the editor may frame the website's preview, the preview may be framed by the
+// admin, and the website's staff bar may post to the admin. When both share one origin none of them is set.
 export function buildCsp(kind: Kind, o: { s3Origin?: string; dev?: boolean; https?: boolean; previewOrigin?: string; editorOrigin?: string; adminOrigin?: string }): string {
   const s3 = o.s3Origin ? ` ${o.s3Origin}` : "";
   const d: string[] = [

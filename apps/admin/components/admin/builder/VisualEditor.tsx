@@ -23,7 +23,7 @@ const DESKTOP = 1280;
 export function VisualEditor({ entryId, locale, sections, onChange, options, save, previewBase = "" }: {
   entryId: string; locale: string; sections: SectionItem[]; onChange: (next: SectionItem[]) => void; options: Options;
   save: (id: string, locale: string, json: string) => Promise<{ ok: true } | { ok: false; error: string }>;
-  previewBase?: string; // where the website serves /admin/preview (empty = this same origin, as behind Caddy)
+  previewBase?: string; // where the website serves /admin/preview (empty = this same origin)
 }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const previewUrl = `${previewBase}/admin/preview/${entryId}?locale=${locale}`;

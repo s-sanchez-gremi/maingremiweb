@@ -11,8 +11,8 @@ async function login(page: Page) {
   await expect(page.getByRole("heading", { name: "Tauler" })).toBeVisible();
 }
 
-// The preview is drawn by the WEBSITE (it is the public site showing a draft) and framed by this app's editor. In the tests the two apps
-// have different ports, so the framing is allowed by origin (CSP); behind Caddy in production it is one origin (X-Frame-Options SAMEORIGIN).
+// The preview is drawn by the WEBSITE (it is the public site showing a draft) and framed by this app's editor. The two apps have different
+// origins (ports in the tests, hosts in production), so the framing is allowed by origin (CSP frame-src / frame-ancestors).
 test("the preview is staff-only and only our own editor may frame it", async ({ page }) => {
   // Without a session it shows a notice (a redirect to the never-framed login page would be a broken frame).
   const anon = await page.request.get(`${WEB_URL}/admin/preview/00000000-0000-4000-8000-000000000000`, { maxRedirects: 0 });

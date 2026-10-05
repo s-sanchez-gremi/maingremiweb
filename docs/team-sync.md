@@ -7,7 +7,7 @@
 `apps/web` is now only the public website. Everything under `/admin` that edits content moved to a new app, `apps/admin` (history kept with `git mv`). Do these once, in order, after the pull request "Split the CMS admin out of the website" is merged:
 
 1. **Get current and install.** `git fetch origin && git switch main && git pull`, merge `origin/main` into your branches (merge commit, never rebase), take `main`'s `pnpm-lock.yaml`, `pnpm install --frozen-lockfile`.
-2. **Update your `.env`** from `.env.example` (new lines at the end of the "apps talk to each other" block): `WEB_ADMIN_URL=http://localhost:3003`, `ADMIN_URL=http://localhost:3003`, `WEB_PREVIEW_URL=http://localhost:3000`. `pnpm dev` now starts three apps: website :3000, CRM :3001, CMS admin :3003 (the CMS login is **http://localhost:3003/admin**; the website no longer has one).
+2. **Update your `.env`** from `.env.example` (new lines at the end of the "apps talk to each other" block): `WEB_ADMIN_URL=http://localhost:3003`, `ADMIN_URL=http://localhost:3003`, `WEB_PREVIEW_URL=http://localhost:3000`. `pnpm dev` now starts four apps: website :3000, CRM :3001, forms :3002, CMS admin :3003 (the CMS login is **http://localhost:3003/admin**; the website no longer has one).
 3. **Know where things are now:** content, media, categories, settings, users, errors, the visual builder and the scheduler are in `apps/admin`; `apps/web/app/admin` only keeps `/admin/preview/[id]` (the live preview) and `/admin/bar` (the staff bar). The page model (section registry, blocks, settings schema, reserved slugs, inline-edit helpers, preview messages) is in the package `packages/sections` (already merged in an earlier PR); shared helpers moved to `packages/core` (`media-url`, `media-share`, `staff-cookie`, `staff-hint`, `web-cache`).
 4. **Rules that changed (see "Four separate apps" in `CLAUDE.md`):** the website's database user is now **read-only** on content (`apex_web`; the new `apex_admin` writes it), so website code must never write a table; after a change the admin calls the website's `/api/cron/revalidate` (`lib/cache.ts` in the admin); the website has no scheduler any more (the admin's `/api/cron/tick` publishes scheduled content). Website tests that need "live" content use `lib/__tests__/helpers.ts` (`goLive`), not `publish()`.
 5. **Local database:** the e2e suite creates the role `apex_admin` itself. For your own dev database nothing changes (one all-powerful user). To try the restricted users: `create role apex_admin login password '…';` next to the other two (`DEPLOY.md`, "Database users per app").
@@ -15,6 +15,28 @@
 7. **Ownership:** `.github/CODEOWNERS` lists you for `apps/admin` too.
 
 Done: (none yet; Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
+## For Joan Marc (apps/web) and his Claude — notice of 2026-10-05 from Sam (forms app, step F2)
+
+The form builder, the responses and the public submission API (`/api/forms/*`) moved from `apps/crm` to `apps/forms` (plan: `docs/forms-app-plan.md`). The website still draws every form exactly as before (standalone page, embed, forms inside pages); your code only changed in two lines of `apps/web/proxy.ts`. Do once, after merging `main`:
+
+1. **Rename an environment variable in your local `.env`** (and `.env.example` already has it): `CRM_INTERNAL_URL=http://localhost:3001` becomes `FORMS_INTERNAL_URL=http://localhost:3002`; add `FORMS_URL=http://localhost:3002` too. Without it the website's `/api/forms/*` forwarding does nothing and forms cannot be submitted locally.
+2. `pnpm install` (the forms app gained a test dependency), then run the apps with `pnpm dev` as before (three servers now).
+3. Database permissions changed (`db/grants.sql`): `forms`, `form_starts`, `submissions` are now written only by `apex_forms`; the website still only READS `forms`. Nothing for you to do unless your code writes them (it should not).
+4. **Release rule:** F2 must not be deployed without F3 (Dockerfile, compose, Caddy routing of `/api/forms/*` to the Forms app); until then public forms would fail. F3 comes next.
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
+## For Joan Marc (apps/web) and his Claude — notice of 2026-10-05 from Sam (forms app, step F1)
+
+A third app, `apps/forms`, is being added (plan: `docs/forms-app-plan.md`). Step F1 only adds an empty shell; your area is not touched. Do once, after merging `main`:
+
+1. `pnpm install` (the lockfile gained the new app) and link its env: `ln -sf ../../.env apps/forms/.env` (`pnpm dev` now also starts it on :3002; `./scripts/ci.sh` does the link itself).
+2. Nothing to do for your local database (it uses one all-powerful user). The e2e run creates the new role `apex_forms` by itself.
+3. **Deployed environments:** before the next release that sets `APPLY_GRANTS=1`, create the third role (`create role apex_forms login password '…';`, see `DEPLOY.md`), or `db/grants.sql` will refuse to apply.
+4. Rule for your reviews: `apps/forms` never imports `apps/web` (checked by `scripts/check-boundaries.sh`). In step F2 the form builder and `/api/forms/*` move from the CRM app to it; public form URLs and the way the website draws forms do not change. You will be asked to review F2 (it touches `packages/forms`, `proxy.ts` forwarding and the Caddyfile).
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 
 ## For Joan Marc (apps/web) and his Claude — notice of 2026-10-02 from Sam
 

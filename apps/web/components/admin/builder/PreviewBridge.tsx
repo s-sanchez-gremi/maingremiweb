@@ -50,7 +50,7 @@ function dropTargetAt(el: Element | null, clientY: number): { target: DropTarget
   return { target: { index }, line: new DOMRect(main.left + 16, y - 2, main.width - 32, 4) };
 }
 
-/** editorOrigin: where the CMS admin runs (empty = the same origin, as behind Caddy in production). */
+/** editorOrigin: where the CMS admin runs (empty = the same origin; production: https://admin.<domain>). */
 export function PreviewBridge({ editorOrigin = "" }: { editorOrigin?: string }) {
   useEffect(() => {
     const parentOrigin = editorOrigin || location.origin;
