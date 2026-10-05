@@ -1,25 +1,28 @@
 -- Database permissions per app (least privilege). Applied by the migration step (APPLY_GRANTS=1) after every migration, as the OWNER.
--- Two login roles, created once by whoever sets up the database (see deploy/ionos/README.md): apex_web (the website + CMS) and
--- apex_crm (CRM, forms, projects, ERP, portal, records). Neither can change the schema; each can only touch its own tables.
+-- Three login roles, created once by whoever sets up the database (see deploy/ionos/README.md): apex_web (the website + CMS),
+-- apex_crm (CRM, forms, projects, ERP, portal, records) and apex_forms (the Forms app, docs/forms-app-plan.md; owns no table yet:
+-- step F2 moves the forms tables to it). None can change the schema; each can only touch its own tables.
 -- THE RULE FOR A NEW TABLE: add it to ONE of the lists below in the same pull request as its migration. The check at the end of this
 -- file refuses to continue while any table has no permissions, so nobody can forget (and CI runs it).
 -- Ownership (docs/split-plan.md section 4): web = content tables; crm = forms (builder, form_starts, newsletter opt-ins) and every
 -- business table; shared = users (the website's admin manages accounts), sessions, outbox, heartbeats, error_log.
 
-revoke all on all tables in schema public from apex_web, apex_crm;
-revoke all on all sequences in schema public from apex_web, apex_crm;
-grant usage on schema public to apex_web, apex_crm;
+revoke all on all tables in schema public from apex_web, apex_crm, apex_forms;
+revoke all on all sequences in schema public from apex_web, apex_crm, apex_forms;
+grant usage on schema public to apex_web, apex_crm, apex_forms;
 
--- ---- shared by both apps ----
-grant select, insert, update, delete on sessions, outbox, heartbeats, error_log to apex_web, apex_crm;
+-- ---- shared by all apps ----
+grant select, insert, update, delete on sessions, outbox, heartbeats, error_log to apex_web, apex_crm, apex_forms;
 
 -- the auto-numbered ids of the shared tables (a role that may INSERT into a table with a serial id needs its sequence)
-grant usage, select on sequence outbox_id_seq, error_log_id_seq to apex_web, apex_crm;
+grant usage, select on sequence outbox_id_seq, error_log_id_seq to apex_web, apex_crm, apex_forms;
 
 -- ---- users: accounts are managed in the website's admin; the CRM app reads them and lets a person change THEIR OWN password ----
 grant select, insert, update, delete on users to apex_web;
 grant select on users to apex_crm;
 grant update (password_hash) on users to apex_crm;
+grant select on users to apex_forms;
+grant update (password_hash) on users to apex_forms;   -- a person may change their own password in the Forms app too (same rule as the CRM)
 
 -- ---- apex_web: the website and its CMS ----
 grant select, insert, update, delete on entries, entry_translations, entry_versions, categories, media, settings to apex_web;
@@ -47,8 +50,8 @@ begin
     select c.oid, c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public' and c.relkind in ('r', 'p') and c.relname not in ('schema_migrations', 'app_meta')
   loop
-    if not has_table_privilege('apex_web', t.oid, 'SELECT') and not has_table_privilege('apex_crm', t.oid, 'SELECT') then
-      raise exception 'Table "%" has no permissions: add it to db/grants.sql (web, crm or shared)', t.relname;
+    if not has_table_privilege('apex_web', t.oid, 'SELECT') and not has_table_privilege('apex_crm', t.oid, 'SELECT') and not has_table_privilege('apex_forms', t.oid, 'SELECT') then
+      raise exception 'Table "%" has no permissions: add it to db/grants.sql (web, crm, forms or shared)', t.relname;
     end if;
   end loop;
 
@@ -58,7 +61,7 @@ begin
     from pg_class s join pg_namespace n on n.oid = s.relnamespace join pg_depend d on d.objid = s.oid and d.deptype in ('a', 'i')
     where s.relkind = 'S' and n.nspname = 'public'
   loop
-    for r in select unnest(array['apex_web', 'apex_crm']) as role loop
+    for r in select unnest(array['apex_web', 'apex_crm', 'apex_forms']) as role loop
       if has_table_privilege(r.role, t.tbl, 'INSERT') and not has_sequence_privilege(r.role, t.seq, 'USAGE') then
         raise exception 'Role % may insert into the table of sequence "%" but cannot use it: grant usage on the sequence in db/grants.sql', r.role, t.seqname;
       end if;

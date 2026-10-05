@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 # Proves the database permissions of db/grants.sql with the REAL restricted users, on a fresh database migrated by the production
 # image: the website's user can touch the website's tables and only READ forms; the CRM's user can touch the business tables and
-# cannot touch content or change accounts; neither can change the schema; a table nobody classified is caught.
+# cannot touch content or change accounts; the Forms app's user touches only the shared tables; neither can change the schema; a table nobody classified is caught.
 # Usage: ./scripts/boundary-drill.sh      (needs docker compose up -d)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 NET=$(docker inspect "$(docker compose ps -q db)" --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}')
 DB=apex_boundary
-PWW="Web-Drill-Pw-5521"; PWC="Crm-Drill-Pw-8841"
+PWW="Web-Drill-Pw-5521"; PWC="Crm-Drill-Pw-8841"; PWF="Forms-Drill-Pw-3367"
 fail() { echo "FAIL: $*"; exit 1; }
 su() { docker compose exec -T db psql -U apex -d "${2:-postgres}" -v ON_ERROR_STOP=1 -qtAc "$1"; }
 
 echo "== a fresh database, the two restricted roles, migrations + permissions applied by the production image"
 su "drop database if exists $DB with (force)" >/dev/null
 su "create database $DB" >/dev/null
-for r in "apex_web:$PWW" "apex_crm:$PWC"; do
+for r in "apex_web:$PWW" "apex_crm:$PWC" "apex_forms:$PWF"; do
   su "do \$\$ begin if not exists (select from pg_roles where rolname = '${r%%:*}') then create role ${r%%:*} login; end if; end \$\$" >/dev/null
   su "alter role ${r%%:*} login password '${r##*:}'" >/dev/null
 done
@@ -80,6 +80,20 @@ deny  $(C) "select count(*) from categories"
 deny  $(C) "select count(*) from schema_migrations"
 deny  $(C) "create table stolen (a int)"
 deny  $(C) "drop table clients"
+echo "== apex_forms (the Forms app: shared tables only until step F2 moves the forms tables to it)"
+F() { echo apex_forms "$PWF"; }
+allow $(F) "select count(*) from users"
+allow $(F) "update users set password_hash = password_hash where false"
+allow $(F) "insert into outbox (kind, payload) values ('email', '{}'::jsonb)"
+allow $(F) "insert into error_log (fingerprint, message) values ('drill-forms', 'x')"
+allow $(F) "delete from outbox"
+deny  $(F) "update users set role = role where false"
+deny  $(F) "delete from users where false"
+deny  $(F) "select count(*) from entries"
+deny  $(F) "select count(*) from leads"
+deny  $(F) "select count(*) from clients"
+deny  $(F) "select count(*) from schema_migrations"
+deny  $(F) "create table stolen (a int)"
 echo "ok: $n permission checks behave as designed"
 
 echo "== a table nobody classified is caught (the rule for new tables)"

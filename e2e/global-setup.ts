@@ -9,7 +9,7 @@ export default async function globalSetup() {
   await admin.unsafe("drop database if exists apex_e2e with (force)");
   await admin.unsafe("create database apex_e2e");
   // the two per-app login roles (cluster-wide, so created once and reused; the password is reset every run)
-  for (const [role, pw] of [["apex_web", "e2e-web-password"], ["apex_crm", "e2e-crm-password"]]) {
+  for (const [role, pw] of [["apex_web", "e2e-web-password"], ["apex_crm", "e2e-crm-password"], ["apex_forms", "e2e-forms-password"]]) {
     await admin.unsafe(`do $$ begin if not exists (select from pg_roles where rolname = '${role}') then create role ${role} login; end if; end $$`);
     await admin.unsafe(`alter role ${role} login password '${pw}'`);
   }
