@@ -1,6 +1,6 @@
 # Plan: Forms as its own app (`apps/forms`), the Fillout replacement
 
-Status: **proposal, nothing built yet.** Follows the same procedure as `docs/split-plan.md` (web / crm). Feature backlog: `docs/forms-v2-plan.md`. Owner: Sam. Needs a read from Joan Marc (it touches the public form pages and Caddy).
+Status: **approved 2026-10-05 (decisions in section 8); F1 next.** Follows the same procedure as `docs/split-plan.md` (web / crm). Feature backlog: `docs/forms-v2-plan.md`. Owner: Sam. Needs a read from Joan Marc (it touches the public form pages and Caddy).
 
 ## 1. Goal
 Forms (builder, responses, submission pipeline, and the new Fillout-like features) live in a **third app, `apps/forms`**, in the same repository and the same Postgres database, so that new forms work cannot break the public website, the CMS admin or the CRM/workspace, and vice versa. Same three guarantees as the first split:
@@ -52,7 +52,7 @@ Rough total for the move: **2.5 to 3 working days.**
 ## 7. Not changing
 Public URLs, the data model of submissions, consent and spam behaviour, the CMS and workspace experience.
 
-## 8. Open questions
-1. Host name: `forms.<domain>` (assumed) or a path on the CRM host?
-2. Option A or B for routing to the CRM (A recommended to start)?
-3. Is a separate staff login for forms acceptable, or should it reuse a shared SSO-style cookie later?
+## 8. Decisions (2026-10-05, Sam)
+1. Routing to the CRM: **option A** (narrow grant exception); B stays a possible follow-up.
+2. Host: **`forms.<domain>`**, staff side restricted like the CRM.
+3. A **separate staff login** for the forms app is accepted.
