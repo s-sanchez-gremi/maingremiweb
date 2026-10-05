@@ -2,6 +2,17 @@
 
 **For Claude Code:** at the start of a session, read the section addressed to the person you are working for, do each open item (they are safe to repeat), tell the person what you did or what needs their decision, and mark the item done (date + initials) in the same pull request as your next change. Add a new notice here when you change something the other person's side must act on (a new migration, a moved table, a new rule, a changed command). Never put secrets here.
 
+## For Joan Marc (apps/web) and his Claude — notice of 2026-10-05 from Sam (forms app, step F1)
+
+A third app, `apps/forms`, is being added (plan: `docs/forms-app-plan.md`). Step F1 only adds an empty shell; your area is not touched. Do once, after merging `main`:
+
+1. `pnpm install` (the lockfile gained the new app) and link its env: `ln -sf ../../.env apps/forms/.env` (`pnpm dev` now also starts it on :3002; `./scripts/ci.sh` does the link itself).
+2. Nothing to do for your local database (it uses one all-powerful user). The e2e run creates the new role `apex_forms` by itself.
+3. **Deployed environments:** before the next release that sets `APPLY_GRANTS=1`, create the third role (`create role apex_forms login password '…';`, see `DEPLOY.md`), or `db/grants.sql` will refuse to apply.
+4. Rule for your reviews: `apps/forms` never imports `apps/web` (checked by `scripts/check-boundaries.sh`). In step F2 the form builder and `/api/forms/*` move from the CRM app to it; public form URLs and the way the website draws forms do not change. You will be asked to review F2 (it touches `packages/forms`, `proxy.ts` forwarding and the Caddyfile).
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
 ## For Joan Marc (apps/web) and his Claude — notice of 2026-10-02 from Sam
 
 Since your last sync, `main` gained the CRM's records engine and the app-boundary rules. Your area (`apps/web`) is not affected functionally, but your local setup, your tests and your branches are. Do these once, in order:

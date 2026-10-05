@@ -55,7 +55,7 @@ The image holds **both** apps; a container's command picks one. They share the d
 
 ## Database users per app (least privilege)
 `db/grants.sql` defines what each app's database user may touch: `apex_web` (website + CMS: content tables, read-only `forms`, accounts) and `apex_crm` (CRM, forms, ERP, portal, records; reads accounts and changes only its own password). Neither can change the schema. It is **optional**: without it both apps use `DATABASE_URL` as before. To switch it on (once per environment):
-1. As the database owner: `create role apex_web login password '…'; create role apex_crm login password '…';` (⚠ confirm IONOS Managed PostgreSQL lets the owner create roles).
+1. As the database owner: `create role apex_web login password '…'; create role apex_crm login password '…'; create role apex_forms login password '…';` (`apex_forms` belongs to the Forms app, `docs/forms-app-plan.md`; `db/grants.sql` refuses to apply without it. The Forms app is not deployed yet: its `DATABASE_URL_FORMS` and service arrive in step F3) (⚠ confirm IONOS Managed PostgreSQL lets the owner create roles).
 2. In the server's `.env`: `DATABASE_URL_WEB=postgres://apex_web:…`, `DATABASE_URL_CRM=postgres://apex_crm:…` and **remove `DATABASE_URL`** from it (the apps load the whole `.env`, so the owner's password must not be in it).
 3. In a separate file `.env.migrate` next to it (only `deploy.sh` reads it): `MIGRATE_DATABASE_URL=postgres://<owner>:…`. Releases then migrate as the owner and re-apply `db/grants.sql` (`APPLY_GRANTS=1`) every time.
 `scripts/boundary-drill.sh` (CI) proves what each user can and cannot do, and the end-to-end suite runs both apps as these restricted users.
