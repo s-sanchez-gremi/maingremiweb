@@ -5,8 +5,8 @@
 // "add" buttons for everything that can be dragged.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FieldForm, type Options } from "@apex/ui/components/FieldForm";
-import { blockByName, blockDefs, COLUMN_FIELDS, columnCount, styleFields } from "@/sections/blocks";
-import { UNSTYLED, sectionByName, sectionDefs } from "@/sections/registry";
+import { blockByName, blockDefs, COLUMN_FIELDS, columnCount, styleFields } from "@apex/sections/blocks";
+import { UNSTYLED, sectionByName, sectionDefs } from "@apex/sections/registry";
 import type { Field } from "@apex/core/fields";
 import {
   duplicate, findBlock, insertBlock, insertSection, moveBlock, moveSection, newBlock, newSection, nudge, removeBlock, removeSection, setLayout,

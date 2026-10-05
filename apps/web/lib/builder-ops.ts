@@ -1,7 +1,7 @@
 // Pure edit operations of the visual page builder (no React, no DOM), so they are unit-tested.
 // A page is an ordered list of sections; a "columns" section holds blocks in c1..c4.
-import { COLUMN_FIELDS, blockByName, columnCount } from "@/sections/blocks";
-import { sectionByName } from "@/sections/registry";
+import { COLUMN_FIELDS, blockByName, columnCount } from "@apex/sections/blocks";
+import { sectionByName } from "@apex/sections/registry";
 import type { Field } from "@apex/core/fields";
 
 export type Data = Record<string, unknown>;

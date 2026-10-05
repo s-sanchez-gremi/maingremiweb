@@ -8,7 +8,7 @@ import { Card } from "@apex/ui/components/Card";
 import { CheckboxField, RadioGroup, SelectField, TextAreaField, TextField } from "@apex/ui/components/Field";
 import { contrast, readColorTokens } from "@/lib/contrast";
 import { SectionRenderer } from "@/sections/render";
-import type { Section } from "@/sections/registry";
+import type { Section } from "@apex/sections/registry";
 
 const sections = [
   { id: "1", type: "header", data: { eyebrow: "Des del 1491", linkLabel: "Fes-te sòcia", linkUrl: "/ca/blog", link2Label: "Més informació", link2Url: "/ca/blog", title: "Donant forma al futur de la indústria gràfica", subtitle: "Formació, representació i comunitat per als professionals del sector gràfic a Catalunya.", image: "" } },

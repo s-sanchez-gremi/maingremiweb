@@ -3,7 +3,7 @@
 import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
 import { db } from "@apex/db";
 import { entries, entryTranslations, entryVersions, media, type Locale } from "@apex/db/schema";
-import { collectMediaIds, sectionsSchema } from "@/sections/registry";
+import { collectMediaIds, sectionsSchema } from "@apex/sections/registry";
 import { RESERVED_SLUGS } from "./urls";
 
 const KEEP_VERSIONS = 10;

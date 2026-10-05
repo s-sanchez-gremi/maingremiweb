@@ -7,7 +7,7 @@ import { categories, entries, entryTranslations, media } from "@apex/db/schema";
 import { saveUpload } from "../media";
 import { sharePath } from "../media-url";
 import { RESERVED_SLUGS } from "../urls";
-import { sectionsSchema } from "../../sections/registry";
+import { sectionsSchema } from "@apex/sections/registry";
 import { loadExport, isDocLink, type Item } from "./build";
 import { chosen } from "./decisions";
 import { sameSite } from "./clean";

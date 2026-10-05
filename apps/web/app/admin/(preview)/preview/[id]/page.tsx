@@ -9,7 +9,7 @@ import { getUser } from "@apex/core/auth";
 import { can } from "@apex/core/permissions";
 import { getMedia } from "@/lib/content";
 import { lenientSections } from "@/lib/preview";
-import { collectMediaIds } from "@/sections/registry";
+import { collectMediaIds } from "@apex/sections/registry";
 import { SectionRenderer } from "@/sections/render";
 import { Shell } from "@/components/site/Shell";
 import { PreviewBridge } from "@/components/admin/builder/PreviewBridge";

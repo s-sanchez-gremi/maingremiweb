@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addBlock, addSection, duplicate, findBlock, moveBlock, moveSection, nudge, removeBlock, setLayout, type SectionItem } from "../builder-ops";
-import { sectionsSchema } from "@/sections/registry";
+import { sectionsSchema } from "@apex/sections/registry";
 
 const page = (): SectionItem[] => [
   { id: "A", type: "text", data: { body: "a" } },

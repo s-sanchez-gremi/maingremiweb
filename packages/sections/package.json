@@ -1,0 +1,13 @@
+{
+  "name": "@apex/sections",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The page model: section types, blocks, style options and their validation (zod). Pure data, no React and no database, so the website and the CMS admin share one definition of what a page is. Rendering stays in the website. Source package (apps compile it).",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@apex/core": "workspace:*",
+    "zod": "^4.6.5"
+  }
+}

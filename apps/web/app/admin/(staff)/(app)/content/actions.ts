@@ -9,7 +9,7 @@ import { can } from "@apex/core/permissions";
 import { PublishError, publish, restoreVersion, unpublish } from "@/lib/publish";
 import { slugify } from "@apex/core/slug";
 import { entries, entryTranslations, locales, type Locale } from "@apex/db/schema";
-import { sectionDefs } from "@/sections/registry";
+import { sectionDefs } from "@apex/sections/registry";
 
 export async function createEntry(formData: FormData) {
   const user = await requireUser("content:write");

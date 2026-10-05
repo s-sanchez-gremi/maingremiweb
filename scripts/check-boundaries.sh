@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Fails when the two apps (or the shared packages) reach into each other's code. One repository, one database, two owners: the
-# only things apps/web and apps/crm may share are the packages (@apex/db, @apex/core, @apex/ui, @apex/forms) and the database.
+# only things apps/web and apps/crm may share are the packages (@apex/db, @apex/core, @apex/ui, @apex/forms, @apex/sections) and the database.
 #   apps/web may not import from apps/crm        (Joan Marc's code never depends on Sam's)
 #   apps/crm may not import from apps/web        (and the other way round)
 #   packages/*  may not import from an app       (no "@/…" alias, no apps/… path): packages never depend on what uses them
@@ -43,4 +43,4 @@ if [ "${1:-}" = "--selftest" ]; then
 fi
 
 ROOT="${1:-$(cd "$(dirname "$0")/.." && pwd)}"
-if check "$ROOT"; then echo "ok: no imports across apps/web, apps/crm and the packages"; else echo; echo "Fix: move the shared part into a package (packages/core, packages/ui, packages/forms, packages/db) agreed by both owners."; exit 1; fi
+if check "$ROOT"; then echo "ok: no imports across apps/web, apps/crm and the packages"; else echo; echo "Fix: move the shared part into a package (packages/core, packages/ui, packages/forms, packages/sections, packages/db) agreed by both owners."; exit 1; fi

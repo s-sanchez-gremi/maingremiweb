@@ -14,8 +14,8 @@ import { Card } from "@apex/ui/components/Card";
 import { LatestPosts } from "@/components/site/LatestPosts";
 import { PublicForm } from "@/components/site/form/PublicForm";
 import type { Source } from "@apex/forms/components/FormRenderer";
-import { UNSTYLED, type Section } from "./registry";
-import { COLUMN_FIELDS, columnCount } from "./blocks";
+import { UNSTYLED, type Section } from "@apex/sections/registry";
+import { COLUMN_FIELDS, columnCount } from "@apex/sections/blocks";
 
 type Ctx = { media: Record<string, PublicMedia>; locale: Locale; source: Source; edit?: boolean };
 /** In the editor's preview only: marks an element as editable in place (field path inside its section/block). */

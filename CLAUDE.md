@@ -50,7 +50,7 @@ Lead tables (`contacts`, `leads`, `submissions`, `newsletter_optins`) are separa
 Posts and landing pages share **one** `entries` table; the only difference is `type`.
 
 #### Five generic building blocks
-1. **Section registry** — `sections/<name>.ts` exports `{ name, label, fields, Render }`. `fields` is a tiny declarative list (`text`, `textarea`, `image`, `link`, `select`, `list`). Zod validation and the **admin form are generated from `fields`**, so adding a section type = **one file, no admin code**. Sections: header, text, image, embed, form, CTA, tile row, card grid.
+1. **Section registry** — lives in the shared package `packages/sections` (`@apex/sections/registry`, `/blocks`: pure data + zod, no React, no database, so the website and the CMS admin share ONE definition of a page); each type has `{ name, label, fields }` and its renderer is in `apps/web/sections/render.tsx`. `fields` is a tiny declarative list (`text`, `textarea`, `image`, `link`, `select`, `list`). Zod validation and the **admin form are generated from `fields`**, so adding a section type = **one file, no admin code**. Sections: header, text, image, embed, form, CTA, tile row, card grid.
 2. **`<ListEditor>`** — one component: add from a picker, ↑ ↓ ✕. Used for page sections **and** form fields **and** nav/footer links. Not built three times.
 3. **Generic entity screens** — a list screen and an edit screen driven by config, reused for entries, categories, media, forms, users. No hand-built screen per content type.
 4. **`translations` pattern** — every localized thing is `jsonb {ca,es,en}` or a translation row; one helper resolves locale with fallback to `ca`.
@@ -71,7 +71,7 @@ Posts and landing pages share **one** `entries` table; the only difference is `t
 #### How to extend
 | Need | Change |
 |---|---|
-| New section type | add `sections/<name>.ts` (schema + renderer) |
+| New section type | add its entry in `packages/sections/src/registry.ts` and its renderer in `apps/web/sections/render.tsx` |
 | New field type in form builder | add one entry to `packages/forms/fieldTypes.ts` (validate + render) |
 | New language | add locale code to config + one row of UI strings |
 | New content type later (CRM, projects) | new table + config for the generic screens |
@@ -279,7 +279,7 @@ Ask the person running this guide for the mockup artifact link(s) if they weren'
 - **Ownership:** Sam (business tools). New tables live in `db/schema/erp.ts`.
 
 ## Monorepo layout after the shared-packages step (S1 of `docs/split-plan.md`)
-- **Source packages** (plain TypeScript, compiled by the apps through `transpilePackages`; no build step): `packages/db` (`@apex/db`: schema in core/website/crm/erp files, lazy client, migration runner), `packages/core` (`@apex/core/*`: staff auth with `SESSION_COOKIE`, permissions, storage, mail+outbox, money, search helpers, file detection, the field language, error log, heartbeat, `siteUrl`), `packages/ui` (`@apex/ui`: `tokens.css`, `admin.css`, Button/Card/Field, ConfirmButton, ListEditor, FieldForm, ListSearch, richtext), `packages/forms` (`@apex/forms/*`: field types, validation, messages, the pipeline, `FormRenderer`). SQL migrations stay in `/db/migrations`.
+- **Source packages** (plain TypeScript, compiled by the apps through `transpilePackages`; no build step): `packages/db` (`@apex/db`: schema in core/website/crm/erp files, lazy client, migration runner), `packages/core` (`@apex/core/*`: staff auth with `SESSION_COOKIE`, permissions, storage, mail+outbox, money, search helpers, file detection, the field language, error log, heartbeat, `siteUrl`), `packages/sections` (`@apex/sections`: the page model, section registry, blocks and style options with their zod validation; rendering stays in the website), `packages/ui` (`@apex/ui`: `tokens.css`, `admin.css`, Button/Card/Field, ConfirmButton, ListEditor, FieldForm, ListSearch, richtext), `packages/forms` (`@apex/forms/*`: field types, validation, messages, the pipeline, `FormRenderer`). SQL migrations stay in `/db/migrations`.
 - **Rules:** packages never import `@/…` (an app) and never import another app; an app imports packages by name. `FormRenderer` knows nothing about cookies: the website wraps it in `ConsentAwareForm`, which passes remembered campaign tags only when the visitor allowed them.
 - Still one app (`apps/web`) in this step; the CRM app comes in S2.
 

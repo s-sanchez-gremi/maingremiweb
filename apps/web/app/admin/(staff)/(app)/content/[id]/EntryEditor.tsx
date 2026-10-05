@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ListEditor } from "@apex/ui/components/ListEditor";
 import { FieldForm, emptyData, type Options } from "@apex/ui/components/FieldForm";
-import { sectionByName, sectionDefs } from "@/sections/registry";
+import { sectionByName, sectionDefs } from "@apex/sections/registry";
 import type { Field } from "@apex/core/fields";
 import { VisualEditor } from "@/components/admin/builder/VisualEditor";
 import type { SectionItem } from "@/lib/builder-ops";

@@ -24,6 +24,7 @@
 
 # ---- apps/crm: Sam ----
 /apps/crm/                          @s-sanchez-gremi
+/packages/sections/                 @jmarcadell4-maker                    # the page model: website and CMS admin both depend on it
 /packages/forms/                    @s-sanchez-gremi @jmarcadell4-maker   # the form component is drawn by the website: logic is Sam's, the look must match the site
 /packages/db/src/schema/crm.ts      @s-sanchez-gremi                      # includes the forms tables (forms, form_starts, newsletter_optins)
 /packages/db/src/schema/records.ts  @s-sanchez-gremi
