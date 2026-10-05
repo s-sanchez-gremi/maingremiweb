@@ -1,7 +1,7 @@
 "use server";
 // Generic save/delete for every engine entity: permission, validation and the redirect back to where the person was
 // (the admin pages or the workspace; `back` is only honoured when it points into this entity's own screens).
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import sharp from "sharp";
 import { z } from "zod";
@@ -120,7 +120,8 @@ export async function archiveAction(fd: FormData) {
   const { e, page, id, home } = recordOf(fd);
   const user = await requireUser(e.perm);
   const archive = fd.get("archive") === "1";
-  await setArchived(e, id, archive, user);
+  try { await setArchived(e, id, archive, user); }
+  catch (err) { if (err instanceof RecordError) notFound(); throw err; }
   go(archive ? home : page, { saved: "1" });
 }
 
