@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { RichText } from "@apex/ui/richtext";
 import { embedTarget } from "@/lib/embed";
-import { mediaSrcSet, mediaUrl } from "@/lib/media-url";
+import { mediaSrcSet, mediaUrl } from "@apex/core/media-url";
 import { ui, type Locale } from "@/lib/i18n";
 import { consentMsgs } from "@/lib/consent/messages";
 import { declarations, categories } from "@/lib/consent/registry";

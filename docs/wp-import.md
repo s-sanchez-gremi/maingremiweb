@@ -9,7 +9,7 @@ Everything downloaded stays in `wp-export/` at the repository root (git-ignored)
 
 ## 1. Copy (read-only)
 ```
-pnpm --filter web wp:fetch https://gremi.net
+pnpm --filter admin wp:fetch https://gremi.net
 ```
 Saves categories, tags, authors, posts, pages and the media list as JSON in `wp-export/raw/`, then downloads the
 images and linked PDF/Word/Excel/PowerPoint files of the same site (max 15 MB each, never a redirect to another site)
@@ -20,7 +20,7 @@ hosting panel, which needs a different reader.
 
 ## 2. Review
 ```
-pnpm --filter web wp:review --since 2026-08-01     # --since: the date the hack is believed to have started (optional)
+pnpm --filter admin wp:review --since 2026-08-01     # --since: the date the hack is believed to have started (optional)
 ```
 Writes `wp-export/revisio.html` (what each item will look like; it cannot load or run anything) and
 `wp-export/revisio.csv` (one row per item, column **importar** = sí/no). The cleaner first drops scripts, foreign iframes and every **hidden** element (where hacks hide their
@@ -32,8 +32,8 @@ once it exists (`--reset` to start again), so a person's choices survive re-runs
 
 ## 3. Import as drafts
 ```
-pnpm --filter web wp:import            # trial: reports what it would create, writes nothing
-pnpm --filter web wp:import --apply    # creates the drafts
+pnpm --filter admin wp:import            # trial: reports what it would create, writes nothing
+pnpm --filter admin wp:import --apply    # creates the drafts
 ```
 - Posts → `post` entries (date = original date), pages → `page` entries; Catalan unless the site exposes a Polylang
   `lang` (then translations are grouped into one entry).
@@ -48,5 +48,5 @@ pnpm --filter web wp:import --apply    # creates the drafts
   report lists them. Drafts that would not pass publishing validation are listed too.
 - `wp-export/importat.json` records what was created, so re-running skips it.
 
-Code: `apps/web/lib/wp-import/` (clean, build, decisions, import) and `apps/web/scripts/wp-*.mts`;
-tests: `apps/web/lib/__tests__/wp-import.test.ts`.
+Code: `apps/admin/lib/wp-import/` (clean, build, decisions, import) and `apps/admin/scripts/wp-*.mts`;
+tests: `apps/admin/lib/__tests__/wp-import.test.ts`.

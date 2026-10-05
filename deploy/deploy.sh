@@ -1,27 +1,30 @@
 #!/usr/bin/env bash
 # Runs ON THE SERVER, inside the environment directory (compose.yml, .env, Caddyfile next to it).
-#   ./deploy.sh <image-tag> [all|web|crm]
-# The two apps (web = website + CMS, crm = CRM, forms, ERP, portal) come from ONE image but are released independently:
-# each has its own service, its own version (APEX_TAG_WEB / APEX_TAG_CRM), its own health check and its own rollback.
+#   ./deploy.sh <image-tag> [all|web|admin|crm]
+# The apps (web = public website, admin = CMS admin, crm = CRM, forms, ERP, portal) come from ONE image but are released independently:
+# each has its own service, its own version (APEX_TAG_WEB / APEX_TAG_ADMIN / APEX_TAG_CRM), its own health check and its own rollback.
+# "all" means every app service the compose file defines.
 # Steps: pull the image, apply pending database migrations (once, before anything starts), start the new version(s),
 # wait until each is healthy, warm the website cache. An app that does not become healthy is rolled back to ITS previous
 # version automatically; the other app is not touched. Migrations are forward-only and additive, so any app version
 # keeps working against the migrated database.
 set -euo pipefail
 cd "$(dirname "$0")"
-TAG="${1:?usage: deploy.sh <image-tag> [all|web|crm]}"
+TAG="${1:?usage: deploy.sh <image-tag> [all|web|admin|crm]}"
 ONLY="${2:-all}"
 export COMPOSE_FILE="${COMPOSE_FILE:-compose.yml}"   # docker compose reads this itself (several files may be joined with ":")
 COMPOSE=(docker compose)
 WAIT="${HEALTH_WAIT_SECONDS:-120}"
-case "$ONLY" in all) TARGETS=(web crm) ;; web) TARGETS=(web) ;; crm) TARGETS=(crm) ;; *) echo "second argument must be all, web or crm"; exit 2 ;; esac
+SERVICES="$("${COMPOSE[@]}" config --services)"   # captured, not piped: `| grep -q` can die of SIGPIPE under pipefail
+APPS=(); for s in web admin crm; do if grep -qx "$s" <<<"$SERVICES"; then APPS+=("$s"); fi; done
+case "$ONLY" in all) TARGETS=("${APPS[@]}") ;; web|admin|crm) grep -qx "$ONLY" <<<"$SERVICES" || { echo "this stack has no $ONLY service"; exit 2; }; TARGETS=("$ONLY") ;; *) echo "second argument must be all, web, admin or crm"; exit 2 ;; esac
 
 state() { echo ".current-tag-$1"; }
 prev() { cat "$(state "$1")" 2>/dev/null || true; }
 tagvar() { echo "APEX_TAG_$(tr a-z A-Z <<<"$1")"; }
 is_target() { local s; for s in "${TARGETS[@]}"; do [ "$s" = "$1" ] && return 0; done; return 1; }
 # New tag for the services being deployed; the others keep the version they run now (or the new one on a first deploy).
-for svc in web crm; do
+for svc in "${APPS[@]}"; do
   v="$(tagvar "$svc")"
   if is_target "$svc"; then export "$v=$TAG"; else cur="$(prev "$svc")"; export "$v=${cur:-$TAG}"; fi
 done
@@ -39,7 +42,6 @@ alive() { local id; id="$(cid "$1")"; [ -n "$id" ] && [ "$(docker inspect -f '{{
 if [ "${PULL:-1}" = "1" ]; then say "pull $TAG"; "${COMPOSE[@]}" pull "${TARGETS[@]}"; fi
 
 # A stack that carries its own database (staging) must have it running before migrating; the managed-database stack has no "db" service.
-SERVICES="$("${COMPOSE[@]}" config --services)"   # captured, not piped: `| grep -q` can die of SIGPIPE under pipefail
 if grep -qx db <<<"$SERVICES"; then
   say "start the database"
   "${COMPOSE[@]}" up -d --wait db

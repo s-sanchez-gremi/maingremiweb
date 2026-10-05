@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Builds the production image and proves it really works for BOTH apps: migrates a FRESH database, starts the website and the CRM app
-# from the same image, serves pages, refuses bad config.
+# Builds the production image and proves it really works for ALL apps: migrates a FRESH database, starts the website, the CMS admin and
+# the CRM app from the same image, serves pages, refuses bad config.
 # Needs the local services (docker compose up -d). Works on macOS and Linux (joins the compose network, publishes a port).
 # Usage: ./scripts/docker-smoke.sh
 set -euo pipefail
@@ -8,9 +8,10 @@ cd "$(dirname "$0")/.."
 IMAGE="${IMAGE:-apex-smoke}"
 NAME=apex-smoke-$$
 CRM_NAME=apex-smoke-crm-$$
-PORT="${SMOKE_PORT:-3300}"; CRM_PORT=$((PORT + 1))
+ADMIN_NAME=apex-smoke-admin-$$
+PORT="${SMOKE_PORT:-3300}"; CRM_PORT=$((PORT + 1)); ADMIN_PORT=$((PORT + 2))
 DB=apex_smoke
-cleanup() { docker rm -f "$NAME" "$CRM_NAME" >/dev/null 2>&1 || true; }
+cleanup() { docker rm -f "$NAME" "$CRM_NAME" "$ADMIN_NAME" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
 NET=$(docker inspect "$(docker compose ps -q db)" --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}')
@@ -43,6 +44,11 @@ OUT=$(docker run --rm --network "$NET" "${ENVS[@]}" -e CRON_SECRET=change-me "$I
 set -e
 if [ "$CODE" -ne 0 ] && grep -q "refusing to start" <<<"$OUT"; then echo "ok: CRM app refused too (exit $CODE)"; else echo "FAIL: crm exit=$CODE"; echo "$OUT" | tail -5; exit 1; fi
 
+set +e
+OUT=$(docker run --rm --network "$NET" "${ENVS[@]}" -e CRON_SECRET=change-me "$IMAGE" start-admin 2>&1); CODE=$?
+set -e
+if [ "$CODE" -ne 0 ] && grep -q "refusing to start" <<<"$OUT"; then echo "ok: CMS admin refused too (exit $CODE)"; else echo "FAIL: admin exit=$CODE"; echo "$OUT" | tail -5; exit 1; fi
+
 echo "== start the website (applies migrations to the fresh database first)"
 docker run -d --name "$NAME" --network "$NET" -p "$PORT:3000" "${ENVS[@]}" "$IMAGE" >/dev/null
 for i in $(seq 1 60); do curl -fsS "localhost:$PORT/api/health" >/dev/null 2>&1 && break; sleep 1; [ "$i" = 60 ] && { docker logs "$NAME" | tail -30; echo "FAIL: did not become healthy"; exit 1; }; done
@@ -53,7 +59,8 @@ chk /robots.txt 200
 chk /ca 200
 chk /ca/blog 200
 chk /ca/no-existeix 404
-chk /admin/login 200
+chk /admin/login 404                      # the CMS login lives in the admin app, not on the website
+chk /admin/bar 401                        # the staff bar's endpoint answers, and says nobody is signed in
 chk /sitemap.xml 200
 chk /styleguide 404                       # development-only page must not exist in production images
 HDRS="$(curl -sI "localhost:$PORT/ca")"
@@ -72,11 +79,24 @@ const load = (prefix, sub) => require(base + fs.readdirSync(base).find((d) => d.
   if (!(await verify(await hash("contrasenya-de-prova"), "contrasenya-de-prova"))) throw new Error("argon2 failed");
   console.log("ok: native libraries work in the image (sharp WebP conversion, argon2 hashing)");
 })().catch((e) => { console.error("FAIL:", e.message); process.exit(1); });'
-[ "$(psql_db "$DB" -Atc "select role from users where email = 'first-admin@smoke.test'")" = "admin" ] && echo "ok: first admin created from INITIAL_ADMIN_* on an empty database"
-LOGS="$(docker logs "$NAME" 2>&1)"
-if grep -qF "$ADMIN_PW" <<<"$LOGS"; then echo "FAIL: the admin password is in the logs"; exit 1; else echo "ok: the admin password is not in the logs"; fi
 echo "ok: container health: $(docker inspect -f '{{.State.Health.Status}}' "$NAME")"
 docker run --rm --network "$NET" "${ENVS[@]}" "$IMAGE" migrate >/dev/null && echo "ok: 'migrate' command runs and is idempotent"
+
+echo "== start the CMS admin (same image, command start-admin; it never migrates)"
+docker run -d --name "$ADMIN_NAME" --network "$NET" -p "$ADMIN_PORT:3000" "${ENVS[@]}" "$IMAGE" start-admin >/dev/null
+for i in $(seq 1 60); do curl -fsS "localhost:$ADMIN_PORT/api/health" >/dev/null 2>&1 && break; sleep 1; [ "$i" = 60 ] && { docker logs "$ADMIN_NAME" | tail -30; echo "FAIL: the CMS admin did not become healthy"; exit 1; }; done
+chk_admin() { local code; code=$(curl -s -o /dev/null -w "%{http_code}" "localhost:$ADMIN_PORT$1"); [ "$code" = "$2" ] || { echo "FAIL: admin $1 returned $code, expected $2"; docker logs "$ADMIN_NAME" | tail -20; exit 1; }; echo "ok: admin $1 -> $code"; }
+chk_admin /api/health 200
+chk_admin /admin/login 200
+chk_admin /robots.txt 200
+chk_admin /ca 404                         # the CMS admin does not serve the public site
+AH="$(curl -sI "localhost:$ADMIN_PORT/admin/login")"
+grep -qi "x-frame-options: deny" <<<"$AH" && grep -qi "content-security-policy" <<<"$AH" && echo "ok: admin is not frameable and sends a Content-Security-Policy" || { echo "FAIL: admin security headers"; exit 1; }
+grep -qi "disallow: /" <<<"$(curl -s "localhost:$ADMIN_PORT/robots.txt")" && echo "ok: admin robots.txt disallows everything"
+[ "$(psql_db "$DB" -Atc "select role from users where email = 'first-admin@smoke.test'")" = "admin" ] && echo "ok: first admin created from INITIAL_ADMIN_* on an empty database"
+ALOGS="$(docker logs "$ADMIN_NAME" 2>&1)"
+if grep -qF "$ADMIN_PW" <<<"$ALOGS"; then echo "FAIL: the admin password is in the logs"; exit 1; else echo "ok: the admin password is not in the logs"; fi
+echo "ok: admin container health: $(docker inspect -f '{{.State.Health.Status}}' "$ADMIN_NAME")"
 
 echo "== start the CRM app (same image, command start-crm; it never migrates)"
 docker run -d --name "$CRM_NAME" --network "$NET" -p "$CRM_PORT:3000" "${ENVS[@]}" "$IMAGE" start-crm >/dev/null

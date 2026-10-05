@@ -1,6 +1,5 @@
 // Renders the DRAFT of one entry translation exactly like the public page, for the visual editor's iframe.
 // Staff only; incomplete sections/blocks show as placeholders (lib/preview.ts). Never cached.
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { db } from "@apex/db";
@@ -13,6 +12,7 @@ import { collectMediaIds } from "@apex/sections/registry";
 import { SectionRenderer } from "@/sections/render";
 import { Shell } from "@/components/site/Shell";
 import { PreviewBridge } from "@/components/admin/builder/PreviewBridge";
+import { adminUrl } from "@/lib/admin-url";
 import { ui } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
@@ -36,11 +36,11 @@ export default async function Preview({ params, searchParams }: { params: Promis
     <Shell locale={locale} alternates={[]}>
       {!hasHeader && <div className="wrap narrow"><div className="page-title"><h1>{t?.title || ui(locale).untitled}</h1></div></div>}
       <SectionRenderer sections={sections} media={media} locale={locale} source={{ path: "", theme: entry.theme }} edit />
-      <PreviewBridge />
+      <PreviewBridge editorOrigin={adminUrl() ? new URL(adminUrl()).origin : ""} />
     </Shell>
   );
 }
 
 function Notice({ text }: { text: string }) {
-  return <main className="wrap narrow"><p className="apex-preview-notice" role="alert">{text} <Link href="/admin/login" target="_top">Entra</Link></p></main>;
+  return <main className="wrap narrow"><p className="apex-preview-notice" role="alert">{text} <a href={`${adminUrl()}/admin/login`} target="_top">Entra</a></p></main>;
 }

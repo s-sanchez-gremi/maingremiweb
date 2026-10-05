@@ -2,14 +2,14 @@ import { randomBytes } from "node:crypto";
 import postgres from "postgres";
 import { hash } from "@node-rs/argon2";
 import { applyGrants, migrate } from "@apex/db/migrator";
-import { E2E_DB } from "./constants";
+import { E2E_DB, E2E_DB_NAME } from "./constants";
 
 export default async function globalSetup() {
   const admin = postgres("postgres://apex:apex@localhost:5432/postgres", { max: 1, onnotice: () => {} });
-  await admin.unsafe("drop database if exists apex_e2e with (force)");
-  await admin.unsafe("create database apex_e2e");
-  // the two per-app login roles (cluster-wide, so created once and reused; the password is reset every run)
-  for (const [role, pw] of [["apex_web", "e2e-web-password"], ["apex_crm", "e2e-crm-password"]]) {
+  await admin.unsafe(`drop database if exists ${E2E_DB_NAME} with (force)`);
+  await admin.unsafe(`create database ${E2E_DB_NAME}`);
+  // the per-app login roles (cluster-wide, so created once and reused; the password is reset every run)
+  for (const [role, pw] of [["apex_web", "e2e-web-password"], ["apex_crm", "e2e-crm-password"], ["apex_admin", "e2e-admin-password"]]) {
     await admin.unsafe(`do $$ begin if not exists (select from pg_roles where rolname = '${role}') then create role ${role} login; end if; end $$`);
     await admin.unsafe(`alter role ${role} login password '${pw}'`);
   }

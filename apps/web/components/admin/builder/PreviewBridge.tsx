@@ -1,14 +1,9 @@
 "use client";
 // Runs inside the editor's preview iframe (/admin/preview/...). It never changes content itself: it reports clicks and
-// drops to the editor (same origin only) and draws outlines / the drop line. All editing happens in the parent.
+// drops to the editor (only to the editor's own origin: the admin app) and draws outlines / the drop line. All editing happens in the parent.
 import { useEffect } from "react";
-import { plainFromElement, richFromElement } from "@/lib/inline-edit";
-
-export type ToEditor =
-  | { apex: "select"; id: string }
-  | { apex: "drop"; payload: string; target: { index: number } | { section: string; col: string; index: number } }
-  | { apex: "edit"; id: string; field: string; value: string };
-export type ToPreview = { apex: "selected"; id: string | null };
+import { plainFromElement, richFromElement } from "@apex/sections/inline-edit";
+import type { ToEditor, ToPreview } from "@apex/sections/preview-messages";
 
 const STYLES = `
 [data-section-id],[data-block-id]{position:relative;cursor:pointer}
@@ -29,8 +24,8 @@ const MIME = "application/x-apex";
 const SCROLL_KEY = "apex-preview-scroll";
 
 type DropTarget = Extract<ToEditor, { apex: "drop" }>["target"];
-function dropTarget(e: DragEvent): { target: DropTarget; line: DOMRect } | null {
-  const el = e.target as Element | null;
+const dropTarget = (e: DragEvent) => dropTargetAt(e.target as Element | null, e.clientY);
+function dropTargetAt(el: Element | null, clientY: number): { target: DropTarget; line: DOMRect } | null {
   const col = el?.closest?.("[data-col]") as HTMLElement | null;
   const sec = el?.closest?.("[data-section-id]") as HTMLElement | null;
   if (col && sec) {
@@ -38,7 +33,7 @@ function dropTarget(e: DragEvent): { target: DropTarget; line: DOMRect } | null 
     let index = blocks.length;
     for (let i = 0; i < blocks.length; i++) {
       const r = blocks[i].getBoundingClientRect();
-      if (e.clientY < r.top + r.height / 2) { index = i; break; }
+      if (clientY < r.top + r.height / 2) { index = i; break; }
     }
     const cr = col.getBoundingClientRect();
     const y = index < blocks.length ? blocks[index].getBoundingClientRect().top - 8 : (blocks.length ? blocks[blocks.length - 1].getBoundingClientRect().bottom + 8 : cr.top + 8);
@@ -48,19 +43,21 @@ function dropTarget(e: DragEvent): { target: DropTarget; line: DOMRect } | null 
   let index = sections.length;
   for (let i = 0; i < sections.length; i++) {
     const r = sections[i].getBoundingClientRect();
-    if (e.clientY < r.top + r.height / 2) { index = i; break; }
+    if (clientY < r.top + r.height / 2) { index = i; break; }
   }
   const main = document.querySelector("main")!.getBoundingClientRect();
   const y = index < sections.length ? sections[index].getBoundingClientRect().top : (sections.length ? sections[sections.length - 1].getBoundingClientRect().bottom : main.top + 20);
   return { target: { index }, line: new DOMRect(main.left + 16, y - 2, main.width - 32, 4) };
 }
 
-export function PreviewBridge() {
+/** editorOrigin: where the CMS admin runs (empty = the same origin, as behind Caddy in production). */
+export function PreviewBridge({ editorOrigin = "" }: { editorOrigin?: string }) {
   useEffect(() => {
+    const parentOrigin = editorOrigin || location.origin;
     const style = document.createElement("style");
     style.textContent = STYLES;
     document.head.appendChild(style);
-    const send = (m: ToEditor) => window.parent.postMessage(m, location.origin);
+    const send = (m: ToEditor) => window.parent.postMessage(m, parentOrigin);
 
     try { const y = Number(sessionStorage.getItem(SCROLL_KEY)); if (y) window.scrollTo(0, y); } catch { /* storage blocked: start at top */ }
     const saveScroll = () => { try { sessionStorage.setItem(SCROLL_KEY, String(window.scrollY)); } catch { /* ignore */ } };
@@ -87,13 +84,15 @@ export function PreviewBridge() {
     const line = document.createElement("div");
     line.className = "apex-drop";
     const hide = () => line.remove();
-    const onOver = (e: DragEvent) => {
-      if (!e.dataTransfer?.types.includes(MIME)) return;
-      e.preventDefault();
-      const t = dropTarget(e);
+    const show = (t: ReturnType<typeof dropTarget>) => {
       if (!t) return hide();
       Object.assign(line.style, { left: `${t.line.left + scrollX}px`, top: `${t.line.top + scrollY}px`, width: `${t.line.width}px` });
       if (!line.isConnected) document.body.appendChild(line);
+    };
+    const onOver = (e: DragEvent) => {
+      if (!e.dataTransfer?.types.includes(MIME)) return;
+      e.preventDefault();
+      show(dropTarget(e));
     };
     const onDrop = (e: DragEvent) => {
       const payload = e.dataTransfer?.getData(MIME);
@@ -144,9 +143,19 @@ export function PreviewBridge() {
       if (n) send({ apex: "select", id: n.dataset.blockId ?? n.dataset.sectionId! });
     };
     const onMessage = (e: MessageEvent<ToPreview>) => {
-      if (e.origin !== location.origin || e.data?.apex !== "selected") return;
+      if (e.origin !== parentOrigin) return;
+      const m = e.data;
+      if (m?.apex === "locate") { // a library block is being dragged over the editor's layer on top of this page
+        const t = dropTargetAt(document.elementFromPoint(m.x, m.y), m.y);
+        if (!m.commit) return show(t);
+        hide();
+        if (t) send({ apex: "located", target: t.target });
+        return;
+      }
+      if (m?.apex === "locate-end") return hide();
+      if (m?.apex !== "selected") return;
       document.querySelectorAll(".apex-sel").forEach((x) => x.classList.remove("apex-sel"));
-      if (e.data.id) document.querySelector(`[data-block-id="${CSS.escape(e.data.id)}"],[data-section-id="${CSS.escape(e.data.id)}"]`)?.classList.add("apex-sel");
+      if (m.id) document.querySelector(`[data-block-id="${CSS.escape(m.id)}"],[data-section-id="${CSS.escape(m.id)}"]`)?.classList.add("apex-sel");
     };
 
     document.addEventListener("click", onClick, true);
@@ -160,7 +169,7 @@ export function PreviewBridge() {
     document.addEventListener("dragleave", (e) => { if (!e.relatedTarget) hide(); });
     document.addEventListener("drop", onDrop);
     window.addEventListener("message", onMessage);
-    window.parent.postMessage({ apex: "ready" }, location.origin);
+    window.parent.postMessage({ apex: "ready" }, parentOrigin);
     return () => {
       document.removeEventListener("click", onClick, true);
       document.removeEventListener("mousedown", onDown, true);
@@ -173,6 +182,6 @@ export function PreviewBridge() {
       window.removeEventListener("message", onMessage);
       window.removeEventListener("scroll", saveScroll);
     };
-  }, []);
+  }, [editorOrigin]);
   return null;
 }

@@ -5,7 +5,7 @@
 # Usage: ./scripts/staging-drill.sh   (needs docker compose up -d)
 set -euo pipefail
 cd "$(dirname "$0")/.."
-PORT="${STAGING_DRILL_PORT:-3320}"; CRM_PORT=$((PORT + 1))
+PORT="${STAGING_DRILL_PORT:-3320}"; CRM_PORT=$((PORT + 1)); ADMIN_PORT=$((PORT + 2))
 WORK="$(mktemp -d)"
 PROJECT=apexdrillstaging
 cleanup() { (cd "$WORK" && COMPOSE_FILE=compose.yml:override.yml APEX_TAG_WEB=x APEX_TAG_CRM=x docker compose down -v >/dev/null 2>&1) || true; rm -rf "$WORK"; }
@@ -55,6 +55,9 @@ services:
   crm:
     ports: ["$CRM_PORT:3000"]
     extra_hosts: ["host.docker.internal:host-gateway"]
+  admin:
+    ports: ["$ADMIN_PORT:3000"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
 YML
 cd "$WORK"
 export COMPOSE_FILE=compose.yml:override.yml
@@ -66,8 +69,9 @@ run good >/tmp/stg1.log 2>&1 || { cat /tmp/stg1.log; fail "first deploy failed";
 grep -q "start the database" /tmp/stg1.log || fail "database was not started before migrating"
 curl -fsS "localhost:$PORT/api/health" >/dev/null || fail "the website is not serving"
 curl -fsS "localhost:$CRM_PORT/api/health" >/dev/null || fail "the CRM app is not serving"
+curl -fsS "localhost:$ADMIN_PORT/api/health" >/dev/null || fail "the CMS admin is not serving"
 [ "$(psql_stg 'select count(*) from schema_migrations')" -ge 7 ] || fail "migrations not applied"
-echo "ok: database + both apps up, migrations applied"
+echo "ok: database + all three apps up, migrations applied"
 
 echo; echo "##### 2. the database is private"
 PUBLISHED="$(docker compose ps --format '{{.Service}} {{.Publishers}}' | grep '^db ' || true)"

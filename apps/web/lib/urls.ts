@@ -1,7 +1,6 @@
 import type { Locale } from "@apex/db/schema";
 
-// Slugs that would clash with fixed routes under /{locale}/.
-export const RESERVED_SLUGS = ["blog", "categoria", "search", "form", "embed", "styleguide", "admin", "api", "portal", "sitemap", "robots"];
+export { RESERVED_SLUGS } from "@apex/sections/slugs";
 
 export function entryPath(type: "post" | "page", locale: Locale, slug: string, isHome = false) {
   if (type === "post") return `/${locale}/blog/${slug}`;

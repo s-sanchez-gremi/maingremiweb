@@ -4,7 +4,7 @@ import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@apex/db";
 import { categories, entries, entryTranslations, forms, media, settings, users, type LiveContent, type Locale } from "@apex/db/schema";
 import type { PublicForm } from "@apex/forms/public-form";
-import { defaultSettings, settingsSchema, type Settings } from "./settings-schema";
+import { defaultSettings, settingsSchema, type Settings } from "@apex/sections/settings-schema";
 
 export type PublicEntry = {
   entryId: string; type: "post" | "page"; locale: Locale; title: string; slug: string; sections: unknown[];

@@ -6,7 +6,7 @@ import { getEntryBySlug, getSettings } from "@/lib/content";
 import { formatDate, isLocale, ui } from "@/lib/i18n";
 import { loadEntryPage } from "@/lib/page-data";
 import { pageMetadata } from "@/lib/seo";
-import { mediaSrcSet, mediaUrl } from "@/lib/media-url";
+import { mediaSrcSet, mediaUrl } from "@apex/core/media-url";
 import { SectionRenderer } from "@/sections/render";
 import { categoryPath, entryPath } from "@/lib/urls";
 

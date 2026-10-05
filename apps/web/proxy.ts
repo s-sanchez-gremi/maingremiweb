@@ -8,6 +8,7 @@ import { buildCsp, kindOf } from "@apex/core/csp";
 
 const LOCALES = ["ca", "es", "en"];
 const KNOWN = ["admin", "api", "embed", "fitxers", "styleguide"];
+const origin = (u?: string) => { try { return u ? new URL(u).origin : undefined; } catch { return undefined; } };
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -23,8 +24,10 @@ export function proxy(req: NextRequest) {
   try { s3Origin = process.env.S3_PUBLIC_URL ? new URL(process.env.S3_PUBLIC_URL).origin : undefined; } catch { /* misconfigured: images from S3 will be blocked visibly */ }
   res.headers.set("Content-Security-Policy", buildCsp(kindOf(first, second), {
     s3Origin, dev: process.env.NODE_ENV !== "production", https: (process.env.SITE_URL ?? "").startsWith("https://"),
+    editorOrigin: origin(process.env.ADMIN_URL), adminOrigin: origin(process.env.ADMIN_URL), // development/tests only: the admin app on its own port
   }));
-  if (first === "admin" && second === "preview") res.headers.set("X-Frame-Options", "SAMEORIGIN"); // framed by the editor only
+  // The preview is framed by the editor only: the same origin behind Caddy, or the admin app (ADMIN_URL, CSP frame-ancestors) in development.
+  if (first === "admin" && second === "preview") { if (!process.env.ADMIN_URL) res.headers.set("X-Frame-Options", "SAMEORIGIN"); }
   else if (first === "admin" || first === "api") res.headers.set("X-Frame-Options", "DENY");
   return res;
 }

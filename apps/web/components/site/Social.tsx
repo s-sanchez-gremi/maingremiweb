@@ -1,4 +1,4 @@
-import type { Social } from "@/lib/settings-schema";
+import type { Social } from "@apex/sections/settings-schema";
 
 const NAME: Record<Social["network"], string> = { facebook: "Facebook", x: "X", instagram: "Instagram", youtube: "YouTube", linkedin: "LinkedIn" };
 

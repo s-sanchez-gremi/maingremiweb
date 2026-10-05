@@ -2,6 +2,20 @@
 
 **For Claude Code:** at the start of a session, read the section addressed to the person you are working for, do each open item (they are safe to repeat), tell the person what you did or what needs their decision, and mark the item done (date + initials) in the same pull request as your next change. Add a new notice here when you change something the other person's side must act on (a new migration, a moved table, a new rule, a changed command). Never put secrets here.
 
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-05 from Sam: the CMS admin is now its own app
+
+`apps/web` is now only the public website. Everything under `/admin` that edits content moved to a new app, `apps/admin` (history kept with `git mv`). Do these once, in order, after the pull request "Split the CMS admin out of the website" is merged:
+
+1. **Get current and install.** `git fetch origin && git switch main && git pull`, merge `origin/main` into your branches (merge commit, never rebase), take `main`'s `pnpm-lock.yaml`, `pnpm install --frozen-lockfile`.
+2. **Update your `.env`** from `.env.example` (new lines at the end of the "apps talk to each other" block): `WEB_ADMIN_URL=http://localhost:3003`, `ADMIN_URL=http://localhost:3003`, `WEB_PREVIEW_URL=http://localhost:3000`. `pnpm dev` now starts three apps: website :3000, CRM :3001, CMS admin :3003 (the CMS login is **http://localhost:3003/admin**; the website no longer has one).
+3. **Know where things are now:** content, media, categories, settings, users, errors, the visual builder and the scheduler are in `apps/admin`; `apps/web/app/admin` only keeps `/admin/preview/[id]` (the live preview) and `/admin/bar` (the staff bar). The page model (section registry, blocks, settings schema, reserved slugs, inline-edit helpers, preview messages) is in the package `packages/sections` (already merged in an earlier PR); shared helpers moved to `packages/core` (`media-url`, `media-share`, `staff-cookie`, `staff-hint`, `web-cache`).
+4. **Rules that changed (see "Four separate apps" in `CLAUDE.md`):** the website's database user is now **read-only** on content (`apex_web`; the new `apex_admin` writes it), so website code must never write a table; after a change the admin calls the website's `/api/cron/revalidate` (`lib/cache.ts` in the admin); the website has no scheduler any more (the admin's `/api/cron/tick` publishes scheduled content). Website tests that need "live" content use `lib/__tests__/helpers.ts` (`goLive`), not `publish()`.
+5. **Local database:** the e2e suite creates the role `apex_admin` itself. For your own dev database nothing changes (one all-powerful user). To try the restricted users: `create role apex_admin login password '…';` next to the other two (`DEPLOY.md`, "Database users per app").
+6. **Production topology (nothing to do until the servers exist):** a third host `ADMIN_DOMAIN` (default `admin.<SITE_DOMAIN>`) needs its own DNS record; `SESSION_COOKIE_DOMAIN` must be set on web and admin so the staff session reaches the website for the bar and the preview; new compose service `admin`, new release tag `APEX_TAG_ADMIN`, `deploy.sh <tag> [all|web|admin|crm]`. All in `DEPLOY.md` and `deploy/ionos/production.env.example`.
+7. **Ownership:** `.github/CODEOWNERS` lists you for `apps/admin` too.
+
+Done: (none yet; Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
 ## For Joan Marc (apps/web) and his Claude — notice of 2026-10-02 from Sam
 
 Since your last sync, `main` gained the CRM's records engine and the app-boundary rules. Your area (`apps/web`) is not affected functionally, but your local setup, your tests and your branches are. Do these once, in order:

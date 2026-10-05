@@ -3,7 +3,8 @@
 // site (tag `content`), so links keep working during a database outage; deleting a file expires the cache.
 import { unstable_cache } from "next/cache";
 import { CONTENT_TAG } from "@/lib/cache";
-import { findByCode, mediaUrl } from "@/lib/media";
+import { findByCode } from "@apex/core/media-share";
+import { mediaUrl } from "@apex/core/media-url";
 
 class Missing extends Error {}
 

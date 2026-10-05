@@ -1,29 +1,38 @@
 -- Database permissions per app (least privilege). Applied by the migration step (APPLY_GRANTS=1) after every migration, as the OWNER.
--- Two login roles, created once by whoever sets up the database (see deploy/ionos/README.md): apex_web (the website + CMS) and
--- apex_crm (CRM, forms, projects, ERP, portal, records). Neither can change the schema; each can only touch its own tables.
+-- Three login roles, created once by whoever sets up the database (see deploy/ionos/README.md): apex_web (the public website:
+-- READ-ONLY on content), apex_admin (the CMS admin: writes content, media, settings and accounts) and apex_crm (CRM, forms,
+-- projects, ERP, portal, records). None can change the schema; each can only touch its own tables.
 -- THE RULE FOR A NEW TABLE: add it to ONE of the lists below in the same pull request as its migration. The check at the end of this
 -- file refuses to continue while any table has no permissions, so nobody can forget (and CI runs it).
--- Ownership (docs/split-plan.md section 4): web = content tables; crm = forms (builder, form_starts, newsletter opt-ins) and every
--- business table; shared = users (the website's admin manages accounts), sessions, outbox, heartbeats, error_log.
+-- Ownership (docs/split-plan.md section 4): admin = content tables (and accounts); web = none, it only reads them; crm = forms
+-- (builder, form_starts, newsletter opt-ins) and every business table; shared = sessions, outbox, heartbeats, error_log.
 
-revoke all on all tables in schema public from apex_web, apex_crm;
-revoke all on all sequences in schema public from apex_web, apex_crm;
-grant usage on schema public to apex_web, apex_crm;
+revoke all on all tables in schema public from apex_web, apex_crm, apex_admin;
+revoke all on all sequences in schema public from apex_web, apex_crm, apex_admin;
+grant usage on schema public to apex_web, apex_crm, apex_admin;
 
--- ---- shared by both apps ----
-grant select, insert, update, delete on sessions, outbox, heartbeats, error_log to apex_web, apex_crm;
+-- ---- shared by the apps that write (the website only reads sessions to recognise staff, and ends a session on sign-out) ----
+grant select, insert, update, delete on sessions, outbox, heartbeats, error_log to apex_crm, apex_admin;
+grant select, delete on sessions to apex_web;      -- the staff bar and the preview recognise a signed-in person; "Surt" ends the session
+grant select on heartbeats to apex_web;            -- the deep health check reads the CMS scheduler's heartbeat
+grant select, insert, update on error_log to apex_web;
 
 -- the auto-numbered ids of the shared tables (a role that may INSERT into a table with a serial id needs its sequence)
-grant usage, select on sequence outbox_id_seq, error_log_id_seq to apex_web, apex_crm;
+grant usage, select on sequence outbox_id_seq, error_log_id_seq to apex_crm, apex_admin;
+grant usage, select on sequence error_log_id_seq to apex_web;
 
--- ---- users: accounts are managed in the website's admin; the CRM app reads them and lets a person change THEIR OWN password ----
-grant select, insert, update, delete on users to apex_web;
+-- ---- users: accounts are managed in the CMS admin; the other apps only read them (the CRM lets a person change THEIR OWN password) ----
+grant select, insert, update, delete on users to apex_admin;
+grant select on users to apex_web;
 grant select on users to apex_crm;
 grant update (password_hash) on users to apex_crm;
 
--- ---- apex_web: the website and its CMS ----
-grant select, insert, update, delete on entries, entry_translations, entry_versions, categories, media, settings to apex_web;
-grant select on forms to apex_web;   -- the website only READS a form definition to draw it
+-- ---- apex_admin: the CMS (content, media, categories, settings) ----
+grant select, insert, update, delete on entries, entry_translations, entry_versions, categories, media, settings to apex_admin;
+grant select on forms to apex_admin;   -- the page editor offers the forms to place in a page
+
+-- ---- apex_web: the public website only READS what the CMS writes ----
+grant select on entries, entry_translations, entry_versions, categories, media, settings, forms to apex_web; -- forms: to draw a form
 
 -- ---- apex_crm: everything else ----
 grant select, insert, update, delete on
@@ -47,8 +56,8 @@ begin
     select c.oid, c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public' and c.relkind in ('r', 'p') and c.relname not in ('schema_migrations', 'app_meta')
   loop
-    if not has_table_privilege('apex_web', t.oid, 'SELECT') and not has_table_privilege('apex_crm', t.oid, 'SELECT') then
-      raise exception 'Table "%" has no permissions: add it to db/grants.sql (web, crm or shared)', t.relname;
+    if not has_table_privilege('apex_web', t.oid, 'SELECT') and not has_table_privilege('apex_crm', t.oid, 'SELECT') and not has_table_privilege('apex_admin', t.oid, 'SELECT') then
+      raise exception 'Table "%" has no permissions: add it to db/grants.sql (web, admin, crm or shared)', t.relname;
     end if;
   end loop;
 
@@ -58,7 +67,7 @@ begin
     from pg_class s join pg_namespace n on n.oid = s.relnamespace join pg_depend d on d.objid = s.oid and d.deptype in ('a', 'i')
     where s.relkind = 'S' and n.nspname = 'public'
   loop
-    for r in select unnest(array['apex_web', 'apex_crm']) as role loop
+    for r in select unnest(array['apex_web', 'apex_crm', 'apex_admin']) as role loop
       if has_table_privilege(r.role, t.tbl, 'INSERT') and not has_sequence_privilege(r.role, t.seq, 'USAGE') then
         raise exception 'Role % may insert into the table of sequence "%" but cannot use it: grant usage on the sequence in db/grants.sql', r.role, t.seqname;
       end if;

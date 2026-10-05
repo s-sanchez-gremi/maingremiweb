@@ -1,6 +1,6 @@
 import type { PostCard as PostCardData, PublicMedia } from "@/lib/content-queries";
 import { formatDate, ui, type Locale } from "@/lib/i18n";
-import { mediaSrcSet, mediaUrl } from "@/lib/media-url";
+import { mediaSrcSet, mediaUrl } from "@apex/core/media-url";
 import { entryPath } from "@/lib/urls";
 import { Card } from "@apex/ui/components/Card";
 import { SmartLink } from "./SmartLink";

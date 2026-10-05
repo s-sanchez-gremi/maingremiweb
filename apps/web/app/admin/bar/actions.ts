@@ -1,7 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
 import { destroySession } from "@apex/core/auth";
-import { clearStaffHint } from "@/lib/staff-hint";
+import { clearStaffHint } from "@apex/core/staff-hint";
 
 /** "Surt" in the staff bar: signs out and stays on the public page the person was reading. */
 export async function signOutFromSite(formData: FormData) {
