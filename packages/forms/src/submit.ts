@@ -27,6 +27,8 @@ export type SubmitResult =
 
 const EMAIL = /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/;
 const uuid = () => crypto.randomUUID();
+/** The staff side of forms lives in the Forms app (FORMS_URL); falls back to the site address when it is not configured. */
+const formsAdminUrl = () => (process.env.FORMS_URL ?? siteUrl()).replace(/\/$/, "");
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 
 export const parseAddresses = (s: string | undefined) => [...new Set((s ?? "").split(/[,;\s]+/).map((x) => x.trim().toLowerCase()).filter((x) => EMAIL.test(x)))];
@@ -116,7 +118,7 @@ export async function processSubmission(input: SubmitInput): Promise<SubmitResul
           `Idioma: ${locale}`, `Pàgina: ${meta.sourcePath || "—"}`, meta.theme ? `Tema: ${meta.theme}` : "",
           Object.keys(meta.utm).length ? `Campanya: ${Object.entries(meta.utm).map(([k, v]) => `${k}=${v}`).join(", ")}` : "",
           consentText ? `Consentiment acceptat: «${consentText}»` : "", "",
-          `Veure-la: ${siteUrl()}/admin/forms/${form.id}/submissions`,
+          `Veure-la: ${formsAdminUrl()}/admin/forms/${form.id}/submissions`,
         ].filter((l, i, arr) => l !== "" || arr[i - 1] !== "").join("\n");
         for (const r of recipients) await enqueueEmail(tx, { to: r, subject: `Nova resposta: ${form.name}`, text: body });
       }

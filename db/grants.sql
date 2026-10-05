@@ -1,11 +1,12 @@
 -- Database permissions per app (least privilege). Applied by the migration step (APPLY_GRANTS=1) after every migration, as the OWNER.
 -- Three login roles, created once by whoever sets up the database (see deploy/ionos/README.md): apex_web (the website + CMS),
--- apex_crm (CRM, forms, projects, ERP, portal, records) and apex_forms (the Forms app, docs/forms-app-plan.md; owns no table yet:
--- step F2 moves the forms tables to it). None can change the schema; each can only touch its own tables.
+-- apex_crm (CRM, projects, ERP, portal, records) and apex_forms (the Forms app, docs/forms-app-plan.md: the form builder, responses and
+-- the public submission pipeline). None can change the schema; each can only touch its own tables, plus the narrow exceptions below.
 -- THE RULE FOR A NEW TABLE: add it to ONE of the lists below in the same pull request as its migration. The check at the end of this
 -- file refuses to continue while any table has no permissions, so nobody can forget (and CI runs it).
--- Ownership (docs/split-plan.md section 4): web = content tables; crm = forms (builder, form_starts, newsletter opt-ins) and every
--- business table; shared = users (the website's admin manages accounts), sessions, outbox, heartbeats, error_log.
+-- Ownership (docs/split-plan.md section 4, docs/forms-app-plan.md): web = content tables; forms = forms, form_starts, submissions;
+-- crm = every business table (contacts, leads, newsletter opt-ins, clients, projects, ERP...); shared = users (the website's admin manages
+-- accounts), sessions, outbox, heartbeats, error_log.
 
 revoke all on all tables in schema public from apex_web, apex_crm, apex_forms;
 revoke all on all sequences in schema public from apex_web, apex_crm, apex_forms;
@@ -28,10 +29,21 @@ grant update (password_hash) on users to apex_forms;   -- a person may change th
 grant select, insert, update, delete on entries, entry_translations, entry_versions, categories, media, settings to apex_web;
 grant select on forms to apex_web;   -- the website only READS a form definition to draw it
 
+-- ---- apex_forms: the Forms app ----
+grant select, insert, update, delete on forms, form_starts, submissions to apex_forms;
+grant select on projects, clients to apex_forms;   -- the builder offers them as the destination of a form (it never changes them)
+-- Decision A of docs/forms-app-plan.md: the submission pipeline hands a lead to the CRM by writing these three rows, nothing more.
+-- No read of leads, no change of their status or owner, no delete: the CRM owns what happens to a lead afterwards.
+grant select, insert, update on contacts to apex_forms;        -- upsert by email (insert ... on conflict do update needs select)
+grant insert on leads to apex_forms;
+grant select, insert, update on newsletter_optins to apex_forms; -- upsert by email
+
 -- ---- apex_crm: everything else ----
+grant select on forms, submissions to apex_crm;   -- leads and attached responses show them; the Forms app owns and changes them
+-- (deleting a contact or a form still removes their submissions: foreign-key actions run with the table owner's rights)
 grant select, insert, update, delete on
-  forms, form_starts, newsletter_optins,
-  contacts, leads, lead_notes, submissions,
+  newsletter_optins,
+  contacts, leads, lead_notes,
   clients, people, projects, tasks, project_documents,
   portal_users, portal_sessions, portal_tokens,
   cost_centers, erp_categories, suppliers, fee_tiers, members, subscriptions, erp_entries,

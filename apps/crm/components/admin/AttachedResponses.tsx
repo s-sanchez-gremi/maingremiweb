@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { Answer } from "@apex/db/schema";
+import { formsHref } from "@/lib/forms-link";
 
 export type AttachedRow = { id: string; createdAt: Date; formId: string; formName: string | null; answers: Answer[]; projectName?: string | null };
 
@@ -19,7 +19,7 @@ export function AttachedResponses({ rows }: { rows: AttachedRow[] }) {
         <div key={r.id} style={{ borderTop: "1px solid var(--line)", paddingTop: 10, display: "grid", gap: 4 }}>
           <div className="row">
             <strong>{r.createdAt.toLocaleString("ca-ES", { dateStyle: "medium", timeStyle: "short" })}</strong>
-            <Link href={`/admin/forms/${r.formId}/submissions`} className="hint">{r.formName}{r.projectName ? ` · ${r.projectName}` : ""}</Link>
+            <a href={formsHref(`/admin/forms/${r.formId}/submissions`)} className="hint">{r.formName}{r.projectName ? ` · ${r.projectName}` : ""}</a>
           </div>
           <div style={{ fontSize: 13, overflowWrap: "anywhere" }}>{r.answers.slice(0, 4).map((a) => `${a.label}: ${text(a)}`).join(" · ")}</div>
         </div>

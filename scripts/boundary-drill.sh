@@ -39,7 +39,7 @@ allow $(W) "delete from sessions where false"
 allow $(W) "insert into outbox (kind, payload) values ('email', '{}'::jsonb)"        # needs the id sequence
 allow $(W) "insert into error_log (fingerprint, message) values ('drill-web', 'x')"
 allow $(W) "delete from outbox"
-deny  $(W) "update forms set name = name where false"          # forms are the CRM's: read-only here
+deny  $(W) "update forms set name = name where false"          # forms are the Forms app's: read-only here
 deny  $(W) "select count(*) from leads"
 deny  $(W) "select count(*) from contacts"
 deny  $(W) "select count(*) from clients"
@@ -54,11 +54,12 @@ deny  $(W) "select count(*) from schema_migrations"
 deny  $(W) "create table stolen (a int)"
 deny  $(W) "drop table entries"
 
-echo "== apex_crm (CRM, forms, projects, ERP, portal, records)"
+echo "== apex_crm (CRM, projects, ERP, portal, records)"
 C() { echo apex_crm "$PWC"; }
 allow $(C) "select count(*) from users"
 allow $(C) "update users set password_hash = password_hash where false"   # a person changes their own password
-allow $(C) "update forms set name = name where false"
+allow $(C) "select count(*) from forms"                      # shows the form of a lead (read-only)
+allow $(C) "select count(*) from submissions"                # shows the answers of a lead (read-only)
 allow $(C) "update leads set status = status where false"
 allow $(C) "update clients set name = name where false"
 allow $(C) "update erp_entries set notes = notes where false"
@@ -69,6 +70,10 @@ allow $(C) "delete from portal_sessions where false"
 allow $(C) "insert into outbox (kind, payload) values ('email', '{}'::jsonb)"
 allow $(C) "insert into error_log (fingerprint, message) values ('drill-crm', 'x')"
 allow $(C) "delete from outbox"
+deny  $(C) "update forms set name = name where false"          # forms and their responses belong to the Forms app
+deny  $(C) "update submissions set locale = locale where false"
+deny  $(C) "delete from submissions where false"
+deny  $(C) "select count(*) from form_starts"
 deny  $(C) "update users set role = role where false"           # cannot make someone an admin
 deny  $(C) "delete from users where false"
 deny  $(C) "insert into users (email, name, role, password_hash) values ('x@x.test', 'x', 'admin', 'x')"
@@ -80,20 +85,45 @@ deny  $(C) "select count(*) from categories"
 deny  $(C) "select count(*) from schema_migrations"
 deny  $(C) "create table stolen (a int)"
 deny  $(C) "drop table clients"
-echo "== apex_forms (the Forms app: shared tables only until step F2 moves the forms tables to it)"
+echo "== apex_forms (the Forms app: forms, responses, and the narrow hand-over of a lead to the CRM)"
 F() { echo apex_forms "$PWF"; }
 allow $(F) "select count(*) from users"
 allow $(F) "update users set password_hash = password_hash where false"
 allow $(F) "insert into outbox (kind, payload) values ('email', '{}'::jsonb)"
 allow $(F) "insert into error_log (fingerprint, message) values ('drill-forms', 'x')"
 allow $(F) "delete from outbox"
+allow $(F) "update forms set name = name where false"
+allow $(F) "delete from form_starts where false"
+allow $(F) "update submissions set locale = locale where false"
+allow $(F) "select count(*) from projects"                    # destination pickers of the builder
+allow $(F) "select count(*) from clients"
+# the pipeline's hand-over (decision A): upsert a contact, add a lead, upsert a newsletter opt-in
+allow $(F) "insert into forms (name, slug, fields, destination, active) values ('Drill', 'drill-forms-app', '[]'::jsonb, 'crm_lead', true)"
+allow $(F) "insert into contacts (email, name) values ('drill@pipeline.test', 'A') on conflict (email) do update set name = excluded.name returning id"
+allow $(F) "insert into contacts (email, name) values ('drill@pipeline.test', 'B') on conflict (email) do update set name = excluded.name returning id"
+allow $(F) "insert into submissions (id, form_id, contact_id, answers, locale) select '00000000-0000-4000-8000-0000000000d1', f.id, c.id, '[]'::jsonb, 'ca' from forms f, contacts c where f.slug = 'drill-forms-app' and c.email = 'drill@pipeline.test'"
+allow $(F) "insert into leads (contact_id, form_id, submission_id, locale) select c.id, f.id, '00000000-0000-4000-8000-0000000000d1', 'ca' from forms f, contacts c where f.slug = 'drill-forms-app' and c.email = 'drill@pipeline.test'"
+allow $(F) "insert into newsletter_optins (email, locale, consent_text) values ('drill@pipeline.test', 'ca', 'x') on conflict (email) do update set locale = excluded.locale"
+# ...and nothing more: what happens to a lead afterwards, and every other business table, is the CRM's
+deny  $(F) "select count(*) from leads"
+deny  $(F) "update leads set status = status where false"
+deny  $(F) "delete from leads where false"
+deny  $(F) "delete from contacts where false"
+deny  $(F) "delete from newsletter_optins where false"
+deny  $(F) "update clients set name = name where false"
+deny  $(F) "update projects set name = name where false"
+deny  $(F) "select count(*) from erp_entries"
+deny  $(F) "select count(*) from portal_users"
 deny  $(F) "update users set role = role where false"
 deny  $(F) "delete from users where false"
 deny  $(F) "select count(*) from entries"
-deny  $(F) "select count(*) from leads"
-deny  $(F) "select count(*) from clients"
 deny  $(F) "select count(*) from schema_migrations"
 deny  $(F) "create table stolen (a int)"
+# a form cannot be used to reach what the CRM owns: erasing the contact in the CRM removes the response and the lead (foreign keys cascade as the table owner)
+allow $(C) "delete from contacts where email = 'drill@pipeline.test'"
+n=$((n+1)); [ "$(su "select count(*) from submissions where id = '00000000-0000-4000-8000-0000000000d1'" "$DB")" = 0 ] || fail "erasing a contact in the CRM left its submission behind"
+[ "$(su "select count(*) from leads l join forms f on f.id = l.form_id where f.slug = 'drill-forms-app'" "$DB")" = 0 ] || fail "erasing a contact in the CRM left its lead behind"
+su "delete from forms where slug = 'drill-forms-app'" "$DB" >/dev/null
 echo "ok: $n permission checks behave as designed"
 
 echo "== a table nobody classified is caught (the rule for new tables)"
