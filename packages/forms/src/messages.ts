@@ -11,6 +11,7 @@ const m = {
     submit: "Envia", sending: "Enviant…", thanks: "Gràcies! Hem rebut el teu missatge.", closed: "Aquest formulari ja no accepta respostes.",
     errorSummary: "Revisa els camps marcats", sendError: "No s'ha pogut enviar. Torna-ho a provar en uns moments.", tooMany: "Massa enviaments seguits. Torna-ho a provar més tard.",
     botFail: "No hem pogut verificar que ets una persona. Recarrega la pàgina i torna-ho a provar.", verifying: "Verificant…", newFile: "Cap fitxer seleccionat",
+    invalidUrl: "Introdueix un enllaç web vàlid (per exemple https://exemple.cat)", invalidPostalCode: "Introdueix un codi postal vàlid", yes: "Sí", no: "No", street: "Carrer i número", postalCode: "Codi postal", city: "Població", scaleFrom: "{a} = {label}",
   },
   es: {
     required: "Este campo es obligatorio", invalidEmail: "Introduce un correo electrónico válido", invalidPhone: "Introduce un teléfono válido",
@@ -21,6 +22,7 @@ const m = {
     submit: "Enviar", sending: "Enviando…", thanks: "¡Gracias! Hemos recibido tu mensaje.", closed: "Este formulario ya no acepta respuestas.",
     errorSummary: "Revisa los campos marcados", sendError: "No se ha podido enviar. Inténtalo de nuevo en unos momentos.", tooMany: "Demasiados envíos seguidos. Inténtalo más tarde.",
     botFail: "No hemos podido verificar que eres una persona. Recarga la página e inténtalo de nuevo.", verifying: "Verificando…", newFile: "Ningún archivo seleccionado",
+    invalidUrl: "Introduce un enlace web válido (por ejemplo https://ejemplo.es)", invalidPostalCode: "Introduce un código postal válido", yes: "Sí", no: "No", street: "Calle y número", postalCode: "Código postal", city: "Población", scaleFrom: "{a} = {label}",
   },
   en: {
     required: "This field is required", invalidEmail: "Enter a valid email address", invalidPhone: "Enter a valid phone number",
@@ -31,6 +33,7 @@ const m = {
     submit: "Send", sending: "Sending…", thanks: "Thank you! We have received your message.", closed: "This form is no longer accepting responses.",
     errorSummary: "Please review the highlighted fields", sendError: "It could not be sent. Please try again in a moment.", tooMany: "Too many submissions in a row. Please try again later.",
     botFail: "We could not verify you are a person. Reload the page and try again.", verifying: "Verifying…", newFile: "No file selected",
+    invalidUrl: "Enter a valid web address (for example https://example.com)", invalidPostalCode: "Enter a valid postal code", yes: "Yes", no: "No", street: "Street and number", postalCode: "Postal code", city: "City", scaleFrom: "{a} = {label}",
   },
 } as const;
 

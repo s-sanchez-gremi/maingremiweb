@@ -1,5 +1,6 @@
 // Spreadsheet export (CSV, UTF-8 with BOM so Excel and Google Sheets open accents correctly).
 import type { Answer } from "@apex/db/schema";
+import { answerText } from "./answer-text";
 
 /** A cell that starts with = + - @ would be executed as a formula by a spreadsheet: neutralise it. */
 export function cell(v: unknown): string {
@@ -7,14 +8,7 @@ export function cell(v: unknown): string {
   if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
   return /[",\n\r;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
-const show = (a: Answer | undefined): string => {
-  if (!a) return "";
-  const v = a.value as unknown;
-  if (a.type === "file" && v && typeof v === "object") return (v as { name?: string }).name ?? "";
-  if (Array.isArray(v)) return v.join("; ");
-  if (typeof v === "boolean") return v ? "Sí" : "No";
-  return v === null || v === undefined ? "" : String(v);
-};
+const show = (a: Answer | undefined): string => (a ? answerText(a, "; ") : "");
 
 export type ExportRow = { createdAt: Date; locale: string; sourcePath: string; theme: string; utm: Record<string, string>; consentText: string; consentAt: Date | null; answers: Answer[] };
 

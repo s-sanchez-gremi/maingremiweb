@@ -1,7 +1,7 @@
 // Pure validation shared by the browser (instant feedback) and the server (the only one that counts).
 import type { Locale } from "@apex/db/schema";
 import { fmt, msgs } from "./messages";
-import { isRequired, lt, optionValues, type Item } from "./fieldTypes";
+import { formTypeByName, isRequired, lt, optionValues, ratingMax, type Item } from "./fieldTypes";
 
 export type Answers = Record<string, unknown>;
 export type FileMeta = { name: string; size: number; mime: string };
@@ -11,6 +11,20 @@ const EMAIL = /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/;
 const asArray = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : v === undefined || v === null || v === "" ? [] : [String(v)]);
 const asText = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 const num = (s: string) => Number(s.trim().replace(",", "."));
+/** A web address typed by a person: the scheme is optional (https is assumed), only http(s) is accepted, and it needs a real host name. Returns the normalised text, or null. */
+export function cleanUrl(input: string): string | null {
+  const s = input.trim();
+  if (!s || s.length > 500 || /\s/.test(s)) return null;
+  const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(s) ? s : `https://${s}`; // "javascript:...", "mailto:..." and "data:..." get https:// put in front and then fail to parse as a host
+  try {
+    if (!/^https?:\/\/[a-z0-9]/i.test(candidate)) return null; // the host must start right after "://" (the URL parser would accept "https:////host")
+    const u = new URL(candidate);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    if (u.username || u.password) return null;
+    if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(u.hostname)) return null;
+    return candidate;
+  } catch { return null; }
+}
 const optNum = (v: unknown) => (typeof v === "string" && v.trim() !== "" && !Number.isNaN(num(v)) ? num(v) : null);
 
 /** Is this field currently shown? A field whose controlling field is hidden is hidden too. */
@@ -34,7 +48,7 @@ export function validateAnswers(items: Item[], answers: Answers, locale: Locale)
   const errors: Record<string, string> = {};
   const values: Cleaned[] = [];
   for (const item of items) {
-    if (item.type === "pagebreak") continue;
+    if (!formTypeByName[item.type]?.input) continue; // page breaks, titles and paragraphs carry no answer
     if (!isVisible(items, item, answers)) continue;
     const label = lt(item.data.label, locale);
     const req = isRequired(item);
@@ -96,6 +110,38 @@ export function validateAnswers(items: Item[], answers: Answers, locale: Locale)
         if (!s) { if (req) fail(t.required); break; }
         const d = new Date(s + "T00:00:00Z");
         if (!/^\d{4}-\d{2}-\d{2}$/.test(s) || Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== s) fail(t.invalidDate);
+        break;
+      }
+      case "rating": {
+        const s = typeof raw === "number" ? String(raw) : asText(raw); value = "";
+        if (!s) { if (req) fail(t.required); break; }
+        const n = Number(s), max = ratingMax(item);
+        if (!/^\d{1,2}$/.test(s) || n < 1 || n > max) fail(t.invalidOption); else value = n;
+        break;
+      }
+      case "yesno": {
+        const s = raw === true ? "yes" : raw === false ? "no" : asText(raw).toLowerCase(); value = "";
+        if (!s) { if (req) fail(t.required); }
+        else if (s === "yes" || s === "true") value = true;
+        else if (s === "no" || s === "false") value = false;
+        else fail(t.invalidOption);
+        break;
+      }
+      case "url": {
+        const s = asText(raw); value = s;
+        if (!s) { if (req) fail(t.required); break; }
+        const u = cleanUrl(s);
+        if (!u) fail(t.invalidUrl); else value = u;
+        break;
+      }
+      case "address": {
+        const o = (raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {}) as Record<string, unknown>;
+        const street = asText(o.street), postalCode = asText(o.postalCode), city = asText(o.city);
+        value = { street, postalCode, city };
+        if (!street && !postalCode && !city) { if (req) fail(t.required); break; }
+        if (!street || !city || (req && !postalCode)) fail(t.required); // a partly filled address needs at least street and city; a required one needs all three
+        else if (street.length > 200 || city.length > 100) fail(t.tooLong);
+        else if (postalCode && !/^[A-Za-z0-9][A-Za-z0-9 -]{1,9}$/.test(postalCode)) fail(t.invalidPostalCode);
         break;
       }
       case "file": {
