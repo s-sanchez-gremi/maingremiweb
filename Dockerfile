@@ -1,6 +1,6 @@
-# Production image: ALL the Next.js apps (public website, CMS admin and the CRM app) + a bundled migration runner. Same image for
-# staging and production; only the environment variables differ (see DEPLOY.md). Which app a container runs is chosen by its
-# command: start-web (the default "start"), start-admin, start-crm, or migrate. Build: docker build -t apex .
+# Production image: ALL the Next.js apps (public website, CMS admin, CRM and Forms) + a bundled migration runner. Same image for staging
+# and production; only the environment variables differ (see DEPLOY.md). Which app a container runs is chosen by its command:
+# start-web (the default "start"), start-admin, start-crm, start-forms, or migrate. Build: docker build -t apex .
 FROM node:26-bookworm-slim AS base
 ENV NEXT_TELEMETRY_DISABLED=1
 # Node 25+ no longer ships corepack, so pnpm is installed explicitly (same version as package.json "packageManager").
@@ -28,6 +28,7 @@ ENV NEXT_STANDALONE=1
 RUN pnpm --filter web build \
  && pnpm --filter admin build \
  && pnpm --filter crm build \
+ && pnpm --filter forms build \
  && pnpm --filter web exec esbuild db/migrate.mts --bundle --platform=node --format=esm --outfile=/app/migrate.mjs
 
 # 3) runtime: only what is needed to run
@@ -38,9 +39,11 @@ WORKDIR /app
 COPY --from=build /app/apps/web/.next/standalone ./
 COPY --from=build /app/apps/admin/.next/standalone ./
 COPY --from=build /app/apps/crm/.next/standalone ./
+COPY --from=build /app/apps/forms/.next/standalone ./
 COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build /app/apps/admin/.next/static ./apps/admin/.next/static
 COPY --from=build /app/apps/crm/.next/static ./apps/crm/.next/static
+COPY --from=build /app/apps/forms/.next/static ./apps/forms/.next/static
 COPY --from=build /app/apps/web/public ./apps/web/public
 COPY --from=build /app/migrate.mjs ./migrate.mjs
 COPY db/migrations ./db/migrations

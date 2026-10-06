@@ -8,7 +8,7 @@ inputs:
   ssh-key: { required: true }
   known-hosts: { description: Output of ssh-keyscan for the host (pins the server identity), required: true }
   image: { description: Image name without tag, required: true }
-  only: { description: "Which app to release: all, web (website + CMS) or crm (CRM, forms, ERP, portal)", required: false, default: all }
+  only: { description: "Which app to release: all, web (website + CMS), crm (CRM, ERP, portal) or forms (form builder, responses, submission API)", required: false, default: all }
   compose-file: { description: Which compose file this environment uses (copied to compose.yml on the server), required: false, default: deploy/compose.yml }
 runs:
   using: composite
@@ -24,7 +24,7 @@ runs:
         COMPOSE_SRC: ${{ inputs.compose-file }}
         ONLY: ${{ inputs.only }}
       run: |
-        [[ "$ONLY" =~ ^(all|web|crm)$ ]] || { echo "::error::only must be all, web or crm"; exit 1; }
+        [[ "$ONLY" =~ ^(all|web|crm|forms)$ ]] || { echo "::error::only must be all, web, crm or forms"; exit 1; }
         [[ "$COMPOSE_SRC" =~ ^deploy/compose(\.staging)?\.yml$ ]] || { echo "::error::invalid compose file"; exit 1; }
         [[ "$TAG" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || { echo "::error::invalid image tag"; exit 1; }
         [[ "$DIR" =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo "::error::invalid deployment directory"; exit 1; }

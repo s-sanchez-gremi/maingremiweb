@@ -16,6 +16,18 @@
 
 Done: (none yet; Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 
+## For Joan Marc (apps/web) and his Claude — notice of 2026-10-05 from Sam (forms app, step F3: deploy)
+
+The image, compose files, Caddy, `deploy.sh`, the release workflow and the drills now know the Forms app. Nothing changes in `apps/web`. What it means for deployments (details: `DEPLOY.md`, "First deployment of the Forms app"):
+
+1. **New host and DNS record:** `FORMS_DOMAIN` (default `forms.<SITE_DOMAIN>`), staff-only like the CRM host. `/api/forms/*` on the main domain now goes to the Forms app.
+2. **New database role** `apex_forms` (and `DATABASE_URL_FORMS` if restricted users are used) before the first release that contains the Forms app; otherwise the migration step stops the release. New `.env` values: `FORMS_DOMAIN`, `FORMS_URL`; `BOT_SECRET` is now needed by the Forms app (not the CRM app).
+3. **Scheduler and uptime:** one more `/api/cron/tick` line and one more health check, for `FORMS_DOMAIN`.
+4. First release with the Forms app: `deploy.sh <tag> all`. After that each app can be released alone (`web`, `crm`, `forms`).
+5. Locally the drills that start the image or Caddy need Docker; on Windows run them with `MSYS_NO_PATHCONV=1` (and, if your compose project name differs from the running one, `COMPOSE_PROJECT_NAME`).
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
 ## For Joan Marc (apps/web) and his Claude — notice of 2026-10-05 from Sam (forms app, step F2)
 
 The form builder, the responses and the public submission API (`/api/forms/*`) moved from `apps/crm` to `apps/forms` (plan: `docs/forms-app-plan.md`). The website still draws every form exactly as before (standalone page, embed, forms inside pages); your code only changed in two lines of `apps/web/proxy.ts`. Do once, after merging `main`:

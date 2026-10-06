@@ -15,11 +15,11 @@ on:
         description: "Production: image tag to deploy (for example sha-1a2b3c4, one already running on staging)"
         required: true
       only:
-        description: "Which app to release: all, web (public website), admin (CMS admin) or crm (CRM, forms, ERP, portal). The apps are released and rolled back independently."
+        description: "Which app to release: all, web (public website), admin (CMS admin), crm (CRM, ERP, portal) or forms (form builder, responses, submission API). The apps are released and rolled back independently."
         required: false
         default: all
         type: choice
-        options: [all, web, admin, crm]
+        options: [all, web, admin, crm, forms]
 
 permissions:
   contents: read

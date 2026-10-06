@@ -40,24 +40,25 @@ The container **refuses to start** (exit code 1, clear message) on staging/produ
 
 Never commit real values. Generate each secret separately for each environment.
 
-## Three apps, one image
-The image holds **all** the apps; a container's command picks one. They share the database and are released **independently**:
+## Four apps, one image
+The image holds **all four** apps; a container's command picks one. They share the database and are released **independently**:
 
 | Service / command | What it is | Public address |
 |---|---|---|
 | `web` (`start-web`, the default) | the public website (read-only on the database), form *rendering*, the staff bar and the editor's live preview | `SITE_DOMAIN` (its `/admin/*` restricted to `ADMIN_ALLOWED_IPS`) |
 | `admin` (`start-admin`) | the CMS admin: content, media, categories, settings, users, errors, visual builder, and the scheduler for scheduled publishing | `ADMIN_DOMAIN` (default `admin.SITE_DOMAIN`; everything restricted to `ADMIN_ALLOWED_IPS` **except** assets, `robots.txt`, `/api/health`, `/api/cron/*`) |
-| `crm` (`start-crm`) | CRM, forms builder + submission API, projects, ERP, client portal | `CRM_DOMAIN` (everything restricted to `ADMIN_ALLOWED_IPS` **except** `/portal`, assets, `robots.txt`, `/api/health`, `/api/cron/*`); `https://SITE_DOMAIN/api/forms/*` is routed here by Caddy |
+| `crm` (`start-crm`) | CRM, projects, ERP, client portal | `CRM_DOMAIN` (everything restricted to `ADMIN_ALLOWED_IPS` **except** `/portal`, assets, `robots.txt`, `/api/health`, `/api/cron/*`) |
+| `forms` (`start-forms`) | form builder, responses, public submission API | `FORMS_DOMAIN` (everything restricted to `ADMIN_ALLOWED_IPS` **except** assets, `robots.txt`, `/api/health`, `/api/cron/*`); visitors never use this host: `https://SITE_DOMAIN/api/forms/*` is routed to this app by Caddy |
 
-- Extra variables: `CRM_DOMAIN` and `ADMIN_DOMAIN` (Caddy; each needs its own DNS record), `WEB_INTERNAL_URL` (`http://web:3000`: the admin and the CRM app ask the website to refresh its cache after a change; shares `CRON_SECRET`), `CRM_URL` / `WEB_ADMIN_URL` (menu links; `WEB_ADMIN_URL` is the admin host), `ADMIN_URL` (on the website: `https://ADMIN_DOMAIN`, where the staff bar links to), `WEB_PREVIEW_URL` (on the admin: `https://SITE_DOMAIN`, where the editor's live preview is served), `SESSION_COOKIE_DOMAIN` (on **both** web and admin: the site's registrable domain, e.g. `example.org`, so the staff session reaches the website for the bar and the preview; leave it unset on the CRM app). `CRM_INTERNAL_URL` is for development only; leave it unset in production (Caddy routes the forms API). Optional `DATABASE_URL_WEB` / `DATABASE_URL_ADMIN` / `DATABASE_URL_CRM` give each app its own **restricted database user** (see "Database users per app" below).
-- **`deploy.sh <tag> [all|web|admin|crm]`** ("all" = every app service in the compose file; per-app tags `APEX_TAG_WEB` / `APEX_TAG_ADMIN` / `APEX_TAG_CRM`): migrations run once, before anything starts; each app waits for its own health check and **rolls back to its own previous version** without touching the other (`scripts/deploy-drill.sh` proves it). The release workflow's *Run workflow* has the same `only` choice.
-- **Migrations must work with the previous version of EVERY app** (additive only; drop or rename in a later release), because one app can be a version behind the other.
-- Two schedulers: `/api/cron/tick` on the **admin** and **CRM** hosts (the admin publishes scheduled content, sends mail and purges errors, then asks the website to refresh its cache; the CRM app sends mail and purges address hashes). The website has no scheduler. Uptime checks: `https://SITE_DOMAIN/api/health?deep=1` (also fails when the admin's scheduler has stalled), `https://ADMIN_DOMAIN/api/health?deep=1` and `https://CRM_DOMAIN/api/health?deep=1`.
+- Extra variables: `CRM_DOMAIN`, `FORMS_DOMAIN` and `ADMIN_DOMAIN` (Caddy; each needs its own DNS record, like the main domain), `WEB_INTERNAL_URL` (`http://web:3000`: the CMS admin and the Forms app ask the website to refresh its cache after a change; shares `CRON_SECRET`), `CRM_URL` / `FORMS_URL` / `WEB_ADMIN_URL` (menu links; `FORMS_URL` is also where staff notification emails point for new responses; `WEB_ADMIN_URL` is the CMS admin host). CMS admin only: `ADMIN_URL` (on the website: `https://ADMIN_DOMAIN`, where the staff bar links to), `WEB_PREVIEW_URL` (on the admin: `https://SITE_DOMAIN`, where the editor's live preview is served) and `SESSION_COOKIE_DOMAIN` (on **both** web and admin: the site's registrable domain, e.g. `example.org`, so the staff session reaches the website for the bar and the preview; leave it unset on the CRM and Forms apps). `FORMS_INTERNAL_URL` is for development only; leave it unset in production (Caddy routes the forms API). Optional `DATABASE_URL_WEB` / `DATABASE_URL_ADMIN` / `DATABASE_URL_CRM` / `DATABASE_URL_FORMS` give each app its own **restricted database user** (see "Database users per app" below).
+- **`deploy.sh <tag> [all|web|admin|crm|forms]`** ("all" = every app service in the compose file; per-app tags `APEX_TAG_WEB` / `_ADMIN` / `_CRM` / `_FORMS`): migrations run once, before anything starts; each app waits for its own health check and **rolls back to its own previous version** without touching the others (`scripts/deploy-drill.sh` proves it). The release workflow's *Run workflow* has the same `only` choice. The release that first contains the Forms app must be deployed with `all`, and **must also have DNS and `.env` ready for `FORMS_DOMAIN`** (see "First deployment of the Forms app" below).
+- **Migrations must work with the previous version of every app** (additive only; drop or rename in a later release), because one app can be a version behind the other.
+- Three schedulers: `/api/cron/tick` on the **admin**, **CRM** and **Forms** hosts (the admin publishes scheduled content, sends mail and purges errors, then asks the website to refresh its cache; the CRM app sends mail; the Forms app sends mail and purges address hashes). The website has no scheduler. Uptime checks: `https://SITE_DOMAIN/api/health?deep=1` (also fails when the admin's scheduler has stalled), `https://ADMIN_DOMAIN/api/health?deep=1`, `https://CRM_DOMAIN/api/health?deep=1` and `https://FORMS_DOMAIN/api/health?deep=1`.
 
 ## Database users per app (least privilege)
-`db/grants.sql` defines what each app's database user may touch: `apex_web` (the public website: read-only on content, `forms` and accounts), `apex_admin` (the CMS admin: writes content, media, settings and accounts) and `apex_crm` (CRM, forms, ERP, portal, records; reads accounts and changes only its own password). Neither can change the schema. It is **optional**: without it every app uses `DATABASE_URL` as before. To switch it on (once per environment):
-1. As the database owner: `create role apex_web login password '…'; create role apex_admin login password '…'; create role apex_crm login password '…'; create role apex_forms login password '…';` (`apex_forms` belongs to the Forms app, `docs/forms-app-plan.md`; `db/grants.sql` refuses to apply without it. The Forms app is not deployed yet: its `DATABASE_URL_FORMS` and service arrive in step F3) (⚠ confirm IONOS Managed PostgreSQL lets the owner create roles).
-2. In the server's `.env`: `DATABASE_URL_WEB=postgres://apex_web:…`, `DATABASE_URL_ADMIN=postgres://apex_admin:…`, `DATABASE_URL_CRM=postgres://apex_crm:…` and **remove `DATABASE_URL`** from it (the apps load the whole `.env`, so the owner's password must not be in it).
+`db/grants.sql` defines what each app's database user may touch: `apex_web` (the public website: read-only on content, `forms` and accounts), `apex_admin` (the CMS admin: writes content, media, settings and accounts), `apex_crm` (CRM, ERP, portal, records; reads accounts and changes only its own password; read-only `forms` and `submissions`) and `apex_forms` (form builder, responses and the submission pipeline: owns `forms`, `form_starts`, `submissions`; its only writes into the CRM are an upsert of the contact, a new lead and a newsletter opt-in). None can change the schema. It is **optional**: without it every app uses `DATABASE_URL` as before. To switch it on (once per environment):
+1. As the database owner: `create role apex_web login password '…'; create role apex_admin login password '…'; create role apex_crm login password '…'; create role apex_forms login password '…';` (`db/grants.sql` refuses to apply without all four) (⚠ confirm IONOS Managed PostgreSQL lets the owner create roles).
+2. In the server's `.env`: `DATABASE_URL_WEB=postgres://apex_web:…`, `DATABASE_URL_ADMIN=postgres://apex_admin:…`, `DATABASE_URL_CRM=postgres://apex_crm:…`, `DATABASE_URL_FORMS=postgres://apex_forms:…` and **remove `DATABASE_URL`** from it (the apps load the whole `.env`, so the owner's password must not be in it).
 3. In a separate file `.env.migrate` next to it (only `deploy.sh` reads it): `MIGRATE_DATABASE_URL=postgres://<owner>:…`. Releases then migrate as the owner and re-apply `db/grants.sql` (`APPLY_GRANTS=1`) every time.
 `scripts/boundary-drill.sh` (CI) proves what each user can and cannot do, and the end-to-end suite runs the apps as these restricted users.
 
@@ -68,8 +69,19 @@ docker run --env-file staging.env -e AUTO_MIGRATE=1 -p 3000:3000 apex      # sta
 docker run --env-file production.env apex migrate                          # apply pending migrations only, then exit
 docker run --env-file production.env -p 3000:3000 apex                     # start the website (= start-web)
 docker run --env-file production.env -p 3001:3000 apex start-crm          # start the CRM app
+docker run --env-file production.env -p 3002:3000 apex start-forms        # start the Forms app
 ```
 Health endpoints: `GET /api/health` (200 = up and the database answers, 503 otherwise; used by the container health check) and `GET /api/health?deep=1` (also requires the scheduler to have run in the last 10 minutes: **point the external uptime monitor here**).
+
+## First deployment of the Forms app (existing installations)
+The Forms app took over the form builder, the responses and `/api/forms/*` from the CRM app (`docs/forms-app-plan.md`, steps F2 and F3). On a server that already runs the website and the CRM app, do this **before** releasing the first version that contains it, in this order:
+1. DNS: an A record for `FORMS_DOMAIN` (default `forms.<SITE_DOMAIN>`) pointing at the server; Caddy gets its certificate.
+2. As the database owner: `create role apex_forms login password '…';` (and `DATABASE_URL_FORMS` in `.env` if you use restricted users). Without the role, the migration step's `APPLY_GRANTS=1` stops the release before anything is changed.
+3. In `.env`: `FORMS_DOMAIN`, `FORMS_URL=https://FORMS_DOMAIN`, and `CRM_URL`/`WEB_ADMIN_URL` if not set already; `BOT_SECRET` must be set (the Forms app refuses to start without a real one; the CRM app no longer needs it). `WEB_INTERNAL_URL` stays (now used by the Forms app).
+4. Add the scheduler line and the uptime check for `FORMS_DOMAIN` (see above).
+5. Release with `deploy.sh <tag> all` (the release workflow's `only: all`). The copied `Caddyfile` and `compose.yml` change in the same release, so public forms keep working: `/api/forms/*` goes to the Forms app from the moment it is healthy.
+6. Afterwards: submit a test form from the public site, open the response at `https://FORMS_DOMAIN/admin/forms`, and check the staff notification email links there.
+Rollback of the Forms app alone (`deploy.sh <old-tag> forms`) is safe; rolling back to a version **before** the Forms app existed means rolling back `all`, because the old CRM app is then the only one that serves `/api/forms/*` (and the Caddyfile must go back with it).
 
 ## First deployment checklist
 1. Create the database, both buckets (public read only on `S3_BUCKET`), the SMTP account, DNS and TLS (proxy).
@@ -83,6 +95,7 @@ Health endpoints: `GET /api/health` (200 = up and the database answers, 503 othe
    ```
    * * * * *   curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://ADMIN_DOMAIN/api/cron/tick
    * * * * *   curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://CRM_DOMAIN/api/cron/tick
+   * * * * *   curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://FORMS_DOMAIN/api/cron/tick
    */5 * * * * SITE_URL=https://DOMAIN /path/to/scripts/warm.sh
    ```
    and run `scripts/warm.sh` once after every deploy.

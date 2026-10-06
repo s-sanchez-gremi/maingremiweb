@@ -1,6 +1,7 @@
 # HTTPS certificates are obtained and renewed automatically (the DNS records of ALL names must already point at this server).
-# Three hosts, three apps (docs/split-plan.md): the main domain serves the public website (and receives public form submissions,
-# which go to the CRM app); the admin host serves the CMS admin; the crm host serves the staff CRM tools and the client portal.
+# Four hosts, four apps (docs/split-plan.md, docs/forms-app-plan.md): the main domain serves the public website (and receives public form
+# submissions, which go to the Forms app); the admin host serves the CMS admin; the crm host serves the staff CRM tools and the client
+# portal; the forms host serves the staff form builder and responses.
 {$SITE_DOMAIN} {
 	encode zstd gzip
 	# Staff-only: the website's few staff endpoints (/admin/bar for the staff bar, /admin/preview for the editor's live preview)
@@ -11,12 +12,12 @@
 		path /admin /admin/*
 		not remote_ip {$ADMIN_ALLOWED_IPS:127.0.0.1/32}
 	}
-	# The public form submission API lives in the CRM app, but the browser keeps posting to this same address (no cross-site requests).
+	# The public form submission API lives in the Forms app, but the browser keeps posting to this same address (no cross-site requests).
 	@forms path /api/forms/*
 	# `route` keeps the order exactly as written (a plain `handle` would be evaluated BEFORE `respond` and skip the staff rule).
 	route {
 		respond @staff_outside 404
-		reverse_proxy @forms crm:3000
+		reverse_proxy @forms forms:3000
 		# Caddy appends the real client address to X-Forwarded-For and drops anything a visitor sent: matches TRUSTED_PROXY_HOPS=1.
 		reverse_proxy web:3000
 	}
@@ -55,6 +56,24 @@
 	route {
 		respond @staff_outside 404
 		reverse_proxy admin:3000
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+}
+# The Forms app: staff-only like the CRM (same allow-list) EXCEPT what monitors need from anywhere: page assets, robots.txt, the health
+# check and the scheduler call (secured by its bearer secret). Visitors never come here: their form posts go to the main domain
+# (/api/forms/*, routed above), so the public submission API is deliberately NOT open on this host.
+{$FORMS_DOMAIN} {
+	encode zstd gzip
+	@staff_outside {
+		not path /_next/* /robots.txt /api/health /api/cron/*
+		not remote_ip {$ADMIN_ALLOWED_IPS:127.0.0.1/32}
+	}
+	route {
+		respond @staff_outside 404
+		reverse_proxy forms:3000
 	}
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
