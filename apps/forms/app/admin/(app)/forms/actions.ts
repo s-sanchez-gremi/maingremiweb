@@ -10,12 +10,24 @@ import { clients, forms, projects } from "@apex/db/schema";
 import { checkDefinition, formItemsSchema } from "@apex/forms/fieldTypes";
 import { formSettingsSchema } from "@apex/forms/settings-fields";
 import { deleteForm, deleteSubmission } from "@apex/forms/admin-data";
+import { duplicateForm } from "@/lib/forms-copy";
+import { instantiateTemplate, templateByKey } from "@/lib/form-templates";
 
-export async function createForm() {
+/** A new, closed form: blank, or from a starter template (the button's `template` value; an unknown key means blank). */
+export async function createForm(fd?: FormData) {
   await requireUser("forms:write");
   const id = crypto.randomUUID();
-  await db.insert(forms).values({ id, name: "Formulari nou", slug: `form-${id.slice(0, 8)}`, destination: "responses_only", active: false });
+  const template = templateByKey(String(fd?.get("template") ?? ""));
+  if (template) await db.insert(forms).values(instantiateTemplate(template, id));
+  else await db.insert(forms).values({ id, name: "Formulari nou", slug: `form-${id.slice(0, 8)}`, destination: "responses_only", active: false });
   redirect(`/admin/forms/${id}`);
+}
+
+/** A closed copy of a form (last SAVED version), without its responses. */
+export async function copyForm(fd: FormData) {
+  await requireUser("forms:write");
+  const newId = await duplicateForm(z.string().uuid().parse(fd.get("id")));
+  redirect(newId ? `/admin/forms/${newId}` : "/admin/forms");
 }
 
 const payload = z.object({

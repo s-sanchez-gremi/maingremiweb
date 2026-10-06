@@ -371,3 +371,44 @@ test("projects module: create a client and a project, point a form at it, and th
   await page.getByRole("button", { name: "Desa", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Tria el projecte");
 });
+
+test("start from a template, open it, duplicate it from the editor and from the list", async ({ page }) => {
+  await login(page);
+  await page.goto("/admin/forms");
+  await page.getByRole("button", { name: "Inscripció a un acte" }).click();
+  await expect(page).toHaveURL(/\/admin\/forms\/[0-9a-f-]{36}$/);
+  await expect(page.getByLabel("Nom intern")).toHaveValue("Inscripció a un acte");
+  await expect(page.getByLabel("Obert: accepta respostes")).not.toBeChecked(); // a template starts closed
+
+  await page.getByLabel("Nom intern").fill("Jornada tardor");
+  await page.getByLabel("Enllaç (slug)").fill("jornada-tardor");
+  await page.getByLabel("Obert: accepta respostes").check();
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Desat");
+
+  // a visitor can use it straight away: the template is a complete, valid form
+  await page.goto(WEB + "/ca/form/jornada-tardor");
+  await page.getByLabel(/^Nom i cognoms/).fill("Núria Soler");
+  await page.getByLabel(/^Correu electrònic/).fill("nuria@e2e.test");
+  await page.getByLabel(/^Nombre d'assistents/).fill("2");
+  await page.getByLabel(/He llegit i accepto/).check();
+  await page.getByRole("button", { name: "Envia" }).click();
+  await expect(page.getByRole("status")).toContainText("Gràcies");
+  await expect.poll(() => count("contacts", sql`where email = 'nuria@e2e.test'`)).toBe(1);
+
+  // duplicate from the editor: a closed copy with its own link
+  await page.goto("/admin/forms");
+  await page.getByRole("link", { name: "Jornada tardor", exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/forms\/[0-9a-f-]{36}$/); // the editor, not the list (whose rows have their own Duplica buttons)
+  await page.getByRole("button", { name: "Duplica el formulari", exact: true }).click();
+  await expect(page.getByLabel("Nom intern")).toHaveValue("Jornada tardor (còpia)");
+  await expect(page.getByLabel("Enllaç (slug)")).toHaveValue("jornada-tardor-copia");
+  await expect(page.getByLabel("Obert: accepta respostes")).not.toBeChecked();
+
+  // duplicate from the list: the next free link
+  await page.goto("/admin/forms");
+  await page.getByRole("button", { name: "Duplica el formulari Jornada tardor", exact: true }).click();
+  await expect(page.getByLabel("Nom intern")).toHaveValue("Jornada tardor (còpia)");
+  await expect(page.getByLabel("Enllaç (slug)")).toHaveValue("jornada-tardor-copia-2");
+  expect(await count("submissions", sql`where form_id in (select id from forms where slug like 'jornada-tardor-copia%')`)).toBe(0); // responses are never copied
+});

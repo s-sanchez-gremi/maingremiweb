@@ -6,7 +6,7 @@ import { ListEditor } from "@apex/ui/components/ListEditor";
 import { formTypeByName, formTypeDefs, lt, type Item } from "@apex/forms/fieldTypes";
 import { formSettingsFields, type FormSettings } from "@apex/forms/settings-fields";
 import type { Field } from "@apex/core/fields";
-import { removeForm, saveForm } from "../actions";
+import { copyForm, removeForm, saveForm } from "../actions";
 
 type Initial = { id: string; name: string; slug: string; active: boolean; destination: "crm_lead" | "project" | "responses_only"; target: string; fields: Item[]; settings: FormSettings };
 const pick = (names: string[]) => formSettingsFields.filter((f) => names.includes(f.name)) as Field[];
@@ -129,6 +129,8 @@ export function FormEditor({ initial, stats, site, message, targets }: {
             </div>
 
             <div className="card">
+              <button className="btn" type="submit" formAction={copyForm} formNoValidate>Duplica el formulari</button>
+              <span className="hint">Fa una còpia tancada, sense respostes, de l&apos;última versió desada.</span>
               <button className="btn link" type="submit" formAction={removeForm} formNoValidate
                 onClick={(e) => { if (!confirm("Eliminaràs el formulari i TOTES les seves respostes (i els arxius adjunts). Segur?")) e.preventDefault(); }}>
                 Elimina el formulari
