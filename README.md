@@ -14,7 +14,7 @@ Then open http://localhost:3000/ca (site) and http://localhost:3000/admin. By ha
 ```
 cp .env.example .env
 pnpm install
-pnpm dev        # starts Docker services, then both apps: website + CMS on :3000, CRM + forms + portal on :3001
+pnpm dev        # starts Docker services, then the apps: website on :3000, CRM + forms + portal on :3001, CMS admin on :3003
 ```
 Mail caught at http://localhost:8025 · S3 (s3mock) http://localhost:9090
 
@@ -41,11 +41,11 @@ It refuses to run if `CRON_SECRET` is unset or still `change-me`. (`/api/cron/pu
 ```
 */5 * * * * SITE_URL=https://YOUR-DOMAIN /path/to/scripts/warm.sh
 ```
-Run it once after every deploy as well. `pnpm --filter web seed:demo` (local only, `RESET=1` to replace) loads demo content for design checks.
+Run it once after every deploy as well. `pnpm --filter admin seed:demo` (local only, `RESET=1` to replace) loads demo content for design checks.
 
 ## Checks before you push
 `pnpm verify:fast` (≈1 min: lint, types, unit tests, build) or `pnpm verify` (everything CI runs, ≈8 min, needs Docker). Deployment (IONOS): see `DEPLOY.md` and `deploy/ionos/README.md`. Drills: `scripts/deploy-drill.sh`, `scripts/backup-drill.sh`.
 
 ## Tests
 - `pnpm test` — unit + database tests (throwaway DB `apex_test`; needs `docker compose up -d`).
-- `pnpm --filter web test:e2e` — Playwright end-to-end against a real production build on port 3100 and a throwaway DB `apex_e2e` (first time: `pnpm --filter web exec playwright install chromium`). Covers login throttling, draft → publish → live → hidden edits → unpublish, scheduled publishing via the cron endpoint, and editor permissions.
+- `pnpm --filter @apex/e2e test` — Playwright end-to-end against real production builds of every app (ports 3100, 3101, 3103) and a throwaway DB `apex_e2e` (`E2E_DB_NAME` to use another name) (first time: `pnpm --filter web exec playwright install chromium`). Covers login throttling, draft → publish → live → hidden edits → unpublish, scheduled publishing via the cron endpoint, and editor permissions.

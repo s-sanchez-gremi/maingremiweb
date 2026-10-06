@@ -29,7 +29,7 @@ holds the data · **IONOS S3 Object Storage** holds the files (three buckets) ·
 1. Create a **PostgreSQL cluster** in the same data center, attached to the **same private LAN** (give it a private address, e.g. `10.0.0.10/24`).
    Use the newest version offered (Apex is tested on 17; ⚠ confirm which versions IONOS offers: 15+ works).
 2. Create the database `apex` and a user `apex_app`. ⚠ Confirm this user may create tables (migrations need it) — the owner role created with the cluster usually does.
-2b. **Optional but recommended — one database user per app:** as the owner create three more roles, `create role apex_web login password '…'; create role apex_crm login password '…'; create role apex_forms login password '…';` (⚠ confirm the owner may create roles on IONOS Managed PostgreSQL), then use `DATABASE_URL_WEB` / `DATABASE_URL_CRM` and a `.env.migrate` with the owner's URL as described in `DEPLOY.md` ("Database users per app"). Permissions are in `db/grants.sql`.
+2b. **Optional but recommended — one database user per app:** as the owner create four more roles, `create role apex_web login password '…'; create role apex_admin login password '…'; create role apex_crm login password '…'; create role apex_forms login password '…';` (⚠ confirm the owner may create roles on IONOS Managed PostgreSQL), then use `DATABASE_URL_WEB` / `DATABASE_URL_ADMIN` / `DATABASE_URL_CRM` and a `.env.migrate` with the owner's URL as described in `DEPLOY.md` ("Database users per app"). Permissions are in `db/grants.sql`.
 3. Connection string: `postgres://apex_app:PASSWORD@10.0.0.10:5432/apex?sslmode=require` (**keep `sslmode=require`**: production refuses to start without it).
 4. Turn on IONOS's own backups / point-in-time recovery. They are **in addition** to our independent backup (section 6).
 
@@ -65,8 +65,8 @@ Then as `deploy`: create `/srv/apex/production/.env` from `production.env.exampl
 (`chmod 600` both). Log the server in to the image registry once: `echo TOKEN | docker login ghcr.io -u USER --password-stdin`
 (a read-only package token).
 
-## 5b. DNS and two apps
-Two A records point at the server: `DOMAIN` (the website) and `CRM_DOMAIN` (e.g. `crm.example.com`, the CRM app and client portal); both get a certificate from Caddy. Set `CRM_DOMAIN`, `WEB_INTERNAL_URL=http://web:3000`, `CRM_URL` and `WEB_ADMIN_URL` in `.env` (see `production.env.example`). Put `ADMIN_ALLOWED_IPS` (office/VPN) in `.env` before the first login: it applies to both admins. Release one app only with `./deploy.sh <tag> web|crm` (or the workflow's *only* input).
+## 5b. DNS and three apps
+Three A records point at the server: `DOMAIN` (the website), `ADMIN_DOMAIN` (e.g. `admin.example.com`, the CMS admin) and `CRM_DOMAIN` (e.g. `crm.example.com`, the CRM app and client portal); all get a certificate from Caddy. Set `ADMIN_DOMAIN`, `CRM_DOMAIN`, `WEB_INTERNAL_URL=http://web:3000`, `CRM_URL`, `WEB_ADMIN_URL=https://ADMIN_DOMAIN`, `ADMIN_URL=https://ADMIN_DOMAIN`, `WEB_PREVIEW_URL=https://DOMAIN` and `SESSION_COOKIE_DOMAIN=<your domain>` (web and admin) in `.env` (see `production.env.example`). Put `ADMIN_ALLOWED_IPS` (office/VPN) in `.env` before the first login: it applies to both admins. Release one app only with `./deploy.sh <tag> web|admin|crm` (or the workflow's *only* input).
 
 ## 6. GitHub
 Create the repository, push, and in **Settings → Environments** create `staging` and `production` (add **required reviewers** to production).

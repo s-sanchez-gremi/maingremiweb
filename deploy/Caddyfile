@@ -1,14 +1,15 @@
-# HTTPS certificates are obtained and renewed automatically (the DNS records of BOTH names must already point at this server).
-# Three hosts, three apps (docs/split-plan.md, docs/forms-app-plan.md): the main domain serves the website + CMS (and receives public form
-# submissions, which go to the Forms app); the crm host serves the staff CRM tools and the client portal; the forms host serves the
-# staff form builder and responses.
+# HTTPS certificates are obtained and renewed automatically (the DNS records of ALL names must already point at this server).
+# Four hosts, four apps (docs/split-plan.md, docs/forms-app-plan.md): the main domain serves the public website (and receives public form
+# submissions, which go to the Forms app); the admin host serves the CMS admin; the crm host serves the staff CRM tools and the client
+# portal; the forms host serves the staff form builder and responses.
 {$SITE_DOMAIN} {
 	encode zstd gzip
-	# Staff-only: the website's admin and the upload endpoint answer 404 to everyone outside ADMIN_ALLOWED_IPS
-	# (space-separated addresses/CIDRs, e.g. "203.0.113.7 198.51.100.0/24", or your VPN's range). Unset/empty = nobody can reach
-	# them (fails closed). The login still applies on top. Caddy is the edge, so remote_ip is the real visitor.
+	# Staff-only: the website's few staff endpoints (/admin/bar for the staff bar, /admin/preview for the editor's live preview)
+	# answer 404 to everyone outside ADMIN_ALLOWED_IPS (space-separated addresses/CIDRs, e.g. "203.0.113.7 198.51.100.0/24", or your
+	# VPN's range). Unset/empty = nobody can reach them (fails closed). The login still applies on top. Caddy is the edge, so
+	# remote_ip is the real visitor. (The CMS itself lives on the admin host below.)
 	@staff_outside {
-		path /admin /admin/* /api/media /api/media/*
+		path /admin /admin/*
 		not remote_ip {$ADMIN_ALLOWED_IPS:127.0.0.1/32}
 	}
 	# The public form submission API lives in the Forms app, but the browser keeps posting to this same address (no cross-site requests).
@@ -37,6 +38,24 @@
 	route {
 		respond @staff_outside 404
 		reverse_proxy crm:3000
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+}
+# The CMS admin: staff-only (same allow-list) EXCEPT what monitors and the scheduler need from anywhere: the page assets, robots.txt,
+# the health check and the scheduler call (secured by its bearer secret). The staff session cookie is shared with the main domain
+# (SESSION_COOKIE_DOMAIN) so the website's staff bar and the editor's live preview recognise a signed-in person.
+{$ADMIN_DOMAIN} {
+	encode zstd gzip
+	@staff_outside {
+		not path /_next/* /robots.txt /api/health /api/cron/*
+		not remote_ip {$ADMIN_ALLOWED_IPS:127.0.0.1/32}
+	}
+	route {
+		respond @staff_outside 404
+		reverse_proxy admin:3000
 	}
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"

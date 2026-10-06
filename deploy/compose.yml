@@ -1,5 +1,5 @@
 # One ENVIRONMENT per server directory (e.g. /srv/apex/production). The database is IONOS Managed PostgreSQL and the files
-# are IONOS S3, so this stack only has the three apps (web = website + CMS, crm = CRM, ERP, portal, forms = form builder, responses, submission API) and the web server. Configuration lives in ./.env (never in git).
+# are IONOS S3, so this stack only has the apps (web = public website, admin = CMS admin, crm = CRM, ERP, portal, forms = form builder, responses, submission API) and the web server. Configuration lives in ./.env (never in git).
 name: ${APEX_ENV:-apex}
 services:
   web:
@@ -12,6 +12,19 @@ services:
       DATABASE_URL: ${DATABASE_URL_WEB:-${DATABASE_URL}}   # one database user per app once the grants are applied (docs/split-plan.md section 5)
     expose: ["3000"]
     # The image has its own HEALTHCHECK (GET /api/health); Caddy waits for the website.
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+  admin:
+    image: ${APEX_IMAGE:-ghcr.io/OWNER/apex}:${APEX_TAG_ADMIN:-latest}
+    command: ["start-admin"]
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: "3000"
+      DATABASE_URL: ${DATABASE_URL_ADMIN:-${DATABASE_URL}}
+    expose: ["3000"]
     logging:
       driver: json-file
       options: { max-size: "20m", max-file: "5" }
@@ -51,6 +64,7 @@ services:
     environment:
       SITE_DOMAIN: ${SITE_DOMAIN:?set SITE_DOMAIN in .env}
       CRM_DOMAIN: ${CRM_DOMAIN:-crm.${SITE_DOMAIN}}   # where the CRM app lives (DNS record needed, like the main domain)
+      ADMIN_DOMAIN: ${ADMIN_DOMAIN:-admin.${SITE_DOMAIN}}   # where the CMS admin lives (DNS record needed too)
       FORMS_DOMAIN: ${FORMS_DOMAIN:-forms.${SITE_DOMAIN}}   # where the Forms app (builder, responses) lives (own DNS record and certificate)
       ADMIN_ALLOWED_IPS: ${ADMIN_ALLOWED_IPS:-}   # who may open the admins; empty = nobody
     volumes:

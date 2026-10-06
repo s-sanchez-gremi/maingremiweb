@@ -1,7 +1,7 @@
 // Shared loading for entry pages: alternates (hreflang), media map and typed sections.
 import { getAlternates, getMedia } from "./content";
 import type { PublicEntry } from "./content-queries";
-import { sectionsSchema, collectMediaIds, type Section } from "@/sections/registry";
+import { sectionsSchema, collectMediaIds, type Section } from "@apex/sections/registry";
 import { entryPath } from "./urls";
 import type { Alt } from "@/components/site/Shell";
 import type { Alternate } from "./seo";

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { defaultLocale, ogLocale, type Locale } from "./i18n";
-import { mediaUrl } from "./media-url";
+import { mediaUrl } from "@apex/core/media-url";
 import type { PublicMedia } from "./content-queries";
 
 export type Alternate = { locale: Locale; path: string };

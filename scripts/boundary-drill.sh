@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
 # Proves the database permissions of db/grants.sql with the REAL restricted users, on a fresh database migrated by the production
-# image: the website's user can touch the website's tables and only READ forms; the CRM's user can touch the business tables and
-# cannot touch content or change accounts; the Forms app's user touches only the shared tables; neither can change the schema; a table nobody classified is caught.
+# image: the website's user can only READ content (and forms); the CMS admin's user writes content, media, settings and accounts;
+# the CRM's user can touch the business tables and cannot touch content or change accounts; the Forms app's user touches its own tables
+# and the narrow hand-over of a lead to the CRM; none can change the schema; a table nobody classified is caught.
 # Usage: ./scripts/boundary-drill.sh      (needs docker compose up -d)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 NET=$(docker inspect "$(docker compose ps -q db)" --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}')
 DB=apex_boundary
-PWW="Web-Drill-Pw-5521"; PWC="Crm-Drill-Pw-8841"; PWF="Forms-Drill-Pw-3367"
+PWW="Web-Drill-Pw-5521"; PWC="Crm-Drill-Pw-8841"; PWF="Forms-Drill-Pw-3367"; PWA="Admin-Drill-Pw-6173"
 fail() { echo "FAIL: $*"; exit 1; }
 su() { docker compose exec -T db psql -U apex -d "${2:-postgres}" -v ON_ERROR_STOP=1 -qtAc "$1"; }
 
-echo "== a fresh database, the two restricted roles, migrations + permissions applied by the production image"
+echo "== a fresh database, the restricted roles, migrations + permissions applied by the production image"
 su "drop database if exists $DB with (force)" >/dev/null
 su "create database $DB" >/dev/null
-for r in "apex_web:$PWW" "apex_crm:$PWC" "apex_forms:$PWF"; do
+for r in "apex_web:$PWW" "apex_crm:$PWC" "apex_forms:$PWF" "apex_admin:$PWA"; do
   su "do \$\$ begin if not exists (select from pg_roles where rolname = '${r%%:*}') then create role ${r%%:*} login; end if; end \$\$" >/dev/null
   su "alter role ${r%%:*} login password '${r##*:}'" >/dev/null
 done
@@ -26,20 +27,31 @@ n=0
 allow() { n=$((n+1)); out="$(as "$1" "$2" "$3")" || fail "$1 should be allowed: $3 -> $out"; }
 deny()  { n=$((n+1)); if out="$(as "$1" "$2" "$3")"; then fail "$1 should be REFUSED: $3"; fi; grep -qiE "permission denied|must be owner" <<<"$out" || fail "$1: $3 failed for another reason: $out"; }
 
-echo "== apex_web (website + CMS)"
+echo "== apex_web (the public website: read-only on content)"
 W() { echo apex_web "$PWW"; }
 allow $(W) "select count(*) from entries"
-allow $(W) "update entry_translations set title = title where false"
-allow $(W) "delete from entry_versions where false"
-allow $(W) "update settings set data = data"
+allow $(W) "select count(*) from entry_translations"
+allow $(W) "select count(*) from entry_versions"
+allow $(W) "select count(*) from settings"
 allow $(W) "select count(*) from categories"
+allow $(W) "select count(*) from media"
 allow $(W) "select count(*) from forms"                      # reads the form definition to draw it
-allow $(W) "update users set role = role where false"         # the website's admin manages accounts
-allow $(W) "delete from sessions where false"
-allow $(W) "insert into outbox (kind, payload) values ('email', '{}'::jsonb)"        # needs the id sequence
+allow $(W) "select count(*) from users"                      # recognises a signed-in staff member (staff bar, preview)
+allow $(W) "select count(*) from sessions"
+allow $(W) "delete from sessions where false"                # "Surt" in the staff bar ends the session
+allow $(W) "select count(*) from heartbeats"                 # the deep health check reads the CMS scheduler's heartbeat
 allow $(W) "insert into error_log (fingerprint, message) values ('drill-web', 'x')"
-allow $(W) "delete from outbox"
+deny  $(W) "update entry_translations set title = title where false"   # content is written by the CMS admin only
+deny  $(W) "insert into entries (type) values ('post')"
+deny  $(W) "delete from entry_versions where false"
+deny  $(W) "update settings set data = data"
+deny  $(W) "update categories set slug = slug where false"
+deny  $(W) "delete from media where false"
 deny  $(W) "update forms set name = name where false"          # forms are the Forms app's: read-only here
+deny  $(W) "update users set role = role where false"          # accounts are the CMS admin's
+deny  $(W) "insert into sessions (id, user_id, expires_at) values ('x', gen_random_uuid(), now())"   # only the admin apps sign people in
+deny  $(W) "insert into outbox (kind, payload) values ('email', '{}'::jsonb)"
+deny  $(W) "insert into heartbeats (name, at) values ('x', now())"
 deny  $(W) "select count(*) from leads"
 deny  $(W) "select count(*) from contacts"
 deny  $(W) "select count(*) from clients"
@@ -53,6 +65,36 @@ deny  $(W) "select count(*) from job_seekers"
 deny  $(W) "select count(*) from schema_migrations"
 deny  $(W) "create table stolen (a int)"
 deny  $(W) "drop table entries"
+
+echo "== apex_admin (the CMS admin: content, media, settings, accounts)"
+A() { echo apex_admin "$PWA"; }
+allow $(A) "select count(*) from entries"
+allow $(A) "update entry_translations set title = title where false"
+allow $(A) "delete from entry_versions where false"
+allow $(A) "update settings set data = data"
+allow $(A) "select count(*) from categories"
+allow $(A) "delete from media where false"
+allow $(A) "select count(*) from forms"                      # the page editor offers forms to place in a page
+allow $(A) "update users set role = role where false"         # the CMS admin manages accounts
+allow $(A) "delete from sessions where false"
+allow $(A) "insert into outbox (kind, payload) values ('email', '{}'::jsonb)"        # needs the id sequence
+allow $(A) "insert into error_log (fingerprint, message) values ('drill-admin', 'x')"
+allow $(A) "delete from outbox"
+allow $(A) "insert into heartbeats (name, at) values ('drill-admin', now()) on conflict (name) do update set at = now()"
+deny  $(A) "update forms set name = name where false"          # forms are the Forms app's: read-only here
+deny  $(A) "select count(*) from leads"
+deny  $(A) "select count(*) from contacts"
+deny  $(A) "select count(*) from clients"
+deny  $(A) "select count(*) from people"
+deny  $(A) "select count(*) from erp_entries"
+deny  $(A) "select count(*) from members"
+deny  $(A) "select count(*) from portal_users"
+deny  $(A) "select count(*) from submissions"
+deny  $(A) "select count(*) from record_notes"
+deny  $(A) "select count(*) from job_seekers"
+deny  $(A) "select count(*) from schema_migrations"
+deny  $(A) "create table stolen (a int)"
+deny  $(A) "drop table entries"
 
 echo "== apex_crm (CRM, projects, ERP, portal, records)"
 C() { echo apex_crm "$PWC"; }

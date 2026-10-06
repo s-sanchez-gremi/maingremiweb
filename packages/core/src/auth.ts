@@ -10,6 +10,9 @@ import { can, type Action } from "./permissions";
 
 // Each app sets its own cookie name (SESSION_COOKIE) so a session of one app is never sent to, or accepted by, another.
 const COOKIE = process.env.SESSION_COOKIE ?? "apex_session";
+// Optional: share the staff session between hosts of one site (the CMS admin on admin.example.org and the website's staff bar and
+// preview on example.org): set SESSION_COOKIE_DOMAIN=example.org on BOTH. Unset = the cookie belongs to one host only (the CRM app).
+const DOMAIN = process.env.SESSION_COOKIE_DOMAIN || undefined;
 const TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -22,7 +25,7 @@ export async function createSession(userId: string) {
   await db.insert(sessions).values({ id: sha(token), userId, expiresAt });
   (await cookies()).set(COOKIE, token, {
     httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production",
-    path: "/", expires: expiresAt,
+    path: "/", expires: expiresAt, domain: DOMAIN,
   });
 }
 
@@ -41,7 +44,7 @@ export async function destroySession() {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
   if (token) await db.delete(sessions).where(eq(sessions.id, sha(token)));
-  jar.delete(COOKIE);
+  jar.set(COOKIE, "", { path: "/", maxAge: 0, domain: DOMAIN }); // a cookie with a domain is only removed by naming the same domain
 }
 
 /** For pages and actions: returns the user or redirects to login / throws if not permitted. */

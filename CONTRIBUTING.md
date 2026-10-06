@@ -16,7 +16,7 @@ A local hook (`.githooks/pre-push`, installed by `pnpm install`) refuses pushes 
 
 ## Who owns what
 Two apps in one repository sharing one database (`docs/split-plan.md`); `.github/CODEOWNERS` makes GitHub ask the right person to review:
-- **Joan Marc (`@jmarcadell4-maker`) — `apps/web`:** the public site (including how forms are *drawn* inside pages), and the website's admin: content, media, categories, settings, users, errors.
+- **Joan Marc (`@jmarcadell4-maker`) — `apps/web` and `apps/admin`:** the public site (including how forms are *drawn* inside pages) and the CMS admin (its own app): content, media, categories, settings, users, errors, the visual builder and the scheduler.
 - **Sam (`@s-sanchez-gremi`) — `apps/crm`:** CRM (contacts and leads), **forms** (builder, responses and the public submission API), project manager, tasks, the ERP registry and the client portal.
 - **Shared, both review:** `packages/*` (database, core, ui, forms), `db/migrations`, `e2e/`, `deploy/`, `scripts/`, `.github/`, `Dockerfile`, `CLAUDE.md`.
 - **The apps never import each other** (`scripts/check-boundaries.sh` fails CI if one does, and if a package imports an app). Anything both need goes in a package. The only calls between the running apps are listed in `docs/split-plan.md` (the website forwards `/api/forms/*` to the CRM app; the CRM app asks the website to refresh its cache after a form changes).

@@ -1,6 +1,6 @@
 # Who reviews what. GitHub asks the owner of the changed files to review a pull request (the LAST matching line wins).
-# Three apps, one repository, one database (see docs/split-plan.md and docs/forms-app-plan.md):
-#   @jmarcadell4-maker   = apps/web: the public site, form RENDERING inside pages, the CMS admin (content, media, categories, settings, users, errors)
+# Four apps, one repository, one database (see docs/split-plan.md and docs/forms-app-plan.md):
+#   @jmarcadell4-maker   = apps/web (the public site, form RENDERING inside pages) and apps/admin (the CMS: content, media, categories, settings, users, errors)
 #   @s-sanchez-gremi     = apps/crm: CRM, forms (builder, responses, public submission API), projects, tasks, ERP, client portal
 #   @s-sanchez-gremi     = apps/forms: the Forms app (builder, responses, submissions, Fillout-like features; arrives in steps F1-F3)
 # Everything shared (packages, database, auth, deploy, CI, e2e runner) needs BOTH people.
@@ -25,6 +25,8 @@
 
 # ---- apps/crm: Sam ----
 /apps/crm/                          @s-sanchez-gremi
+/apps/admin/                        @jmarcadell4-maker                    # the CMS admin app
+/packages/sections/                 @jmarcadell4-maker                    # the page model: website and CMS admin both depend on it
 /apps/forms/                        @s-sanchez-gremi
 /docs/forms-app-plan.md             @s-sanchez-gremi
 /docs/forms-v2-plan.md              @s-sanchez-gremi
