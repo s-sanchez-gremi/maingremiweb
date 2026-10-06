@@ -412,3 +412,60 @@ test("start from a template, open it, duplicate it from the editor and from the 
   await expect(page.getByLabel("Enllaç (slug)")).toHaveValue("jornada-tardor-copia-2");
   expect(await count("submissions", sql`where form_id in (select id from forms where slug like 'jornada-tardor-copia%')`)).toBe(0); // responses are never copied
 });
+
+test("new field types: rating, yes/no, web address, address, title and paragraph work for a visitor and read well for staff", async ({ page }) => {
+  const title = F("heading", { title: L("Les teves dades") });
+  const intro = F("paragraph", { body: L("Omple-ho amb **calma**.") });
+  const em = F("email", { label: L("Correu"), required: "yes" });
+  const stars = F("rating", { label: L("Valoració"), required: "yes", max: "5", lowLabel: L("Gens"), highLabel: L("Molt") });
+  const rec = F("yesno", { label: L("Ho recomanes?"), required: "yes" });
+  const why = F("text", { label: L("Per què no?"), required: "yes", showField: rec.id, showOp: "equals", showValue: "no" });
+  const web = F("url", { label: L("Web") });
+  const addr = F("address", { label: L("Adreça"), required: "yes" });
+  const id = await seedForm("tots-els-tipus", [title, intro, em, stars, rec, why, web, addr], { consent: L("Accepto") });
+
+  await page.goto(WEB + "/ca/form/tots-els-tipus");
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByRole("heading", { name: "Les teves dades" })).toBeVisible();
+  await expect(page.getByText("calma")).toBeVisible();
+  await expect(page.getByText("1 = Gens · 5 = Molt")).toBeVisible();
+  await expect(page.getByLabel(/^Per què no/)).toHaveCount(0); // hidden until the answer is No
+  const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+  expect(axe.violations.map((v) => `${v.id}: ${v.nodes[0]?.target}`)).toEqual([]);
+
+  // the server and the browser both refuse an empty or wrong answer, field by field
+  await page.getByLabel(/Accepto/).check();
+  await page.getByLabel("Web", { exact: true }).fill("javascript:alert(1)");
+  await page.getByRole("button", { name: "Envia" }).click();
+  await expect(page.getByText("Introdueix un enllaç web vàlid")).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: "Aquest camp és obligatori" }).first()).toBeVisible();
+
+  await page.getByLabel(/^Correu/).fill("laia@e2e.test");
+  await page.getByRole("group", { name: /Valoració/ }).getByLabel("4", { exact: true }).check();
+  await page.getByRole("group", { name: /Ho recomanes/ }).getByLabel("No", { exact: true }).check();
+  await page.getByLabel(/^Per què no/).fill("Massa car");
+  await page.getByLabel("Web", { exact: true }).fill("example.cat/pagina");
+  const group = page.getByRole("group", { name: /Adreça/ });
+  await group.getByLabel(/Carrer i número/).fill("Carrer Major 1");
+  await group.getByLabel(/Codi postal/).fill("08001");
+  await group.getByLabel(/Població/).fill("Barcelona");
+  await page.getByRole("button", { name: "Envia" }).click();
+  await expect(page.getByRole("status")).toContainText("Gràcies");
+
+  const [sub] = await sql`select answers from submissions where form_id = ${id}`;
+  const by = Object.fromEntries(sub.answers.map((a: { label: string; value: unknown }) => [a.label, a.value]));
+  expect(by["Valoració"]).toBe(4);
+  expect(by["Ho recomanes?"]).toBe(false);
+  expect(by["Web"]).toBe("https://example.cat/pagina");
+  expect(by["Adreça"]).toEqual({ street: "Carrer Major 1", postalCode: "08001", city: "Barcelona" });
+  expect(sub.answers.some((a: { type: string }) => a.type === "heading" || a.type === "paragraph")).toBe(false);
+
+  // staff read plain text, never raw objects, on screen and in the spreadsheet
+  await login(page);
+  await page.goto(`/admin/forms/${id}/submissions`);
+  await expect(page.getByText("Carrer Major 1, 08001 Barcelona")).toBeVisible();
+  await expect(page.getByText("[object Object]")).toHaveCount(0);
+  const csv = await (await page.request.get(`/admin/forms/${id}/export`)).text();
+  expect(csv).toContain('"Carrer Major 1, 08001 Barcelona"');
+  expect(csv).toMatch(/;4;No;Massa car;https:\/\/example\.cat\/pagina;/);
+});

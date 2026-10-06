@@ -7,6 +7,7 @@ import { enqueueEmail } from "@apex/core/outbox";
 import { siteUrl } from "@apex/core/site-url";
 import { lt, type Item } from "./fieldTypes";
 import { classifyUpload, safeName, type Upload } from "@apex/core/files";
+import { answerText } from "./answer-text";
 import { upsertContact } from "./contacts";
 import { msgs } from "./messages";
 import { MAX_FILE_BYTES, validateAnswers, type Answers, type Cleaned } from "./validate";
@@ -33,13 +34,7 @@ const str = (v: unknown) => (typeof v === "string" ? v : "");
 
 export const parseAddresses = (s: string | undefined) => [...new Set((s ?? "").split(/[,;\s]+/).map((x) => x.trim().toLowerCase()).filter((x) => EMAIL.test(x)))];
 
-function valueText(a: Cleaned | Answer): string {
-  const v = a.value as unknown;
-  if (a.type === "file" && v && typeof v === "object") return (v as { name?: string }).name ?? "";
-  if (Array.isArray(v)) return v.join(", ");
-  if (typeof v === "boolean") return v ? "Sí" : "No";
-  return v === null || v === undefined ? "" : String(v);
-}
+const valueText = (a: Cleaned | Answer): string => answerText(a);
 
 export async function processSubmission(input: SubmitInput): Promise<SubmitResult> {
   const { form, locale, meta } = input;

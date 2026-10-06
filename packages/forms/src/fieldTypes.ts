@@ -33,6 +33,14 @@ export const formTypeDefs: readonly FormTypeDef[] = [
   { name: "checkbox", label: "Casella", input: true, fields: [...common, ...logic] },
   { name: "date", label: "Data", input: true, fields: [...common, ...logic] },
   { name: "file", label: "Pujada d'arxiu", input: true, fields: [...common, ...logic] },
+  { name: "rating", label: "Valoració (estrelles / nota)", input: true, fields: [...common,
+      { name: "max", label: "Escala", kind: "select", options: [{ value: "5", label: "De 1 a 5" }, { value: "10", label: "De 1 a 10" }] },
+      { name: "lowLabel", label: "Text de l'extrem baix (opcional)", kind: "ltext" }, { name: "highLabel", label: "Text de l'extrem alt (opcional)", kind: "ltext" }, ...logic] },
+  { name: "yesno", label: "Sí / No", input: true, fields: [...common, ...logic] },
+  { name: "url", label: "Enllaç web (URL)", input: true, fields: [...common, ...logic] },
+  { name: "address", label: "Adreça (carrer, codi postal, població)", input: true, fields: [...common, ...logic] },
+  { name: "heading", label: "Títol (només text, sense resposta)", input: false, fields: [{ name: "title", label: "Títol", kind: "ltext", required: true }, ...logic] },
+  { name: "paragraph", label: "Paràgraf (només text, sense resposta)", input: false, fields: [{ name: "body", label: "Text (admet **negreta**, *cursiva*, [text](enllaç) i llistes amb «- »)", kind: "ltextarea", required: true }, ...logic] },
   { name: "pagebreak", label: "Salt de pàgina", input: false, fields: [{ name: "title", label: "Títol del pas", kind: "ltext", required: true }] },
 ];
 export const formTypeByName: Record<string, FormTypeDef> = Object.fromEntries(formTypeDefs.map((d) => [d.name, d]));
@@ -51,12 +59,14 @@ export const lt = (v: unknown, locale: string): string => {
 export const optionValues = (item: Item): string[] =>
   ((item.data.options as { label?: LText }[]) ?? []).map((o) => (o.label?.ca ?? "").trim());
 export const isRequired = (item: Item) => item.data.required === "yes";
+/** The highest mark of a rating field (1 to 5 by default, or 1 to 10). */
+export const ratingMax = (item: Item) => (String(item.data.max) === "10" ? 10 : 5);
 
 /** Problems with a form DEFINITION (checked when the form is saved). Returns human-readable messages. */
 export function checkDefinition(items: Item[], destination: string, target?: string | null): string[] {
   const issues: string[] = [];
   const seenBefore = new Map<string, Item>();
-  const label = (i: Item) => lt(i.data.label ?? i.data.title, "ca") || i.type;
+  const label = (i: Item) => lt(i.data.label ?? i.data.title, "ca") || lt(i.data.body, "ca").slice(0, 30) || i.type;
   for (const item of items) {
     const def = formTypeByName[item.type];
     if (!def) { issues.push(`Tipus de camp desconegut: ${item.type}`); continue; }
@@ -65,6 +75,9 @@ export function checkDefinition(items: Item[], destination: string, target?: str
       if (!ref) issues.push(`«${label(item)}»: la condició ha de dependre d'un camp anterior`);
       else if (["dropdown", "choice"].includes(ref.type) && item.data.showValue && !optionValues(ref).includes(String(item.data.showValue)))
         issues.push(`«${label(item)}»: el valor de la condició no és cap opció de «${label(ref)}»`);
+      else if (ref.type === "yesno" && !["yes", "no"].includes(String(item.data.showValue))) issues.push(`«${label(item)}»: el valor de la condició d'un camp Sí / No ha de ser yes o no`);
+      else if (ref.type === "rating" && !(Number.isInteger(Number(item.data.showValue)) && Number(item.data.showValue) >= 1 && Number(item.data.showValue) <= ratingMax(ref)))
+        issues.push(`«${label(item)}»: el valor de la condició ha de ser una nota entre 1 i ${ratingMax(ref)}`);
       else if (!item.data.showValue) issues.push(`«${label(item)}»: indica el valor de la condició`);
     }
     if (["dropdown", "choice"].includes(item.type)) {
@@ -78,7 +91,7 @@ export function checkDefinition(items: Item[], destination: string, target?: str
       if ((min && Number.isNaN(n(min))) || (max && Number.isNaN(n(max)))) issues.push(`«${label(item)}»: el mínim i el màxim han de ser números`);
       else if (n(min) !== null && n(max) !== null && n(min)! > n(max)!) issues.push(`«${label(item)}»: el mínim és superior al màxim`);
     }
-    if (item.type !== "pagebreak") seenBefore.set(item.id, item);
+    if (def.input) seenBefore.set(item.id, item); // a title or a paragraph has no answer, so nothing can depend on it
   }
   const emails = items.filter((i) => i.data.map === "email" || (i.type === "email" && !i.data.map));
   if (emails.filter((i) => i.data.map === "email").length > 1) issues.push("Només un camp pot guardar-se com a correu del contacte");

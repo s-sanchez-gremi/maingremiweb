@@ -28,6 +28,7 @@ export function FormEditor({ initial, stats, site, message, targets }: {
   const optionLabel = (i: Item) => `${lt(i.data.label, "ca") || formTypeByName[i.type].label}`;
   const summary = (i: Item) => {
     if (i.type === "pagebreak") return "Salt de pàgina";
+    if (!formTypeByName[i.type].input) return `${formTypeByName[i.type].label.split(" (")[0]}${i.data.showField ? " · condicional" : ""}`;
     const bits = [formTypeByName[i.type].label, i.data.required === "yes" ? "obligatori" : "opcional"];
     if (i.data.showField) bits.push("condicional");
     return bits.join(" · ");
@@ -70,7 +71,7 @@ export function FormEditor({ initial, stats, site, message, targets }: {
                   fields={formTypeByName[item.type].fields}
                   data={item.data}
                   onChange={(d) => update({ ...item, data: d })}
-                  options={{ ...NO_MEDIA, earlier: items.slice(0, index).filter((x) => x.type !== "pagebreak").map((x) => ({ id: x.id, label: optionLabel(x) })) }}
+                  options={{ ...NO_MEDIA, earlier: items.slice(0, index).filter((x) => formTypeByName[x.type].input).map((x) => ({ id: x.id, label: optionLabel(x) })) }}
                 />
               )}
               add={{

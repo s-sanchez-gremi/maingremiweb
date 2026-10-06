@@ -1,11 +1,12 @@
 "use client";
 import { useId } from "react";
 import { CheckboxField, SelectField, TextAreaField, TextField } from "@apex/ui/components/Field";
-import { lt, optionValues, type Item } from "@apex/forms/fieldTypes";
-import { msgs } from "@apex/forms/messages";
+import { RichText } from "@apex/ui/richtext";
+import { lt, optionValues, ratingMax, type Item } from "@apex/forms/fieldTypes";
+import { fmt, msgs } from "@apex/forms/messages";
 import type { Locale } from "@apex/db/schema";
 
-type Value = string | string[] | boolean | undefined;
+type Value = string | string[] | boolean | Record<string, string> | undefined;
 const AUTOCOMPLETE: Record<string, string> = { name: "name", email: "email", phone: "tel", company: "organization" };
 
 export function FieldInput({ item, locale, value, error, onChange, onFile }: {
@@ -33,6 +34,12 @@ export function FieldInput({ item, locale, value, error, onChange, onFile }: {
     }
     case "choice": control = <ChoiceGroup item={item} locale={locale} value={value} error={error} onChange={onChange} />; break;
     case "checkbox": control = <CheckboxField label={label} hint={hint} error={error} required={required} checked={value === true} onChange={(e) => onChange(e.target.checked)} />; break;
+    case "rating": control = <RatingField item={item} locale={locale} value={value} error={error} onChange={onChange} />; break;
+    case "yesno": control = <YesNoField item={item} locale={locale} value={value} error={error} onChange={onChange} />; break;
+    case "url": control = <TextField {...common} type="text" inputMode="url" autoComplete="url" value={str} onChange={(e) => onChange(e.target.value)} />; break;
+    case "address": control = <AddressField item={item} locale={locale} value={value} error={error} onChange={onChange} />; break;
+    case "heading": control = <h3 className="form-heading">{lt(item.data.title, locale)}</h3>; break;
+    case "paragraph": control = <RichText body={lt(item.data.body, locale)} />; break;
     case "file": control = <FileField label={label} hint={hint} error={error} required={required} onFile={onFile} locale={locale} />; break;
   }
   return <div data-field-id={item.id}>{control}</div>;
@@ -58,6 +65,84 @@ function ChoiceGroup({ item, locale, value, error, onChange }: { item: Item; loc
           <label htmlFor={`${id}-${i}`}>{lt(o.label, locale)}</label>
         </div>
       ))}
+      {hint && <span className="hint" id={`${id}-hint`}>{hint}</span>}
+      {error && <span className="error" id={`${id}-err`} role="alert">{error}</span>}
+    </fieldset>
+  );
+}
+
+/** A group of radio buttons with the field's label as its legend, hint and error wired with aria-describedby. */
+function RadioGroup({ item, locale, error, children }: { item: Item; locale: Locale; error?: string; children: (name: string) => React.ReactNode }) {
+  const id = useId();
+  const hint = lt(item.data.help, locale);
+  const describedBy = [hint && `${id}-hint`, error && `${id}-err`].filter(Boolean).join(" ") || undefined;
+  return (
+    <fieldset className="field" aria-describedby={describedBy}>
+      <legend>{lt(item.data.label, locale)}{item.data.required === "yes" && <span className="req" aria-hidden="true"> *</span>}</legend>
+      {children(id)}
+      {hint && <span className="hint" id={`${id}-hint`}>{hint}</span>}
+      {error && <span className="error" id={`${id}-err`} role="alert">{error}</span>}
+    </fieldset>
+  );
+}
+const ROW: React.CSSProperties = { display: "flex", flexWrap: "wrap", gap: "0 var(--sp-5, 20px)" };
+
+function RatingField({ item, locale, value, error, onChange }: { item: Item; locale: Locale; value: Value; error?: string; onChange: (v: Value) => void }) {
+  const max = ratingMax(item), t = msgs(locale);
+  const low = lt(item.data.lowLabel, locale), high = lt(item.data.highLabel, locale);
+  const marks = [low && fmt(t.scaleFrom, { a: 1, label: low }), high && fmt(t.scaleFrom, { a: max, label: high })].filter(Boolean).join(" · ");
+  return (
+    <RadioGroup item={item} locale={locale} error={error}>
+      {(id) => (
+        <>
+          <div style={ROW}>
+            {Array.from({ length: max }, (_, i) => String(i + 1)).map((n) => (
+              <div className="choice" key={n}>
+                <input id={`${id}-${n}`} type="radio" name={id} value={n} checked={value === n} onChange={() => onChange(n)} />
+                <label htmlFor={`${id}-${n}`}>{n}</label>
+              </div>
+            ))}
+          </div>
+          {marks && <span className="hint">{marks}</span>}
+        </>
+      )}
+    </RadioGroup>
+  );
+}
+
+function YesNoField({ item, locale, value, error, onChange }: { item: Item; locale: Locale; value: Value; error?: string; onChange: (v: Value) => void }) {
+  const t = msgs(locale);
+  return (
+    <RadioGroup item={item} locale={locale} error={error}>
+      {(id) => (
+        <div style={ROW}>
+          {([["yes", t.yes], ["no", t.no]] as const).map(([v, text]) => (
+            <div className="choice" key={v}>
+              <input id={`${id}-${v}`} type="radio" name={id} value={v} checked={value === v} onChange={() => onChange(v)} />
+              <label htmlFor={`${id}-${v}`}>{text}</label>
+            </div>
+          ))}
+        </div>
+      )}
+    </RadioGroup>
+  );
+}
+
+function AddressField({ item, locale, value, error, onChange }: { item: Item; locale: Locale; value: Value; error?: string; onChange: (v: Value) => void }) {
+  const id = useId(), t = msgs(locale);
+  const v = (value && typeof value === "object" && !Array.isArray(value) ? value : {}) as Record<string, string>;
+  const set = (k: string, x: string) => onChange({ street: "", postalCode: "", city: "", ...v, [k]: x });
+  const hint = lt(item.data.help, locale);
+  const required = item.data.required === "yes";
+  const describedBy = [hint && `${id}-hint`, error && `${id}-err`].filter(Boolean).join(" ") || undefined;
+  return (
+    <fieldset className="field" aria-describedby={describedBy}>
+      <legend>{lt(item.data.label, locale)}{required && <span className="req" aria-hidden="true"> *</span>}</legend>
+      <TextField label={t.street} required={required} autoComplete="street-address" value={v.street ?? ""} onChange={(e) => set("street", e.target.value)} />
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(110px, 1fr) minmax(0, 2fr)", gap: "var(--sp-3, 12px)" }}>
+        <TextField label={t.postalCode} required={required} autoComplete="postal-code" value={v.postalCode ?? ""} onChange={(e) => set("postalCode", e.target.value)} />
+        <TextField label={t.city} required={required} autoComplete="address-level2" value={v.city ?? ""} onChange={(e) => set("city", e.target.value)} />
+      </div>
       {hint && <span className="hint" id={`${id}-hint`}>{hint}</span>}
       {error && <span className="error" id={`${id}-err`} role="alert">{error}</span>}
     </fieldset>

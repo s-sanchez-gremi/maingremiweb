@@ -5,6 +5,7 @@ import { db } from "@apex/db";
 import { requireUser } from "@apex/core/auth";
 import { contacts, forms, submissions } from "@apex/db/schema";
 import { ConfirmButton } from "@apex/ui/components/ConfirmButton";
+import { answerText } from "@apex/forms/answer-text";
 import { removeSubmission } from "../../actions";
 
 const PAGE = 25;
@@ -46,7 +47,7 @@ export default async function Submissions({ params, searchParams }: { params: Pr
                     <dd style={{ margin: 0, overflowWrap: "anywhere" }}>
                       {a.type === "file" && v && typeof v === "object"
                         ? <a style={{ color: "var(--accent)", textDecoration: "underline" }} href={`/admin/forms/${id}/file?sub=${s.id}&field=${a.id}`}>{(v as { name: string }).name}</a>
-                        : Array.isArray(v) ? v.join(", ") : typeof v === "boolean" ? (v ? "Sí" : "No") : String(v ?? "")}
+                        : answerText(a)}
                     </dd>
                   </div>
                 );
