@@ -17,16 +17,16 @@ export const settingsFields: Field[] = [
   { name: "homepage", label: "Pàgina d'inici", kind: "entry" },
   { name: "phone", label: "Telèfon", kind: "text" },
   { name: "email", label: "Correu de contacte", kind: "text" },
-  { name: "headerButtons", label: "Botons de la capçalera (p. ex. Campus virtual)", kind: "list", max: 3, fields: [
+  { name: "headerButtons", label: "Botons de dalt (p. ex. Campus virtual, Àrea d'agremiats)", kind: "list", max: 3, fields: [
     { name: "label", label: "Text", kind: "ltext", required: true },
     { name: "url", label: "Enllaç (pot ser una web externa)", kind: "link", required: true },
-    { name: "style", label: "Aspecte", kind: "select", options: [{ value: "primary", label: "Destacat (vermell)" }, { value: "outline", label: "Contorn" }] },
+    { name: "style", label: "Aspecte", kind: "select", options: [{ value: "primary", label: "Destacat (fons blanc)" }, { value: "outline", label: "Discret (contorn)" }] },
   ] },
   { name: "social", label: "Xarxes socials (barra superior)", kind: "list", max: 6, fields: [
     { name: "network", label: "Xarxa", kind: "select", options: [{ value: "facebook", label: "Facebook" }, { value: "x", label: "X" }, { value: "instagram", label: "Instagram" }, { value: "youtube", label: "YouTube" }, { value: "linkedin", label: "LinkedIn" }] },
     { name: "url", label: "Enllaç", kind: "link", required: true },
   ] },
-  { name: "nav", label: "Menú principal (cada element pot tenir un submenú)", kind: "list", max: 8, fields: navFields },
+  { name: "nav", label: "Menú principal", kind: "list", max: 8, fields: navFields },
   { name: "footerText", label: "Text del peu de pàgina", kind: "ltext" },
   { name: "footerColumns", label: "Columnes del peu de pàgina", kind: "list", max: 4, fields: [
     { name: "title", label: "Títol de la columna", kind: "ltext", required: true },

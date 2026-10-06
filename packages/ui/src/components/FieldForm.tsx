@@ -10,8 +10,17 @@ export function emptyData(fields: Field[]): Data {
   return Object.fromEntries(fields.map((f) => [f.name, f.kind === "list" || f.kind === "blocks" ? [] : f.kind === "ltext" || f.kind === "ltextarea" ? { ca: "", es: "", en: "" } : f.kind === "select" ? f.options[0].value : ""]));
 }
 
-export function FieldForm({ fields, data, onChange, options }: {
-  fields: Field[]; data: Data; onChange: (next: Data) => void; options: Options;
+type Lang = "ca" | "es" | "en";
+
+// The text shown on a list item's header: its own label (in the chosen language, else Catalan) when it has one.
+const itemTitle = (item: Data, lang: Lang) => {
+  const l = (item.label ?? item.title) as Partial<Record<Lang, string>> | string | undefined;
+  return typeof l === "string" ? l : (l?.[lang] || l?.ca || "");
+};
+
+/** `lang` (optional): show only that language's box for translated fields, and name list items by their text. Without it, all three languages show (the default). */
+export function FieldForm({ fields, data, onChange, options, lang }: {
+  fields: Field[]; data: Data; onChange: (next: Data) => void; options: Options; lang?: Lang;
 }) {
   const set = (name: string, value: unknown) => onChange({ ...data, [name]: value });
   return (
@@ -39,7 +48,7 @@ export function FieldForm({ fields, data, onChange, options }: {
             return (
               <fieldset key={f.name} style={{ border: "none", padding: 0, margin: 0, display: "grid", gap: 6 }}>
                 <legend style={{ fontSize: 12, color: "var(--text2)", padding: 0, marginBottom: 4 }}>{f.label}{req}</legend>
-                {(["ca", "es", "en"] as const).map((l) => (
+                {(lang ? [lang] : (["ca", "es", "en"] as const)).map((l) => (
                   <label key={l} style={{ gridTemplateColumns: "34px 1fr", alignItems: "center" }}>
                     <span>{l.toUpperCase()}</span>
                     {f.kind === "ltextarea"
@@ -83,8 +92,8 @@ export function FieldForm({ fields, data, onChange, options }: {
                 <ListEditor
                   items={(v as Data[]) ?? []}
                   onChange={(next) => set(f.name, next)}
-                  title={(_, i) => `${f.label} ${i + 1}`}
-                  render={(item, update) => <FieldForm fields={f.fields} data={item} onChange={update} options={options} />}
+                  title={(item, i) => (lang && itemTitle(item, lang)) || `${f.label} ${i + 1}`}
+                  render={(item, update) => <FieldForm fields={f.fields} data={item} onChange={update} options={options} lang={lang} />}
                   add={{ label: "Afegeix", make: () => emptyData(f.fields) }}
                 />
               </div>
@@ -99,7 +108,7 @@ export function FieldForm({ fields, data, onChange, options }: {
                   items={(v as B[]) ?? []}
                   onChange={(next) => set(f.name, next)}
                   title={(b) => byName[b.type]?.label ?? b.type}
-                  render={(b, update) => <FieldForm fields={byName[b.type]?.fields ?? []} data={b.data} onChange={(data) => update({ ...b, data })} options={options} />}
+                  render={(b, update) => <FieldForm fields={byName[b.type]?.fields ?? []} data={b.data} onChange={(data) => update({ ...b, data })} options={options} lang={lang} />}
                   add={{ label: "Afegeix un bloc", options: f.blocks.map((d) => ({ value: d.name, label: d.label })), make: (type) => ({ id: crypto.randomUUID(), type, data: emptyData(byName[type].fields) }) }}
                 />
               </div>

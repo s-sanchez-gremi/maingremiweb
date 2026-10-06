@@ -14,7 +14,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const rows = await db.select().from(users).orderBy(asc(users.email));
   return (
     <>
-      <div className="top"><h1>Usuaris</h1></div>
+      <div className="top"><div><div className="crumb">Web</div><h1>Equip</h1><p className="lede">Qui pot entrar a l&apos;administració de la web.</p></div></div>
       <div className="body">
         {sp.error && <p role="alert" className="msg err">{sp.error}</p>}
         {sp.ok && <p role="status" className="msg ok">{sp.ok}</p>}
