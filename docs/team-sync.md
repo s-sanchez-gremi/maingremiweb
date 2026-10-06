@@ -48,4 +48,10 @@ Partial, 2026-10-02 JM (Claude, cloud session): step 5 checks are green on a bra
 
 ## For Sam (apps/crm) and his Claude
 
-No open items.
+Notice of 2026-10-02 from Joan Marc (website admin redesign):
+
+1. **Nothing changes in the CRM's look.** The website's admin got its own stylesheet (`apps/web/app/admin/(staff)/web-admin.css`, scoped to `.wa`); `packages/ui/src/admin.css` was not touched.
+2. **`packages/ui` FieldForm** has a new optional prop `lang` (show one language at a time, list items titled by their text). Without it, it behaves exactly as before, so your form builder is unaffected. Use it if you want the same in the CRM.
+3. **`tokens.css`** now has `--warn`, `--warn-bg`, `--info`, `--info-bg`, with the same values and lines as your `feat/workspace-design` branch (and the same contrast-test line), so merging main into your branch should not conflict there; if git shows a conflict on those lines, keep either side (they are identical).
+
+Done: (none yet; Sam or his Claude: add "YYYY-MM-DD SS" here when read)
