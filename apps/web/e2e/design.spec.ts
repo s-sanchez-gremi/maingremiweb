@@ -204,10 +204,10 @@ test.describe("navigation with dropdowns, header buttons and social links", () =
     await page.getByLabel("Contrasenya").fill(process.env.E2E_ADMIN_PASSWORD!);
     await page.getByRole("button", { name: "Entra" }).click();
     await expect(page.getByRole("heading", { name: "Tauler" })).toBeVisible();
-    await page.goto(`${ADMIN_URL}/admin/settings`);
+    await page.goto(`${ADMIN_URL}/admin/settings?tab=menu`);
     const form = page.locator("form").filter({ has: page.locator("input[name=data]") });
 
-    const NAV = "Menú principal (cada element pot tenir un submenú)";
+    const NAV = "Menú principal";
     const list = form.locator(".nested", { has: page.getByText(NAV, { exact: true }) }).first();
     const items = list.locator(":scope > .card"); // top-level menu entries only (not their submenu entries)
     const before = await items.count();
@@ -233,6 +233,7 @@ test.describe("navigation with dropdowns, header buttons and social links", () =
 
     // A top-level item with neither a link nor a submenu is refused.
     await page.goto(`${ADMIN_URL}/admin/settings`);
+    await page.getByRole("tab", { name: "Menú principal" }).click(); // the menu has its own tab
     const list2 = page.locator("form").filter({ has: page.locator("input[name=data]") }).locator(".nested", { has: page.getByText(NAV, { exact: true }) }).first();
     const items2 = list2.locator(":scope > .card");
     const n2 = await items2.count();

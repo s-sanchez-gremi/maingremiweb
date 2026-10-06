@@ -28,7 +28,7 @@ export default async function MediaPage({ searchParams }: { searchParams: Promis
   const filterHref = (k: T) => `/admin/media?${new URLSearchParams({ ...(q ? { q } : {}), ...(k === "all" ? {} : { t: k }) })}`;
   return (
     <>
-      <div className="top"><h1>Biblioteca de mitjans</h1></div>
+      <div className="top"><div><div className="crumb">Contingut</div><h1>Fitxers i imatges</h1><p className="lede">Puja imatges i documents i comparteix-ne l&apos;enllaç.</p></div></div>
       <div className="body" style={{ display: "grid", gap: 16 }}>
         {error && <p role="alert" className="msg err">{error}</p>}
         <Uploader />
