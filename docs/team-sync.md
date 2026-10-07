@@ -11,13 +11,17 @@ Nothing in `apps/web`, `apps/admin` or `packages/sections` changed in behaviour.
 3. **Shared files that changed:** `packages/core/src/client-ip.ts` is new: `clientIp()` (the visitor's address behind a proxy) moved there from `packages/forms/src/http.ts`, which now re-exports it, so `@apex/forms/http` and the website's test of it are unchanged. `e2e/playwright.config.ts` gives the sign server two variables. `.env.example` has `SIGN_SECRET`.
 4. The signer pages are public (`/sign/<token>` on the Signatures host); in production Caddy must leave `/sign/*` and `/_next/*` open while locking the staff screens (step S6 does this; nothing to do now).
 
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (migration renumbered: 0026_signatures is now 0027_signatures)
+
+Two migrations were merged as `0026` (forms analytics, #79, and signatures, #89). The signatures one is now **`0027_signatures.sql`** (same SQL). Nothing in your apps changes. Only if your **local** database already applied `0026_signatures` (the migrator records files by name, so it would try to create the `sign_*` tables again and fail): recreate the dev database, or run once `drop table sign_consents, sign_events, sign_fields, sign_signers, sign_requests, sign_documents cascade; delete from schema_migrations where name = '0026_signatures.sql';` and then `pnpm db:migrate`. No deployed or staging database has applied it (nothing has been deployed yet).
+
 Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 
 ## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (signatures app, step S2: tables, drafts)
 
 Nothing in `apps/web`, `apps/admin` or `packages/sections` changed. Do once, after merging `main`:
 
-1. `pnpm install` (new package `@apex/sign`, which brings `pdf-lib`) and `pnpm db:migrate` (migration 0026: six new `sign_*` tables, all additive; compatible with the previous version of every app, so apps can be released in any order). No data is touched.
+1. `pnpm install` (new package `@apex/sign`, which brings `pdf-lib`) and `pnpm db:migrate` (migration 0027: six new `sign_*` tables, all additive; compatible with the previous version of every app, so apps can be released in any order). No data is touched.
 2. **Shared files that changed (please look at them in the PR):** `db/grants.sql` (the new `sign_*` tables belong to `apex_sign`; its audit trail and consent tables are insert/select only), `packages/core/src/permissions.ts` (a new action `sign:write`: admin and editor, like `forms:write`; nothing else about `can()` changed), `packages/db/src/schema/index.ts` (exports the new `sign.ts`), `scripts/boundary-drill.sh`, `Dockerfile` (a `COPY` line for the new package) and `.github/CODEOWNERS`.
 3. The deployed environments need nothing new beyond the role `apex_sign` of the S1 notice below.
 
