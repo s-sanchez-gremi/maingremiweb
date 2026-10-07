@@ -13,7 +13,7 @@ export const PORTALS: Portal[] = [
   { key: "admin", title: "CMS de la web", description: "Pàgines, articles, fitxers i imatges, menú i configuració del web públic.", envVar: "ADMIN_URL" },
   { key: "crm", title: "CRM i espai de treball", description: "Contactes, empreses, projectes, tasques i gestió (ERP).", envVar: "CRM_URL" },
   { key: "forms", title: "Formularis", description: "Creació de formularis, respostes i integracions.", envVar: "FORMS_URL" },
-  { key: "esign", title: "Signatura electrònica", description: "Signatura de documents.", envVar: "ESIGN_URL", soon: true },
+  { key: "esign", title: "Signatura electrònica", description: "Signatura de documents.", envVar: "SIGN_URL", soon: true },
   { key: "site", title: "Web pública", description: "El web tal com el veuen els visitants.", envVar: "SITE_URL" },
 ];
 

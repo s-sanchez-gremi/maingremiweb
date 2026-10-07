@@ -53,7 +53,7 @@ export default defineConfig({
       // The Hub has no database: it only needs the addresses of the other apps (and no e-signature address, to show "coming soon").
       command: `${build}pnpm exec next start -p ${HUB_PORT}`,
       cwd: "../apps/hub", url: `${HUB_URL}/robots.txt`, timeout: 600_000, reuseExistingServer: false,
-      env: { ...base, NEXT_DIST_DIR: ".next-e2e", ADMIN_URL, CRM_URL, FORMS_URL, SITE_URL: WEB_URL, ESIGN_URL: "" },
+      env: { ...base, NEXT_DIST_DIR: ".next-e2e", ADMIN_URL, CRM_URL, FORMS_URL, SITE_URL: WEB_URL, SIGN_URL: "" },
     },
   ],
 });

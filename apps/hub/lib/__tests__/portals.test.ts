@@ -13,7 +13,7 @@ describe("safeUrl", () => {
 
 describe("tiles", () => {
   it("links every configured portal", () => {
-    const t = tiles({ ADMIN_URL: "http://a", CRM_URL: "http://c", FORMS_URL: "http://f", ESIGN_URL: "https://sign.example.org" });
+    const t = tiles({ ADMIN_URL: "http://a", CRM_URL: "http://c", FORMS_URL: "http://f", SIGN_URL: "https://sign.example.org" });
     expect(t.find((x) => x.key === "esign")).toMatchObject({ href: "https://sign.example.org", status: "ready" });
     expect(t.find((x) => x.key === "forms")).toMatchObject({ href: "http://f", status: "ready" });
   });

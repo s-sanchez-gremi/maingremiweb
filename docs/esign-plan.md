@@ -22,7 +22,7 @@ Why from scratch (decision 2026-10-07): it follows priorities 1 and 2 of `CLAUDE
 
 ## 4. Layout
 ```
-apps/sign/        staff screens (own login) + public /sign/<token> pages + API   (Sam, port 3004)
+apps/sign/        staff screens (own login) + public /sign/<token> pages + API   (Sam, port 3005; 3004 is the hub)
 packages/sign/    pure logic: state machine, field geometry, audit text, PDF stamping/sealing
 ```
 - `apps/sign` never imports another app and no app imports it (`scripts/check-boundaries.sh` + self-test extended). `packages/sign` never imports an app.
