@@ -6,6 +6,7 @@ import { CheckboxField } from "@apex/ui/components/Field";
 import { InlineText } from "@apex/ui/richtext";
 import { lt, type Item } from "@apex/forms/fieldTypes";
 import { fmt, msgs } from "@apex/forms/messages";
+import { prefillAnswers } from "@apex/forms/prefill";
 import { isVisible, shownSteps, toSteps, validateAnswers, type Answers } from "@apex/forms/validate";
 import type { PublicForm } from "../public-form";
 import type { Locale } from "@apex/db/schema";
@@ -166,6 +167,15 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
       .then((d) => { if (d && d.open === false) setClosedNow(true); })
       .catch(() => {});
   }, [form.checkOpen, form.slug]);
+
+  // A link made for this person (?empresa=…) fills in the fields staff allowed it to (see prefill.ts). Not when a saved draft or a sent response is being opened.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("resume") || params.has("edit")) return;
+    const filled = prefillAnswers(items, params);
+    if (Object.keys(filled).length) setValues((p) => ({ ...filled, ...p }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the page opens
+  }, []);
 
   // Opened from a "continue later" link: bring back what was saved (cleaned again by the server against the form as it is now).
   useEffect(() => {
