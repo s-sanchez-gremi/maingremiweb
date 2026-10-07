@@ -5,6 +5,7 @@ import { asc, isNull } from "drizzle-orm";
 import { clients, forms, projects } from "@apex/db/schema";
 import { formStats } from "@apex/forms/admin-data";
 import { stateOf } from "@apex/forms/availability";
+import { countDrafts } from "@apex/forms/drafts";
 import { dateToMadridLocal } from "@/lib/madrid-time";
 import type { FormSettings } from "@apex/forms/settings-fields";
 import { siteUrl } from "@apex/core/site-url";
@@ -19,7 +20,7 @@ export default async function EditForm({ params, searchParams }: { params: Promi
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const [f] = await db.select().from(forms).where(eq(forms.id, id));
   if (!f) notFound();
-  const stats = await formStats(id);
+  const [stats, drafts] = await Promise.all([formStats(id), countDrafts(id)]);
   const [projs, cls] = await Promise.all([db.select({ id: projects.id, name: projects.name }).from(projects).orderBy(asc(projects.name)), db.select({ id: clients.id, name: clients.name }).from(clients).where(isNull(clients.archivedAt)).orderBy(asc(clients.name))]);
   const n = f.notifications ?? {};
   const settings: FormSettings = {
@@ -31,10 +32,10 @@ export default async function EditForm({ params, searchParams }: { params: Promi
   return (
     <FormEditor
       initial={{ id, name: f.name, slug: f.slug, active: f.active, destination: f.destination, target: f.targetProjectId ? `project:${f.targetProjectId}` : f.targetClientId ? `client:${f.targetClientId}` : "", fields: f.fields as never, settings,
-        closesAt: f.closesAt ? dateToMadridLocal(f.closesAt) : "", maxResponses: f.maxResponses ? String(f.maxResponses) : "", redirectUrl: f.redirectUrl }}
+        allowDrafts: f.allowDrafts, closesAt: f.closesAt ? dateToMadridLocal(f.closesAt) : "", maxResponses: f.maxResponses ? String(f.maxResponses) : "", redirectUrl: f.redirectUrl }}
       state={stateOf(f, stats.submissions)}
       targets={{ projects: projs, clients: cls }}
-      stats={stats} site={siteUrl()}
+      stats={stats} drafts={drafts} site={siteUrl()}
       message={sp.error ? { kind: "err", text: sp.error } : sp.saved ? { kind: "ok", text: "Desat." } : null}
     />
   );

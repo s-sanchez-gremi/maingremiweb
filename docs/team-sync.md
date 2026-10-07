@@ -16,6 +16,16 @@
 
 Done: (none yet; Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 
+## For Joan Marc (apps/web) and his Claude — notice of 2026-10-07 from Sam (forms: save and resume, migration 0022)
+
+Forms can now let a visitor save progress and resume from a private link (`docs/forms-v2-plan.md`, item 4b; off unless staff switch it on per form). Your area is touched in **one line**: `apps/web/lib/content-queries.ts` (`publicForm()`) also passes `allowDraft` to the form shown on your pages, and the shared `FormRenderer` shows the *Desa i continua més tard* panel. Do once, after merging `main`:
+
+1. `pnpm db:migrate` (migration 0022: a `forms.allow_drafts` column and the new `form_drafts` table; additive, compatible with the previous version of every app).
+2. A new table means a line in `db/grants.sql` (done: `form_drafts` belongs to `apex_forms`; the website and the CRM cannot read it, proven by `scripts/boundary-drill.sh`).
+3. The resume link opens the page the form was on with `?resume=<secret>` (your pages need no change: the form reads it in the browser; ISR caching ignores query strings). Nothing new is stored in the browser, so nothing to add to the cookie registry.
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
 ## For Joan Marc (apps/web) and his Claude — notice of 2026-10-07 from Sam (forms: availability, migration 0021)
 
 Forms can now close on a date, close after N responses and redirect after submitting (`docs/forms-v2-plan.md`, item 4a). Your area is touched in **one place**: `apps/web/lib/content-queries.ts` (`publicForm()`) now also passes `checkOpen` and `redirectUrl` to the form shown on your pages, and the shared `FormRenderer` uses them. Do once, after merging `main`:

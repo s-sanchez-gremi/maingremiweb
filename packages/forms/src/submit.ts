@@ -1,8 +1,8 @@
 // The lead-capture pipeline. Everything the guide lists happens here, in this order:
 // validate → consent → files → (one transaction: submission, contact upsert, lead, newsletter opt-in, email outbox).
-import { count, eq, sql } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "@apex/db";
-import { forms, leads, newsletterOptins, submissions, type Answer, type Locale } from "@apex/db/schema";
+import { formDrafts, forms, leads, newsletterOptins, submissions, type Answer, type Locale } from "@apex/db/schema";
 import { deletePrivatePrefix, putPrivate } from "@apex/core/storage";
 import { enqueueEmail } from "@apex/core/outbox";
 import { siteUrl } from "@apex/core/site-url";
@@ -10,6 +10,7 @@ import { lt, type Item } from "./fieldTypes";
 import { classifyUpload, safeName, type Upload } from "@apex/core/files";
 import { answerText } from "./answer-text";
 import { availability } from "./availability";
+import { hashToken } from "./drafts";
 import { upsertContact } from "./contacts";
 import { msgs } from "./messages";
 import { MAX_FILE_BYTES, validateAnswers, type Answers, type Cleaned } from "./validate";
@@ -22,7 +23,7 @@ export type SubmitInput = {
   files: Record<string, Upload>;
   consent: boolean;
   newsletter: boolean;
-  meta: { sourcePath: string; sourceEntryId?: string | null; theme: string; utm: Record<string, string>; ipHash: string | null; challengeId: string | null };
+  meta: { sourcePath: string; sourceEntryId?: string | null; theme: string; utm: Record<string, string>; ipHash: string | null; challengeId: string | null; draftToken?: string | null };
 };
 export type SubmitResult =
   | { ok: true; id: string }
@@ -100,6 +101,8 @@ export async function processSubmission(input: SubmitInput): Promise<SubmitResul
         const [stored] = await tx.select({ n: count() }).from(submissions).where(eq(submissions.formId, form.id));
         if (stored.n >= form.maxResponses) throw new FormFull();
       }
+      // a draft saved for later is no longer needed once the form is sent
+      if (meta.draftToken) await tx.delete(formDrafts).where(and(eq(formDrafts.formId, form.id), eq(formDrafts.tokenHash, hashToken(meta.draftToken))));
       const contactId = wantsCrm ? await upsertContact(tx, { email: mapped.email, name: mapped.name, phone: mapped.phone, company: mapped.company, locale }) : null;
       const attach = form.destination === "project" ? { projectId: form.targetProjectId, clientId: form.targetClientId } : { projectId: null, clientId: null };
       await tx.insert(submissions).values({

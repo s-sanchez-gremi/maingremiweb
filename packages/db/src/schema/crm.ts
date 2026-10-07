@@ -27,6 +27,7 @@ export const forms = pgTable("forms", {
   closesAt: timestamp("closes_at", { withTimezone: true }),   // no new responses from this moment (null = no end date)
   maxResponses: integer("max_responses"),                       // no new responses once this many are stored (null = no limit)
   redirectUrl: text("redirect_url").notNull().default(""),      // where to send the visitor after submitting instead of showing the message ("" = show it)
+  allowDrafts: boolean("allow_drafts").notNull().default(false),    // visitors may save what they typed and resume later from a private link
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -118,6 +119,23 @@ export const contacts = pgTable("contacts", {
 });
 
 export type Answer = { id: string; type: string; label: string; value: unknown };
+
+// A visitor's saved progress on a long form (Forms v2, item 4b). Only the hash of the secret in the resume link is stored.
+export const formDrafts = pgTable("form_drafts", {
+  id: uuid().primaryKey().defaultRandom(),
+  formId: uuid("form_id").notNull().references(() => forms.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  answers: jsonb().$type<Record<string, unknown>>().notNull(),
+  step: integer().notNull().default(0),
+  locale: text().notNull(),
+  sourcePath: text("source_path").notNull().default(""),
+  emailHash: text("email_hash"),
+  ipHash: text("ip_hash"),
+  challengeId: text("challenge_id").unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});
 
 export const submissions = pgTable("submissions", {
   id: uuid().primaryKey().defaultRandom(),

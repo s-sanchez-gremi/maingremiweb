@@ -3,6 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "@apex/db";
 import { clients, contacts, formStarts, forms, newsletterOptins, submissions } from "@apex/db/schema";
 import { deletePrivatePrefix } from "@apex/core/storage";
+import { purgeDrafts } from "./drafts";
 
 export async function deleteSubmission(id: string) {
   await deletePrivatePrefix(`submissions/${id}/`);
@@ -22,6 +23,7 @@ export async function eraseContact(contactId: string) {
 
 export async function purgeIpHashes() {
   await db.execute(sql`update submissions set ip_hash = null where ip_hash is not null and created_at < now() - interval '24 hours'`);
+  await purgeDrafts(); // expired drafts, and the hashed addresses of drafts after 24 h
 }
 
 export async function recordStart(formId: string) {
