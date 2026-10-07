@@ -213,6 +213,8 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
 
   const current = steps[step];
   const shown = current.items.filter((it) => isVisible(items, it, values));
+  // results the visitor is allowed to see are worked out live by the very same function the server uses
+  const results = shown.some((it) => it.type === "calculated" && it.data.show === "yes") ? validateAnswers(items, answers(), locale).values : [];
   const errorCount = Object.keys(errors).length;
   const position = Math.max(0, going.indexOf(step));
 
@@ -234,7 +236,7 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
         if (edit && it.type === "file") return sent ? <div key={it.id} className="field"><strong>{lt(it.data.label, locale)}</strong><span className="hint">{fmt(t.fileKept, { name: sent.name })}</span></div> : null;
         const field = (
           <FieldInput
-            key={it.id} item={it} locale={locale} value={values[it.id] as never} error={errors[it.id]}
+            key={it.id} item={it} locale={locale} value={(it.type === "calculated" ? String(results.find((r) => r.id === it.id)?.value ?? "") : values[it.id]) as never} error={errors[it.id]}
             onChange={(v) => { setValues((p) => ({ ...p, [it.id]: v })); if (errors[it.id]) setErrors((p) => { const n = { ...p }; delete n[it.id]; return n; }); }}
             onFile={(f) => setFiles((p) => ({ ...p, [it.id]: f }))}
           />

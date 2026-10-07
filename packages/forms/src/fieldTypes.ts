@@ -2,6 +2,7 @@
 // and its input in components/site/form/Inputs.tsx. The builder UI and the stored-data validation are generated.
 import { z } from "zod";
 import { shape, type Field } from "@apex/core/fields";
+import { CALC_OPS, CALC_SOURCES, MAX_TERMS, calcOp, isNumberText, termsOf } from "./calculate";
 
 const yesNo = [{ value: "no", label: "No" }, { value: "yes", label: "Sí" }];
 const common: Field[] = [
@@ -47,7 +48,16 @@ const mapField: Field = {
   name: "map", label: "Guarda-ho al contacte com a", kind: "select",
   options: [{ value: "", label: "— res —" }, { value: "name", label: "Nom" }, { value: "email", label: "Correu" }, { value: "phone", label: "Telèfon" }, { value: "company", label: "Empresa" }],
 };
-const optionsField: Field = { name: "options", label: "Opcions", kind: "list", max: 30, fields: [{ name: "label", label: "Opció", kind: "ltext", required: true }] };
+const optionsField: Field = { name: "options", label: "Opcions", kind: "list", max: 30, fields: [{ name: "label", label: "Opció", kind: "ltext", required: true }, { name: "points", label: "Punts (opcional, per als camps calculats)", kind: "text" }] };
+const calcFields: Field[] = [
+  { name: "label", label: "Nom del resultat (el veuen el personal, les respostes i l'exportació)", kind: "ltext", required: true },
+  { name: "op", label: "Com es calcula", kind: "select", options: [{ value: "sum", label: "Suma" }, { value: "average", label: "Mitjana" }, { value: "min", label: "El més petit" }, { value: "max", label: "El més gran" }] },
+  { name: "terms", label: "Preguntes que compten (anteriors; un número o una nota val el que és, Sí = 1, No = 0, una casella marcada = 1, una opció els seus punts)", kind: "list", max: MAX_TERMS, fields: [
+    { name: "field", label: "Pregunta anterior", kind: "fieldref" }, { name: "weight", label: "Pes (per defecte 1; per exemple 2 la compta doble)", kind: "text" }] },
+  { name: "offset", label: "Sumar-hi un número fix (opcional)", kind: "text" },
+  { name: "decimals", label: "Decimals", kind: "select", options: [{ value: "0", label: "Cap" }, { value: "1", label: "Un" }, { value: "2", label: "Dos" }] },
+  { name: "show", label: "Qui ho veu", kind: "select", options: [{ value: "no", label: "Només el personal (queda desat amb la resposta, el visitant no el veu)" }, { value: "yes", label: "També el visitant, mentre omple el formulari" }] },
+];
 
 export type FormTypeDef = { name: string; label: string; fields: Field[]; input: boolean };
 
@@ -70,6 +80,7 @@ export const formTypeDefs: readonly FormTypeDef[] = [
   { name: "address", label: "Adreça (carrer, codi postal, població)", input: true, fields: [...common, ...logic] },
   { name: "heading", label: "Títol (només text, sense resposta)", input: false, fields: [{ name: "title", label: "Títol", kind: "ltext", required: true }, ...logic] },
   { name: "paragraph", label: "Paràgraf (només text, sense resposta)", input: false, fields: [{ name: "body", label: "Text (admet **negreta**, *cursiva*, [text](enllaç) i llistes amb «- »)", kind: "ltextarea", required: true }, ...logic] },
+  { name: "calculated", label: "Resultat calculat (total, puntuació, mitjana)", input: false, fields: calcFields },
   { name: "pagebreak", label: "Salt de pàgina", input: false, fields: [{ name: "title", label: "Títol del pas", kind: "ltext", required: true }, ...stepLogic] },
 ];
 export const formTypeByName: Record<string, FormTypeDef> = Object.fromEntries(formTypeDefs.map((d) => [d.name, d]));
@@ -118,9 +129,24 @@ export function checkDefinition(items: Item[], destination: string, target?: str
       else if (!c.value) issues.push(`«${label(item)}»${mark}: indica el valor de la condició`);
     }
     if (["dropdown", "choice"].includes(item.type)) {
+      if (((item.data.options as { points?: unknown }[]) ?? []).some((o) => !isNumberText(o.points))) issues.push(`«${label(item)}»: els punts de les opcions han de ser números`);
       const vals = optionValues(item);
       if (vals.length < 1) issues.push(`«${label(item)}»: afegeix almenys una opció`);
       if (new Set(vals).size !== vals.length) issues.push(`«${label(item)}»: hi ha opcions repetides`);
+    }
+    if (item.type === "calculated") {
+      const terms = termsOf(item), list = (Array.isArray(item.data.terms) ? item.data.terms : []) as Record<string, unknown>[];
+      if (!terms.length) issues.push(`«${label(item)}»: tria almenys una pregunta que compti`);
+      if (new Set(terms.map((t) => t.field)).size !== terms.length) issues.push(`«${label(item)}»: una pregunta apareix dues vegades`);
+      for (const t of terms) {
+        const src = seenBefore.get(t.field);
+        if (!src) issues.push(`«${label(item)}»: només poden comptar preguntes anteriors`);
+        else if (!CALC_SOURCES.includes(src.type)) issues.push(`«${label(item)}»: «${label(src)}» no es pot comptar (serveixen números, notes, Sí / No, caselles i opcions amb punts)`);
+        else if (["dropdown", "choice"].includes(src.type) && !((src.data.options as { points?: unknown }[]) ?? []).some((o) => String(o.points ?? "").trim() !== ""))
+          issues.push(`«${label(item)}»: les opcions de «${label(src)}» no tenen punts`);
+      }
+      if (list.some((t) => !isNumberText(t?.weight)) || !isNumberText(item.data.offset)) issues.push(`«${label(item)}»: els pesos i el número fix han de ser números`);
+      if (item.data.op !== undefined && !(CALC_OPS as readonly unknown[]).includes(calcOp(item))) issues.push(`«${label(item)}»: càlcul desconegut`);
     }
     if (item.type === "number") {
       const { min, max } = item.data as { min?: string; max?: string };
