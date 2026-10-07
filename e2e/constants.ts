@@ -6,11 +6,13 @@ export const WEB_PORT = 3100 + OFFSET;
 export const CRM_PORT = 3101 + OFFSET;
 export const FORMS_PORT = 3102 + OFFSET;
 export const ADMIN_PORT = 3103 + OFFSET;
-export const HUB_PORT = 3104 + OFFSET;
+export const SIGN_PORT = 3104 + OFFSET;
+export const HUB_PORT = 3105 + OFFSET;
 export const WEB_URL = `http://localhost:${WEB_PORT}`;
 export const CRM_URL = `http://localhost:${CRM_PORT}`;
 export const FORMS_URL = `http://localhost:${FORMS_PORT}`;
 export const ADMIN_URL = `http://localhost:${ADMIN_PORT}`;
+export const SIGN_URL = `http://localhost:${SIGN_PORT}`;
 export const HUB_URL = `http://localhost:${HUB_PORT}`;
 // E2E_DB_NAME lets two people (or two Claude sessions) on one machine run the suite at the same time without recreating each other's database.
 export const E2E_DB_NAME = process.env.E2E_DB_NAME ?? "apex_e2e";
@@ -22,6 +24,7 @@ export const E2E_WEB_DB = owner ? E2E_DB : `postgres://apex_web:e2e-web-password
 export const E2E_CRM_DB = owner ? E2E_DB : `postgres://apex_crm:e2e-crm-password@localhost:5432/${E2E_DB_NAME}`;
 export const E2E_FORMS_DB = owner ? E2E_DB : `postgres://apex_forms:e2e-forms-password@localhost:5432/${E2E_DB_NAME}`;
 export const E2E_ADMIN_DB = owner ? E2E_DB : `postgres://apex_admin:e2e-admin-password@localhost:5432/${E2E_DB_NAME}`;
+export const E2E_SIGN_DB = owner ? E2E_DB : `postgres://apex_sign:e2e-sign-password@localhost:5432/${E2E_DB_NAME}`;
 export const CRON_SECRET = "e2e-cron-secret-value";
 
 // Every test starts as a visitor who already answered the cookie banner ("reject all"), so the banner does not cover

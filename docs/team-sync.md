@@ -4,16 +4,27 @@
 
 ## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (new app: the Hub start page)
 
-A fifth app, `apps/hub`, is a start page linking to every portal (CMS admin, CRM, Forms, e-signature). It has no database and no login; nothing in `apps/web` or `apps/admin` changes. Do once, after merging `main`:
+A sixth app, `apps/hub`, is a start page linking to every portal (CMS admin, CRM, Forms, e-signature). It has no database and no login; nothing in `apps/web` or `apps/admin` changes. Do once, after merging `main`:
 
-1. `pnpm install` and link its env: `ln -sf ../../.env apps/hub/.env` (`pnpm dev` now also starts it on :3004; `./scripts/ci.sh` links it itself). Add `SIGN_URL=` (empty) to your `.env` (see `.env.example`).
+1. `pnpm install` and link its env: `ln -sf ../../.env apps/hub/.env` (`pnpm dev` now also starts it on :3005; `./scripts/ci.sh` links it itself). Add `SIGN_URL=` (empty) to your `.env` (see `.env.example`).
 2. **Deployed environments:** a new host `HUB_DOMAIN` (default `hub.<SITE_DOMAIN>`) needs its own DNS A record; new compose service `hub`, release tag `APEX_TAG_HUB`, `deploy.sh <tag> [all|web|admin|crm|forms|hub]`. The first release containing it is `deploy.sh <tag> all`. Details: `DEPLOY.md`, `deploy/ionos/*.env.example`.
 3. No migration, no grants change. E-signature is not built: its tile reads "coming soon" until `SIGN_URL` is set.
 4. Review note: `apps/hub` is reviewed by both of you (CODEOWNERS).
 
 Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 
-## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam: a sixth app is planned (e-signatures)
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (signatures app, step S1: the empty shell)
+
+`apps/sign` now exists as an empty shell (plan: `docs/esign-plan.md`); nothing in `apps/web`, `apps/admin` or `packages/*` changed. Do once, after merging `main`:
+
+1. `pnpm install` (the lockfile gained the new app). `pnpm dev` now also starts it on :3004 and links its `.env` itself. Add `SIGN_URL=http://localhost:3004` to your `.env` from `.env.example` (nothing uses it yet; it is for menu links later).
+2. Nothing for your local database (one all-powerful user). The e2e run creates the new role `apex_sign` by itself and starts a fifth server on port 3104 (`E2E_PORT_OFFSET` still shifts every port; the build in `scripts/ci.sh` takes a bit longer).
+3. **Deployed environments that use restricted database users** (`APPLY_GRANTS=1`): create the fifth role before the next release, `create role apex_sign login password '…';` (see `DEPLOY.md`), or `db/grants.sql` refuses to apply and the migration step stops the release. The Signatures app itself is not in the image's services yet (step S6), so no new host or variable is needed until then.
+4. Rule for your reviews: `apps/sign` never imports another app and no app imports it (`scripts/check-boundaries.sh` covers every app under `apps/` automatically; its self-test now includes it). It reads the shared `users`, `sessions`, `outbox`, `heartbeats` and `error_log` only (`db/grants.sql`).
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam: a fifth app is planned (e-signatures)
 
 Heads-up only, **nothing to do now and nothing in your apps changes.** We decided to build electronic signatures in-house as a separate app, `apps/sign` (plan: `docs/esign-plan.md`, merged in #74; the new section "Signatures app" in `CLAUDE.md` summarises it). It is Sam's area. What matters to you:
 

@@ -15,6 +15,7 @@ COPY apps/admin/package.json apps/admin/
 COPY apps/crm/package.json apps/crm/
 COPY apps/forms/package.json apps/forms/
 COPY apps/hub/package.json apps/hub/
+COPY apps/sign/package.json apps/sign/
 COPY packages/db/package.json packages/db/
 COPY packages/core/package.json packages/core/
 COPY packages/ui/package.json packages/ui/
