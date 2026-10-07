@@ -1,6 +1,6 @@
 # Plan: electronic signatures as its own app (`apps/sign`), built from scratch
 
-Status: **proposal 2026-10-07, not yet approved (decisions in section 9).** Same procedure as `docs/forms-app-plan.md`. Owner: Sam. Needs a read from Joan Marc only for the shared files (schema, grants, Caddy, deploy, CI, `CLAUDE.md`).
+Status: **S0 (plan, CLAUDE.md, notice) done 2026-10-07; S1 (scaffold `apps/sign`) done; S2 next. Decisions in section 9 are still open (they matter from S3 on).** Same procedure as `docs/forms-app-plan.md`. Owner: Sam. Needs a read from Joan Marc only for the shared files (schema, grants, Caddy, deploy, CI, `CLAUDE.md`).
 
 ## 1. Goal
 Staff send a PDF to one or more people to sign electronically; each signer signs from a link, with no account; Apex keeps a sealed PDF plus an audit trail. It is **ours, not a hosted or AGPL platform**: nothing to fork, no third-party service, evidence in our own database and private bucket.
