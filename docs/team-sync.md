@@ -82,6 +82,16 @@ Open question for you both (not urgent): the old CRM screens `/admin/clients` an
 Done: (none yet; Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 Partial, 2026-10-02 JM (Claude, cloud session): step 5 checks are green on a branch from current `main` (boundaries, lint, types, unit tests except the media test that needs the Docker S3 mock). Steps 1 and 2 still have to be run once on Joan Marc's own computer.
 
+## For Joan Marc (apps/admin) and his Claude — notice of 2026-10-07 from Sam: your login needs recreating
+
+A Docker drill run from a worktree on Sam's machine on 2026-10-05 destroyed the local dev database's volumes (wrong `COMPOSE_PROJECT_NAME`; see that machine's memory note on it). It has since been restored from a 2026-10-02 backup, but that backup predates your account, so your staff login on Sam's machine is gone.
+
+1. Ask Sam to recreate your user there: `PASSWORD=... pnpm --filter admin user:create <your-email> admin` (or `editor`). If you run your own local database instead, it is unaffected — this only hit Sam's machine.
+2. Anything changed in the CRM/workspace data between 2026-10-02 and 2026-10-05 on that machine is gone with it. Content (entries, media, categories, settings) is unaffected either way.
+3. That machine now has a daily `pg_dump` (kept 14 days, two locations) so a repeat is recoverable; still worth each of you having your own regular local backup if you rely on imported data.
+
+Done: (none yet; Joan Marc: add "YYYY-MM-DD JM" here when your login works again)
+
 ## For Sam (apps/crm) and his Claude
 
 Notice of 2026-10-02 from Joan Marc (website admin redesign):
