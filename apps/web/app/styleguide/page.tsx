@@ -6,6 +6,8 @@ import { notFound } from "next/navigation";
 import { Button } from "@apex/ui/components/Button";
 import { Card } from "@apex/ui/components/Card";
 import { CheckboxField, RadioGroup, SelectField, TextAreaField, TextField } from "@apex/ui/components/Field";
+import { APPS, type AppKey } from "@apex/ui/appmark";
+import { AppMark } from "@apex/ui/components/AppMark";
 import { contrast, readColorTokens } from "@/lib/contrast";
 import { SectionRenderer } from "@/sections/render";
 import type { Section } from "@apex/sections/registry";
@@ -49,6 +51,20 @@ export default function Styleguide() {
           <ul style={{ margin: 0, paddingLeft: 18 }}>
             {pairs.map(([f, b]) => <li key={f + b}>{f} sobre {b}: <strong>{contrast(tokens[f], tokens[b]).toFixed(2)}:1</strong></li>)}
           </ul>
+        </section>
+
+        <section className="block" aria-labelledby="sg-identity">
+          <div className="sec-head"><h2 id="sg-identity">Identitat: una tinta per aplicació</h2></div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
+            {(Object.keys(APPS) as AppKey[]).map((k) => (
+              <div key={k} style={{ display: "grid", gap: 8, justifyItems: "start" }}>
+                <AppMark app={k} size={64} />
+                <AppMark app={k} size={32} />
+                <AppMark app={k} size={16} />
+                <small>{APPS[k].label} {APPS[k].spot}</small>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="block" aria-labelledby="sg-type">

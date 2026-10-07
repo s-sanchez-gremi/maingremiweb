@@ -6,7 +6,7 @@ export const metadata = { title: "Apex — backend", robots: { index: false, fol
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ca">
+    <html lang="ca" data-app="admin">
       <body style={{ margin: 0 }}>
         <div className="admin wa">{children}</div>
       </body>

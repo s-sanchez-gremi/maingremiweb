@@ -19,6 +19,17 @@
   --ink-text: #F3EEE6;      /* text on dark panels */
   --line: #D8D0C1;          /* decorative dividers and card borders (never the only cue for a control) */
   --field-border: #857E76;  /* input/checkbox outlines: >= 3:1 on every light background (WCAG 1.4.11) */
+  /* Identity (docs/identity-plan.md): one spot ink per app, named after printing inks. Components read only --spot / --on-spot,
+     which an app's root element selects with data-app="web|admin|crm|forms|hub|sign" (see the end of this file). Yellow is a FILL with ink
+     text only (white on it is 1.5:1); never use it as text or as the only border on a light background. Contrast is tested. */
+  --spot-web: #D50032;
+  --spot-admin: #00698F;
+  --spot-crm: #B3005F;
+  --spot-forms: #FFD200;
+  --spot-hub: #1A1715;
+  --spot-sign: #5A3FA3;
+  --on-spot-light: #FFFFFF;  /* text on every ink except forms */
+  --on-spot-forms: #1A1715;  /* text on the yellow */
   --cmyk-c: #00A0DC;        /* decorative print strip only, never text */
   --cmyk-m: #E4007C;
   --cmyk-y: #FFDD00;
@@ -54,6 +65,15 @@
   --tap: 44px;              /* minimum touch target */
   --focus: 2px solid var(--accent);
 }
+
+/* Which ink an app wears. Only the app marks read --spot for now; each app switches --accent to it in its own rollout step. */
+[data-app] { --spot: var(--accent); --on-spot: var(--on-spot-light); }
+[data-app="web"] { --spot: var(--spot-web); }
+[data-app="admin"] { --spot: var(--spot-admin); }
+[data-app="crm"] { --spot: var(--spot-crm); }
+[data-app="forms"] { --spot: var(--spot-forms); --on-spot: var(--on-spot-forms); }
+[data-app="hub"] { --spot: var(--spot-hub); }
+[data-app="sign"] { --spot: var(--spot-sign); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
