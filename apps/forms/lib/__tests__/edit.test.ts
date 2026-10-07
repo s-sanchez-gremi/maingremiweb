@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "@apex/db";
 import { contacts, forms, outbox, submissions } from "@apex/db/schema";
 import type { Item } from "@apex/forms/fieldTypes";
@@ -204,7 +204,7 @@ describe("saving changes", () => {
     const f = await make();
     const s = await send(f);
     await applyEdit(f, s.editToken, { locale: "ca", answers: { [name.id]: "Núria Soler", [notes.id]: "Versió corregida", [yn.id]: "yes", [why.id]: "Seat" } });
-    const m = (await db.select().from(outbox)).filter((x) => (x.payload as { to: string }).to === STAFF && (x.payload as { subject: string }).subject.startsWith("Resposta modificada"));
+    const m = (await db.select().from(outbox).orderBy(asc(outbox.id))).filter((x) => (x.payload as { to: string }).to === STAFF && (x.payload as { subject: string }).subject.startsWith("Resposta modificada"));
     const body = (m[m.length - 1].payload as { text: string }).text;
     expect(body).toContain("Notes: Primera versió → Versió corregida");
     expect(body).not.toContain("Nom:"); // unchanged fields are not listed
