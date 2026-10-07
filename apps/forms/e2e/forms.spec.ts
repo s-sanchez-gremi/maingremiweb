@@ -1041,3 +1041,47 @@ test("records destination: a registration form signs people up to an event in th
   await expect(page.getByText("Inscripció: Gala e2e 2 (creat)")).toBeVisible();
   expect(await count("event_attendance", sql`where event_id = ${ev2.id}`)).toBe(1);
 });
+
+test("prefill from the link: only the fields staff named are filled, bad values are ignored, the visitor can change them, the editor checks the names", async ({ page }) => {
+  const nom = F("text", { label: L("Nom"), required: "yes", prefill: "nom" });
+  const em = F("email", { label: L("Correu"), required: "yes", prefill: "correu" });
+  const lvl = F("dropdown", { label: L("Nivell"), prefill: "nivell", options: [{ label: L("Bàsic") }, { label: L("Premium") }] });
+  const free = F("text", { label: L("Comentari") }); // no link name: never filled
+  const id = await seedForm("prefill-e2e", [nom, em, lvl, free], { consent: L("Accepto") });
+
+  await page.goto(WEB + "/ca/form/prefill-e2e?nom=Anna%20Puig&correu=anna@e2e.test&nivell=Inexistent&comentari=intr%C3%BAs&utm_source=correu");
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByLabel(/^Nom/)).toHaveValue("Anna Puig");
+  await expect(page.getByLabel(/^Correu/)).toHaveValue("anna@e2e.test");
+  await expect(page.getByLabel(/^Nivell/)).toHaveValue(""); // not an option: ignored
+  await expect(page.getByLabel(/^Comentari/)).toHaveValue(""); // not whitelisted: ignored
+
+  // it is only a starting point: the visitor changes it and the server checks what is sent
+  await page.getByLabel(/^Nom/).fill("Anna Puig Soler");
+  await page.getByLabel(/^Nivell/).selectOption("Premium");
+  await page.getByLabel("Accepto").check();
+  await page.getByRole("button", { name: "Envia" }).click();
+  await expect(page.getByRole("status")).toContainText("Gràcies");
+  const [sub] = await sql`select answers, utm from submissions where form_id = ${id}`;
+  const by = Object.fromEntries(sub.answers.map((a: { label: string; value: unknown }) => [a.label, a.value]));
+  expect(by).toMatchObject({ Nom: "Anna Puig Soler", Correu: "anna@e2e.test", Nivell: "Premium" });
+  expect(sub.utm).toMatchObject({ utm_source: "correu" }); // the campaign tags still work next to it
+
+  // the editor: the setting is on the field, and a clashing or reserved name is refused
+  await login(page);
+  await page.goto(`/admin/forms/${id}`);
+  const field = page.locator(".col-main > .card").nth(1); // the first field (card 0 is the name/slug card)
+  const key = field.getByLabel(/^Nom a l'enllaç per omplir-lo/);
+  await expect(key).toHaveValue("nom");
+  await key.fill("utm_source");
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("està reservat");
+  await key.fill("correu"); // already used by the second field
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("ja l'usa");
+  await key.fill("nom-complet");
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Desat");
+  const [row] = await sql`select fields from forms where id = ${id}`;
+  expect(row.fields[0].data.prefill).toBe("nom-complet");
+});
