@@ -24,6 +24,9 @@ export const forms = pgTable("forms", {
   consent: jsonb().$type<LText>().notNull().default({}),
   confirmation: jsonb().$type<LText>().notNull().default({}),
   newsletter: jsonb().$type<{ enabled?: boolean; text?: LText }>().notNull().default({}),
+  closesAt: timestamp("closes_at", { withTimezone: true }),   // no new responses from this moment (null = no end date)
+  maxResponses: integer("max_responses"),                       // no new responses once this many are stored (null = no limit)
+  redirectUrl: text("redirect_url").notNull().default(""),      // where to send the visitor after submitting instead of showing the message ("" = show it)
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

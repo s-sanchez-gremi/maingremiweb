@@ -16,6 +16,16 @@
 
 Done: (none yet; Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 
+## For Joan Marc (apps/web) and his Claude — notice of 2026-10-07 from Sam (forms: availability, migration 0021)
+
+Forms can now close on a date, close after N responses and redirect after submitting (`docs/forms-v2-plan.md`, item 4a). Your area is touched in **one place**: `apps/web/lib/content-queries.ts` (`publicForm()`) now also passes `checkOpen` and `redirectUrl` to the form shown on your pages, and the shared `FormRenderer` uses them. Do once, after merging `main`:
+
+1. `pnpm db:migrate` (migration 0021: three additive columns on `forms`; compatible with the previous version of every app, so apps can be released in any order).
+2. Nothing else. Published pages refresh as before (the Forms app calls your revalidate endpoint when a form is saved). A form with an end date or a limit asks the Forms app `/api/forms/<slug>/status` when its page opens (the website's cached page cannot know), so your pages never need to be refreshed because a date passed or a limit was reached.
+3. Side observation, not changed: the CMS's scheduled publishing builds its date with `new Date(<datetime-local value>)`, which uses the *server's* time zone, not Catalonia's; forms do not have that problem (`apps/forms/lib/madrid-time.ts`). Worth a look if editors schedule pages near midnight.
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
 ## For Joan Marc (apps/web) and his Claude — notice of 2026-10-05 from Sam (forms app, step F3: deploy)
 
 The image, compose files, Caddy, `deploy.sh`, the release workflow and the drills now know the Forms app. Nothing changes in `apps/web`. What it means for deployments (details: `DEPLOY.md`, "First deployment of the Forms app"):

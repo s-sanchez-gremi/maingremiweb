@@ -6,6 +6,7 @@ import { formStats } from "@apex/forms/admin-data";
 import { outboxCounts } from "@apex/core/outbox";
 import { copyForm, createForm } from "./actions";
 import { formTemplates } from "@/lib/form-templates";
+import { stateOf } from "@apex/forms/availability";
 
 const dest = { crm_lead: "Contacte + lead al CRM", project: "Projecte / client", responses_only: "Només respostes" } as const;
 
@@ -44,7 +45,7 @@ export default async function FormsPage() {
                   <td>{dest[f.destination]}</td>
                   <td><Link href={`/admin/forms/${f.id}/submissions`}>{stats[i].submissions}</Link></td>
                   <td>{stats[i].completion === null ? "—" : `${Math.round(stats[i].completion! * 100)}%`}</td>
-                  <td><span className={f.active ? "chip ok" : "chip"}>{f.active ? "Actiu" : "Tancat"}</span></td>
+                  <td>{(() => { const st = stateOf(f, stats[i].submissions); return <span className={st === "open" ? "chip ok" : "chip"}>{{ open: "Actiu", closed: "Tancat", expired: "Tancat per data", full: "Complet" }[st]}</span>; })()}</td>
                   <td>
                     <form action={copyForm}>
                       <input type="hidden" name="id" value={f.id} />

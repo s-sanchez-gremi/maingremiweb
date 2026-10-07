@@ -14,8 +14,12 @@ export async function solveChallenge(c: Challenge): Promise<number> {
   throw new Error("challenge unsolved");
 }
 
+/** The form stopped accepting responses (end date reached, or full) after the page was loaded or cached. */
+export class FormClosedError extends Error {}
+
 export async function fetchSolution(slug: string) {
   const res = await fetch(`/api/forms/${slug}/challenge`, { cache: "no-store" });
+  if (res.status === 410) throw new FormClosedError("closed");
   if (!res.ok) throw new Error("challenge unavailable");
   const c = (await res.json()) as Challenge;
   return { ...c, number: await solveChallenge(c) };

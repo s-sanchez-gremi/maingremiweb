@@ -1,6 +1,6 @@
 "use client";
 // The public form. Validation runs in the browser for instant feedback, but the server re-validates everything.
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@apex/ui/components/Button";
 import { CheckboxField } from "@apex/ui/components/Field";
 import { InlineText } from "@apex/ui/richtext";
@@ -10,7 +10,7 @@ import { isVisible, shownSteps, toSteps, validateAnswers, type Answers } from "@
 import type { PublicForm } from "../public-form";
 import type { Locale } from "@apex/db/schema";
 import { FieldInput } from "./Inputs";
-import { fetchSolution } from "./pow-client";
+import { FormClosedError, fetchSolution } from "./pow-client";
 
 export type Source = { path: string; entryId?: string | null; theme: string };
 type Solution = Awaited<ReturnType<typeof fetchSolution>>;
@@ -30,6 +30,7 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
   const [step, setStep] = useState(0);
   const [status, setStatus] = useState<"idle" | "sending" | "done">("idle");
   const [banner, setBanner] = useState("");
+  const [closedNow, setClosedNow] = useState(false); // the form closed after this page was loaded (or cached)
   const started = useRef(false);
   const pow = useRef<Promise<Solution> | null>(null);
   const head = useRef<HTMLHeadingElement>(null);
@@ -48,7 +49,7 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
     started.current = true;
     fetch(`/api/forms/${form.slug}/start`, { method: "POST", keepalive: true }).catch(() => {});
     pow.current = fetchSolution(form.slug);
-    pow.current.catch(() => {});
+    pow.current.catch((e) => { if (e instanceof FormClosedError) setClosedNow(true); });
   };
 
   const answers = (): Answers => {
@@ -99,7 +100,13 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
       }));
       for (const it of items) { const f = files[it.id]; if (it.type === "file" && f && isVisible(items, it, values)) body.append(`file:${it.id}`, f); }
       const res = await fetch(`/api/forms/${form.slug}/submit`, { method: "POST", body });
-      if (res.ok) { setStatus("done"); setTimeout(() => done.current?.focus(), 30); return; }
+      if (res.ok) {
+        setStatus("done");
+        const to = form.redirectUrl;
+        if (to && (/^\/(?![/\\])/.test(to) || /^https?:\/\//i.test(to))) { window.location.assign(to); return; } // the message below stays as the fallback
+        setTimeout(() => done.current?.focus(), 30);
+        return;
+      }
       const data = await res.json().catch(() => ({}));
       setStatus("idle");
       if (res.status === 422 && data.errors) {
@@ -108,6 +115,7 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
         if (f) { const s = stepOf(f); if (s >= 0) setStep(s); focusField(f); }
         setBanner(data.errors._form ?? "");
       } else setBanner(data.message ?? t.sendError);
+      if (res.status === 410) setClosedNow(true);
       if (res.status === 400) pow.current = fetchSolution(form.slug); // a fresh token for the retry
     } catch {
       setStatus("idle");
@@ -116,7 +124,17 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
     }
   }
 
-  if (!form.active) return <p className="empty">{t.closed}</p>;
+  // A page cached earlier cannot know that the end date has passed or that the last place was taken: ask when the page opens (never while someone is
+  // filling it in, and never from the visitor's own clock). Only forms with an end date or a limit need to; any failure leaves the form usable.
+  useEffect(() => {
+    if (!form.checkOpen) return;
+    fetch(`/api/forms/${form.slug}/status`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d && d.open === false) setClosedNow(true); })
+      .catch(() => {});
+  }, [form.checkOpen, form.slug]);
+
+  if (!form.active || closedNow) return <p className="empty">{t.closed}</p>;
   if (status === "done") {
     return <div className="form-done" role="status" tabIndex={-1} ref={done}><p>{lt(form.confirmation, locale) || t.thanks}</p></div>;
   }
@@ -130,6 +148,7 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
     <form ref={root} className="apex-form" noValidate onSubmit={submit} onFocusCapture={begin} onPointerDown={begin} aria-label={lt(form.title, locale) || form.name}>
       {going.length > 1 && (
         <div>
+          <progress max={going.length} value={position + 1} aria-label={fmt(t.stepOf, { a: position + 1, b: going.length })} style={{ width: "100%", height: 8, accentColor: "var(--accent)" }} />
           <p className="hint">{fmt(t.stepOf, { a: position + 1, b: going.length })}</p>
           {current.page && <h2 className="step-title" tabIndex={-1} ref={head}>{lt(current.page.data.title, locale)}</h2>}
         </div>

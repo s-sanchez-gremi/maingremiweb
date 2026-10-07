@@ -4,6 +4,8 @@ import { db } from "@apex/db";
 import { asc, isNull } from "drizzle-orm";
 import { clients, forms, projects } from "@apex/db/schema";
 import { formStats } from "@apex/forms/admin-data";
+import { stateOf } from "@apex/forms/availability";
+import { dateToMadridLocal } from "@/lib/madrid-time";
 import type { FormSettings } from "@apex/forms/settings-fields";
 import { siteUrl } from "@apex/core/site-url";
 import { FormEditor } from "./FormEditor";
@@ -28,7 +30,9 @@ export default async function EditForm({ params, searchParams }: { params: Promi
   };
   return (
     <FormEditor
-      initial={{ id, name: f.name, slug: f.slug, active: f.active, destination: f.destination, target: f.targetProjectId ? `project:${f.targetProjectId}` : f.targetClientId ? `client:${f.targetClientId}` : "", fields: f.fields as never, settings }}
+      initial={{ id, name: f.name, slug: f.slug, active: f.active, destination: f.destination, target: f.targetProjectId ? `project:${f.targetProjectId}` : f.targetClientId ? `client:${f.targetClientId}` : "", fields: f.fields as never, settings,
+        closesAt: f.closesAt ? dateToMadridLocal(f.closesAt) : "", maxResponses: f.maxResponses ? String(f.maxResponses) : "", redirectUrl: f.redirectUrl }}
+      state={stateOf(f, stats.submissions)}
       targets={{ projects: projs, clients: cls }}
       stats={stats} site={siteUrl()}
       message={sp.error ? { kind: "err", text: sp.error } : sp.saved ? { kind: "ok", text: "Desat." } : null}

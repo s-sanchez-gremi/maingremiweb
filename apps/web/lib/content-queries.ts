@@ -105,6 +105,7 @@ export async function queryAllLive() {
 export type { PublicForm };
 const publicForm = (f: typeof forms.$inferSelect): PublicForm => ({
   id: f.id, slug: f.slug, name: f.name, title: f.title, active: f.active, items: f.fields, consent: f.consent, confirmation: f.confirmation,
+  checkOpen: f.closesAt !== null || f.maxResponses !== null, redirectUrl: f.redirectUrl,
   newsletter: { enabled: !!f.newsletter?.enabled, text: f.newsletter?.text ?? {} },   // notifications (staff addresses) are deliberately left out
 });
 export async function queryFormBySlug(slug: string): Promise<PublicForm | null> {
