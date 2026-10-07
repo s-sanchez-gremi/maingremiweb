@@ -1130,7 +1130,7 @@ test("calculated fields: build one in the editor, the visitor sees the total liv
   await expect(out).toHaveText("6");
   await page.getByLabel("Accepto").check();
   await page.getByRole("button", { name: "Envia" }).click();
-  await expect(page.getByRole("status")).toContainText("Gràcies");
+  await expect(page.getByRole("status").filter({ hasText: "Gràcies" })).toBeVisible(); // the live total is an <output>, which is also a status
 
   const [sub] = await sql`select answers from submissions where form_id = ${id}`;
   expect(sub.answers.find((a: { type: string }) => a.type === "calculated")).toMatchObject({ label: "Total de punts", value: 6 });
