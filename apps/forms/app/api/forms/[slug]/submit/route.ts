@@ -7,6 +7,7 @@ import { processSubmission } from "@apex/forms/submit";
 import { editDeadline, editLink } from "@apex/forms/edit";
 import { msgs } from "@apex/forms/messages";
 import { processOutbox } from "@apex/core/outbox";
+import { processWebhooks } from "@apex/forms/webhooks";
 import type { Upload } from "@apex/core/files";
 
 export const dynamic = "force-dynamic";
@@ -60,7 +61,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     if (result.code === "replay") return json({ error: "bot", message: t.botFail }, 400);
     return json({ error: "invalid", errors: result.errors }, 422);
   }
-  after(() => processOutbox().catch((e) => console.error("outbox after submit failed", e))); // send the emails now; the cron retries failures
+  after(async () => { // send the emails and tell the webhooks now; the cron retries failures
+    await processOutbox().catch((e) => console.error("outbox after submit failed", e));
+    await processWebhooks().catch((e) => console.error("webhooks after submit failed", e));
+  });
   // forms that allow edits: the respondent's private link, shown once on the thank-you screen (and mailed with the confirmation)
   if (result.editToken) {
     const link = editLink({ sourcePath: cleanPath(payload.sourcePath), locale, slug: form.slug, token: result.editToken });

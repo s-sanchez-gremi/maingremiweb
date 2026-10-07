@@ -121,6 +121,30 @@ export const contacts = pgTable("contacts", {
 
 export type Answer = { id: string; type: string; label: string; value: unknown };
 
+// Webhooks (Forms v2, item 5): endpoints a form tells about new and changed responses, and the queue of deliveries to them.
+export const formWebhooks = pgTable("form_webhooks", {
+  id: uuid().primaryKey().defaultRandom(),
+  formId: uuid("form_id").notNull().references(() => forms.id, { onDelete: "cascade" }),
+  url: text().notNull(),
+  secret: text().notNull(),
+  enabled: boolean().notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+export const webhookDeliveries = pgTable("webhook_deliveries", {
+  id: uuid().primaryKey().defaultRandom(),
+  webhookId: uuid("webhook_id").notNull().references(() => formWebhooks.id, { onDelete: "cascade" }),
+  submissionId: uuid("submission_id"), // FK to submissions (on delete cascade) is enforced in SQL (migration 0024); declared after `submissions` would need a forward reference
+  event: text().notNull(),
+  payload: jsonb().$type<Record<string, unknown>>().notNull(),
+  status: text().$type<"pending" | "sent" | "dead">().notNull().default("pending"),
+  attempts: integer().notNull().default(0),
+  runAfter: timestamp("run_after", { withTimezone: true }).notNull().defaultNow(),
+  lastStatus: integer("last_status"),
+  lastError: text("last_error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+});
+
 // A visitor's saved progress on a long form (Forms v2, item 4b). Only the hash of the secret in the resume link is stored.
 export const formDrafts = pgTable("form_drafts", {
   id: uuid().primaryKey().defaultRandom(),

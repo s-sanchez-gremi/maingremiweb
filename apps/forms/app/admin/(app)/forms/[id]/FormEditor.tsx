@@ -146,6 +146,7 @@ export function FormEditor({ initial, stats, drafts, site, message, targets, sta
               {initial.allowDrafts && <div className="row"><span className="hint">Esborranys pendents</span><strong>{drafts}</strong></div>}
               <div className="row"><span className="hint">Taxa de finalització</span><strong>{stats.completion === null ? "—" : `${Math.round(stats.completion * 100)}%`}</strong></div>
               <Link href={`/admin/forms/${initial.id}/submissions`} className="btn" style={{ textAlign: "center" }}>Veure les respostes</Link>
+              <Link href={`/admin/forms/${initial.id}/integrations`} className="btn" style={{ textAlign: "center" }}>Integracions (webhooks)</Link>
               <a href={`/admin/forms/${initial.id}/export`} style={{ color: "var(--accent)", fontWeight: 600, fontSize: 13 }}>Exporta com a full de càlcul (CSV) →</a>
             </div>
 
