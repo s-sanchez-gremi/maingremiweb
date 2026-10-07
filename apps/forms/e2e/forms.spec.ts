@@ -22,6 +22,8 @@ async function login(page: Page) {
 }
 
 async function seedForm(slug: string, fields: unknown[], over: Record<string, unknown> = {}) {
+  // The spam rate limit counts 20 submissions an hour per address across ALL forms, and this suite sends more than that from one address: forget the old ones (each rate-limit test counts its own, after seeding).
+  await sql`update submissions set ip_hash = null where ip_hash is not null`;
   const [f] = await sql`insert into forms (name, slug, fields, destination, active, notifications, consent, newsletter, confirmation)
     values (${"Form " + slug}, ${slug}, ${sql.json(fields as never)}, ${(over.destination as string) ?? "responses_only"}, ${(over.active as boolean | undefined) ?? true},
             ${sql.json((over.notifications ?? {}) as never)}, ${sql.json((over.consent ?? {}) as never)}, ${sql.json((over.newsletter ?? {}) as never)}, ${sql.json({} as never)})
