@@ -17,7 +17,7 @@ const TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
-export { hashPassword, verifyPassword } from "./password";
+export { hashPassword, verifyPassword, checkPassword } from "./password";
 
 export async function createSession(userId: string) {
   const token = randomBytes(32).toString("base64url");
@@ -56,14 +56,21 @@ export async function requireUser(action?: Action) {
 }
 
 // Login throttle: 5 failures per email per 15 min (in-memory; fine for a single instance).
+// The map is capped (expired entries are dropped first) so spraying random emails cannot grow memory without limit.
 const fails = new Map<string, { n: number; until: number }>();
+const MAX_TRACKED = 10_000;
+function prune() {
+  const now = Date.now();
+  for (const [k, v] of fails) if (v.until < now) fails.delete(k);
+  while (fails.size >= MAX_TRACKED) fails.delete(fails.keys().next().value as string); // oldest first
+}
 export function loginBlocked(email: string) {
   const f = fails.get(email);
   return !!f && f.n >= 5 && f.until > Date.now();
 }
 export function loginFailed(email: string) {
   const f = fails.get(email);
-  if (!f || f.until < Date.now()) fails.set(email, { n: 1, until: Date.now() + 15 * 60 * 1000 });
+  if (!f || f.until < Date.now()) { if (fails.size >= MAX_TRACKED) prune(); fails.set(email, { n: 1, until: Date.now() + 15 * 60 * 1000 }); }
   else f.n++;
 }
 export const loginSucceeded = (email: string) => fails.delete(email);
