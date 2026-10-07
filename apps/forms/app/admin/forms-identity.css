@@ -1,0 +1,22 @@
+/* Forms wears the yellow ink (docs/identity-plan.md). Yellow is a FILL with ink text (12.3:1); on light backgrounds it is never text
+   and never the only border (1.3:1), so those places use the ink. Scoped to data-app="forms"; the shared admin.css is untouched. */
+[data-app="forms"] .admin .btn.primary { background: var(--spot); border-color: var(--ink); color: var(--on-spot); }
+[data-app="forms"] .admin .btn.primary:hover { background: color-mix(in srgb, var(--spot) 82%, var(--ink)); }
+[data-app="forms"] .admin .btn.link { color: var(--ink); text-decoration: underline; }
+[data-app="forms"] .admin input:focus,
+[data-app="forms"] .admin select:focus,
+[data-app="forms"] .admin textarea:focus,
+[data-app="forms"] .admin .main button:focus-visible,
+[data-app="forms"] .admin .main a:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+/* on the dark side menu the yellow is the visible one */
+[data-app="forms"] .admin .side a:focus-visible,
+[data-app="forms"] .admin .side button:focus-visible { outline: 2px solid var(--spot); outline-offset: 1px; }
+[data-app="forms"] .admin .nav a[aria-current=page] { border-left-color: var(--spot); }
+[data-app="forms"] .admin .add { border-color: var(--ink); }
+[data-app="forms"] .admin .add strong { color: var(--ink); background: var(--spot); padding: 1px 6px; border-radius: 2px; }
+[data-app="forms"] .admin .b-grid button:hover { border-color: var(--ink); color: var(--ink); }
+[data-app="forms"] .admin .logo { display: flex; align-items: center; gap: 10px; font-size: 16px; letter-spacing: 0; }
+[data-app="forms"] .admin .logo small { font: 500 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-text); display: block; }
+[data-app="forms"] .admin .login { max-width: 360px; margin: 96px auto; padding: 0 16px; display: grid; gap: 16px; }
+[data-app="forms"] .admin .login h1 { font: 600 var(--fs-h2)/1.15 var(--serif); }
+[data-app="forms"] .admin .login .brand { display: flex; align-items: center; gap: 10px; }

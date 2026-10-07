@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EmptyState } from "@apex/ui/components/Identity";
 import { notFound } from "next/navigation";
 import { desc, eq, count } from "drizzle-orm";
 import { db } from "@apex/db";
@@ -32,7 +33,7 @@ export default async function Submissions({ params, searchParams }: { params: Pr
       <div className="body" style={{ display: "grid", gap: 14, maxWidth: 900 }}>
         {sp.deleted && <p role="status" className="msg ok">Resposta eliminada.</p>}
         {sp.retried && <p role="status" className="msg ok">Es tornarà a provar al CRM d&apos;aquí a un moment.</p>}
-        {rows.length === 0 && <p className="hint">Encara no hi ha respostes.</p>}
+        {rows.length === 0 && <EmptyState eyebrow="Respostes" title="Encara no hi ha respostes">Quan algú enviï el formulari, la resposta apareixerà aquí.</EmptyState>}
         {rows.map(({ s, email }) => (
           <article className="card" key={s.id}>
             <div className="row">
@@ -47,7 +48,7 @@ export default async function Submissions({ params, searchParams }: { params: Pr
                     <dt className="hint" style={{ margin: 0 }}>{a.label}</dt>
                     <dd style={{ margin: 0, overflowWrap: "anywhere" }}>
                       {a.type === "file" && v && typeof v === "object"
-                        ? <a style={{ color: "var(--accent)", textDecoration: "underline" }} href={`/admin/forms/${id}/file?sub=${s.id}&field=${a.id}`}>{(v as { name: string }).name}</a>
+                        ? <a style={{ color: "var(--ink)", textDecoration: "underline" }} href={`/admin/forms/${id}/file?sub=${s.id}&field=${a.id}`}>{(v as { name: string }).name}</a>
                         : answerText(a)}
                     </dd>
                   </div>
