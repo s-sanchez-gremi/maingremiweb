@@ -1,0 +1,20 @@
+/* Identity shell kit (docs/identity-plan.md): the pieces every app shares. Tokens only: no colour is defined here.
+   Each app sets data-app on its root element, which selects --spot (see tokens.css). Decorative parts are aria-hidden. */
+.id-inkbar { height: 3px; background: var(--spot, var(--accent)); }
+.id-halftone { display: block; color: var(--spot, var(--accent)); pointer-events: none; }
+.id-eyebrow { font: 500 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--text2); }
+
+.id-empty { position: relative; overflow: hidden; display: grid; gap: 8px; justify-items: start; padding: 28px 28px 28px 24px; background: var(--surface); border: 1px dashed var(--field-border); border-radius: var(--r-lg); }
+.id-empty > :not(.id-halftone) { position: relative; max-width: 46ch; }
+.id-empty h2, .id-empty h3 { font: 600 var(--fs-lg)/1.25 var(--serif); margin: 0; text-wrap: balance; }
+.id-empty p { margin: 0; color: var(--text2); font-size: var(--fs-sm); line-height: var(--lh-body); }
+.id-empty .id-halftone { position: absolute; right: 0; top: 0; width: 38%; height: 100%; opacity: .16; }
+.id-empty .id-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+.id-error { position: relative; overflow: hidden; min-height: 60vh; display: grid; align-content: center; justify-items: start; gap: 12px; padding: 48px max(16px, 6vw); background: var(--bg); color: var(--ink); }
+.id-error > :not(.id-halftone) { position: relative; max-width: 52ch; }
+.id-error .id-code { font: 600 clamp(56px, 12vw, 104px)/1 var(--serif); margin: 0; }
+.id-error h1 { font: 600 var(--fs-h2)/1.2 var(--serif); margin: 0; text-wrap: balance; }
+.id-error p { margin: 0; color: var(--text2); line-height: var(--lh-body); }
+.id-error .id-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.id-error .id-halftone { position: absolute; right: -4%; bottom: -8%; width: min(60%, 560px); aspect-ratio: 1; opacity: .22; }

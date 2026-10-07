@@ -9,7 +9,8 @@ Direction A of `docs/identity-plan.md` is approved; this is its step 2. **No vis
 1. `packages/ui/src/tokens.css` has new tokens `--spot-web|admin|crm|forms|hub|sign`, `--on-spot-*` and a `[data-app="…"]` block that sets `--spot` / `--on-spot` for an app. Nothing reads `--spot` yet except the new app marks; each app switches `--accent` to it in its own rollout PR (yours: the CMS admin and the website, the latter only after client sign-off).
 2. `<html data-app="admin">` was added to `apps/admin/app/admin/layout.tsx` (and the CRM and Forms roots). Keep it when you edit that file.
 3. New `@apex/ui/appmark` (colours, halftone, `appIconSvg`) and `@apex/ui/components/AppMark`. Favicons `apps/{admin,crm,forms}/app/icon.svg` are generated from it; a test (`apps/web/lib/__tests__/identity.test.ts`) fails if a file is edited by hand. The website keeps its `icon.png`.
-4. Do once after merging `main`: nothing to install or migrate.
+4. Shell kit (second PR): `@apex/ui/identity.css` (imported in the Admin, CRM and Forms root layouts, next to `tokens.css`) and `@apex/ui/components/Identity` (`InkBar`, `Halftone`, `EmptyState`, `ErrorPage`). Not used by any screen yet: use `EmptyState` where a list can be empty and `ErrorPage` in `not-found`/`error` when you roll your app out.
+5. Do once after merging `main`: nothing to install or migrate.
 
 Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when read)
 
