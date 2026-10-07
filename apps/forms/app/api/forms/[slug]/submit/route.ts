@@ -4,6 +4,7 @@ import { isRateLimited } from "@apex/forms/limits";
 import { clientHash, cleanLocale, cleanPath, cleanUtm, loadForm } from "@apex/forms/http";
 import { verifySolution } from "@apex/forms/pow";
 import { processSubmission } from "@apex/forms/submit";
+import { editDeadline, editLink } from "@apex/forms/edit";
 import { msgs } from "@apex/forms/messages";
 import { processOutbox } from "@apex/core/outbox";
 import type { Upload } from "@apex/core/files";
@@ -60,5 +61,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     return json({ error: "invalid", errors: result.errors }, 422);
   }
   after(() => processOutbox().catch((e) => console.error("outbox after submit failed", e))); // send the emails now; the cron retries failures
+  // forms that allow edits: the respondent's private link, shown once on the thank-you screen (and mailed with the confirmation)
+  if (result.editToken) {
+    const link = editLink({ sourcePath: cleanPath(payload.sourcePath), locale, slug: form.slug, token: result.editToken });
+    return json({ ok: true, editLink: link, editUntil: editDeadline(new Date()).toISOString() });
+  }
   return json({ ok: true });
 }

@@ -32,7 +32,7 @@ export default async function EditForm({ params, searchParams }: { params: Promi
   return (
     <FormEditor
       initial={{ id, name: f.name, slug: f.slug, active: f.active, destination: f.destination, target: f.targetProjectId ? `project:${f.targetProjectId}` : f.targetClientId ? `client:${f.targetClientId}` : "", fields: f.fields as never, settings,
-        allowDrafts: f.allowDrafts, closesAt: f.closesAt ? dateToMadridLocal(f.closesAt) : "", maxResponses: f.maxResponses ? String(f.maxResponses) : "", redirectUrl: f.redirectUrl }}
+        allowDrafts: f.allowDrafts, allowEdits: f.allowEdits, closesAt: f.closesAt ? dateToMadridLocal(f.closesAt) : "", maxResponses: f.maxResponses ? String(f.maxResponses) : "", redirectUrl: f.redirectUrl }}
       state={stateOf(f, stats.submissions)}
       targets={{ projects: projs, clients: cls }}
       stats={stats} drafts={drafts} site={siteUrl()}

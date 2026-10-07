@@ -5,12 +5,14 @@ import { db } from "@apex/db";
 import { formDrafts, forms, leads, newsletterOptins, submissions, type Answer, type Locale } from "@apex/db/schema";
 import { deletePrivatePrefix, putPrivate } from "@apex/core/storage";
 import { enqueueEmail } from "@apex/core/outbox";
-import { siteUrl } from "@apex/core/site-url";
 import { lt, type Item } from "./fieldTypes";
 import { classifyUpload, safeName, type Upload } from "@apex/core/files";
 import { answerText } from "./answer-text";
 import { availability } from "./availability";
-import { hashToken } from "./drafts";
+import { hashToken, newToken } from "./drafts";
+import { parseAddresses } from "./addresses";
+import { editLink, editMailLine } from "./edit";
+import { formsAdminUrl } from "./links";
 import { upsertContact } from "./contacts";
 import { msgs } from "./messages";
 import { MAX_FILE_BYTES, validateAnswers, type Answers, type Cleaned } from "./validate";
@@ -26,16 +28,13 @@ export type SubmitInput = {
   meta: { sourcePath: string; sourceEntryId?: string | null; theme: string; utm: Record<string, string>; ipHash: string | null; challengeId: string | null; draftToken?: string | null };
 };
 export type SubmitResult =
-  | { ok: true; id: string }
+  | { ok: true; id: string; editToken?: string } // editToken: forms that allow edits; shown once, only its hash is stored
   | { ok: false; code: "closed" | "invalid" | "replay"; errors: Record<string, string> };
 
-const EMAIL = /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/;
 const uuid = () => crypto.randomUUID();
-/** The staff side of forms lives in the Forms app (FORMS_URL); falls back to the site address when it is not configured. */
-const formsAdminUrl = () => (process.env.FORMS_URL ?? siteUrl()).replace(/\/$/, "");
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 
-export const parseAddresses = (s: string | undefined) => [...new Set((s ?? "").split(/[,;\s]+/).map((x) => x.trim().toLowerCase()).filter((x) => EMAIL.test(x)))];
+export { parseAddresses };
 
 const valueText = (a: Cleaned | Answer): string => answerText(a);
 
@@ -82,6 +81,8 @@ export async function processSubmission(input: SubmitInput): Promise<SubmitResul
 
   // 4. Store uploaded files privately, keyed by the submission id (so erasing a submission erases its files).
   const id = uuid();
+  const sentAt = new Date();
+  const editToken = form.allowEdits ? newToken() : null; // the respondent's private link to change this response
   const snapshot: Answer[] = [];
   try {
     for (const v of values) {
@@ -108,6 +109,7 @@ export async function processSubmission(input: SubmitInput): Promise<SubmitResul
       await tx.insert(submissions).values({
         id, formId: form.id, contactId, ...attach, answers: snapshot, locale, sourcePath: meta.sourcePath.slice(0, 300), sourceEntryId: meta.sourceEntryId ?? null,
         theme: meta.theme.slice(0, 80), utm: meta.utm, consentText, consentAt: consentText ? new Date() : null, ipHash: meta.ipHash, challengeId: meta.challengeId,
+        editTokenHash: editToken ? hashToken(editToken) : null, createdAt: sentAt,
       });
       if (contactId) await tx.insert(leads).values({ contactId, formId: form.id, submissionId: id, sourcePath: meta.sourcePath.slice(0, 300), sourceEntryId: meta.sourceEntryId ?? null, theme: meta.theme.slice(0, 80), locale, utm: meta.utm });
 
@@ -133,7 +135,7 @@ export async function processSubmission(input: SubmitInput): Promise<SubmitResul
       }
       if (n.confirmToSender && respondentEmail) {
         const subject = lt(n.confirmSubject, locale) || `${form.name}: ${t.thanks}`;
-        const text = lt(n.confirmBody, locale) || t.thanks;
+        const text = (lt(n.confirmBody, locale) || t.thanks) + (editToken ? editMailLine(locale, editLink({ sourcePath: meta.sourcePath, locale, slug: form.slug, token: editToken }), sentAt) : "");
         await enqueueEmail(tx, { to: respondentEmail, subject, text });
       }
     });
@@ -144,5 +146,5 @@ export async function processSubmission(input: SubmitInput): Promise<SubmitResul
     if (code === "23505") return { ok: false, code: "replay", errors: { _form: t.botFail } }; // same bot-check token used twice
     throw e;
   }
-  return { ok: true, id };
+  return { ok: true, id, ...(editToken ? { editToken } : {}) };
 }

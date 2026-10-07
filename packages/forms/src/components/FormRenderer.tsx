@@ -11,6 +11,7 @@ import type { PublicForm } from "../public-form";
 import type { Locale } from "@apex/db/schema";
 import { FieldInput } from "./Inputs";
 import { FormClosedError, fetchSolution } from "./pow-client";
+import { EditLinkNote } from "./EditLinkNote";
 import { SaveForLater } from "./SaveForLater";
 
 export type Source = { path: string; entryId?: string | null; theme: string };
@@ -33,6 +34,10 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
   const [banner, setBanner] = useState("");
   const [draftToken, setDraftToken] = useState<string | null>(null); // the secret of this visitor's saved draft, kept in memory only
   const [resumeNote, setResumeNote] = useState("");
+  // Opened from the private link of a sent response (forms that allow edits): the form is filled in, the mapped email is locked, files stay as sent.
+  const [edit, setEdit] = useState<{ token: string; files: { id: string; label: string; name: string }[]; locked: string[] } | null>(null);
+  const [editLinkInfo, setEditLinkInfo] = useState<{ link: string; until: string } | null>(null); // shown once after sending
+  const [doneMessage, setDoneMessage] = useState("");
   const [closedNow, setClosedNow] = useState(false); // the form closed after this page was loaded (or cached)
   const started = useRef(false);
   const pow = useRef<Promise<Solution> | null>(null);
@@ -58,6 +63,7 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
   const answers = (): Answers => {
     const a: Answers = { ...values };
     for (const it of items) if (it.type === "file") { const f = files[it.id]; if (f) a[it.id] = { name: f.name, size: f.size, mime: f.type }; }
+    for (const f of edit?.files ?? []) a[f.id] = { name: f.name, size: 0, mime: "" }; // already sent: counts as present
     return a;
   };
   const validate = () => {
@@ -76,9 +82,30 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
     setTimeout(() => head.current?.focus(), 30);
   };
 
+  async function saveEdit() {
+    const all = validate();
+    setErrors(all);
+    setBanner("");
+    const first = Object.keys(all)[0];
+    if (first) { const s = stepOf(first); if (s >= 0) setStep(s); focusField(first); return; }
+    setStatus("sending");
+    try {
+      const res = await fetch(`/api/forms/${form.slug}/response/update`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token: edit!.token, locale, answers: values }) });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) { setDoneMessage(data.changed === false ? t.editNoChange : t.editSaved); setStatus("done"); setTimeout(() => done.current?.focus(), 30); return; }
+      setStatus("idle");
+      if (res.status === 422 && data.errors) {
+        setErrors(data.errors);
+        const f = Object.keys(data.errors)[0];
+        if (f) { const s = stepOf(f); if (s >= 0) setStep(s); focusField(f); }
+      } else setBanner(data.message ?? t.sendError);
+    } catch { setStatus("idle"); setBanner(t.sendError); }
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!last) return next();
+    if (edit) return saveEdit();
     begin();
     const all = validate();
     if (consentText && !consent) all._consent = t.consentRequired;
@@ -106,6 +133,8 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
       if (res.ok) {
         setStatus("done");
         setDraftToken(null); // the server deleted it with the submission
+        const done_ = await res.json().catch(() => ({}));
+        if (done_.editLink) { setEditLinkInfo({ link: done_.editLink, until: done_.editUntil }); setTimeout(() => done.current?.focus(), 30); return; } // the link is shown instead of redirecting: it would be lost
         const to = form.redirectUrl;
         if (to && (/^\/(?![/\\])/.test(to) || /^https?:\/\//i.test(to))) { window.location.assign(to); return; } // the message below stays as the fallback
         setTimeout(() => done.current?.focus(), 30);
@@ -156,9 +185,30 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the page opens
   }, []);
 
+  // Opened from the private link of a response that was sent: bring it back to change it.
+  useEffect(() => {
+    const token = form.allowEdit ? new URLSearchParams(window.location.search).get("edit") : null;
+    if (!token) return;
+    fetch(`/api/forms/${form.slug}/response/load`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token }) })
+      .then(async (r) => {
+        if (!r.ok) { setResumeNote(t.editNotFound); return; }
+        const d = (await r.json()) as { answers: Answers; files: { id: string; label: string; name: string }[]; locked: string[]; sentAt: string };
+        setValues(d.answers);
+        setEdit({ token, files: d.files, locked: d.locked });
+        setResumeNote(fmt(t.editBanner, { date: new Date(d.sentAt).toLocaleDateString(locale === "ca" ? "ca-ES" : locale === "es" ? "es-ES" : "en-GB", { dateStyle: "long", timeZone: "Europe/Madrid" }) }));
+      })
+      .catch(() => setResumeNote(t.editNotFound));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the page opens
+  }, []);
+
   if (!form.active || closedNow) return <p className="empty">{t.closed}</p>;
   if (status === "done") {
-    return <div className="form-done" role="status" tabIndex={-1} ref={done}><p>{lt(form.confirmation, locale) || t.thanks}</p></div>;
+    return (
+      <div className="form-done" tabIndex={-1} ref={done}>
+        <p role="status">{doneMessage || lt(form.confirmation, locale) || t.thanks}</p>
+        {editLinkInfo && <EditLinkNote link={editLinkInfo.link} until={editLinkInfo.until} locale={locale} />}
+      </div>
+    );
   }
 
   const current = steps[step];
@@ -179,15 +229,23 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
       {errorCount > 0 && <div className="form-banner err" role="alert">{t.errorSummary}</div>}
       {banner && <div className="form-banner err" role="alert">{banner}</div>}
 
-      {shown.map((it) => (
-        <FieldInput
-          key={it.id} item={it} locale={locale} value={values[it.id] as never} error={errors[it.id]}
-          onChange={(v) => { setValues((p) => ({ ...p, [it.id]: v })); if (errors[it.id]) setErrors((p) => { const n = { ...p }; delete n[it.id]; return n; }); }}
-          onFile={(f) => setFiles((p) => ({ ...p, [it.id]: f }))}
-        />
-      ))}
+      {shown.map((it) => {
+        const sent = edit?.files.find((f) => f.id === it.id);
+        if (edit && it.type === "file") return sent ? <div key={it.id} className="field"><strong>{lt(it.data.label, locale)}</strong><span className="hint">{fmt(t.fileKept, { name: sent.name })}</span></div> : null;
+        const field = (
+          <FieldInput
+            key={it.id} item={it} locale={locale} value={values[it.id] as never} error={errors[it.id]}
+            onChange={(v) => { setValues((p) => ({ ...p, [it.id]: v })); if (errors[it.id]) setErrors((p) => { const n = { ...p }; delete n[it.id]; return n; }); }}
+            onFile={(f) => setFiles((p) => ({ ...p, [it.id]: f }))}
+          />
+        );
+        // the email that identifies the person in the CRM cannot be changed through the link: it stays readable but frozen
+        return edit?.locked.includes(it.id)
+          ? <fieldset key={it.id} disabled style={{ border: 0, margin: 0, padding: 0 }}>{field}<span className="hint">{t.lockedField}</span></fieldset>
+          : field;
+      })}
 
-      {last && (
+      {last && !edit && (
         <>
           {consentText && (
             <CheckboxField label={<InlineText text={consentText} />} required checked={consent} error={errors._consent} onChange={(e) => setConsent(e.target.checked)} />
@@ -199,11 +257,11 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
       {/* Honeypot: invisible to people and assistive technology; bots that fill every field give themselves away. */}
       <div className="hp" aria-hidden="true"><label>Website<input type="text" name="website" tabIndex={-1} autoComplete="off" /></label></div>
 
-      {form.allowDraft && <SaveForLater slug={form.slug} locale={locale} token={draftToken} onToken={setDraftToken} snapshot={() => ({ answers: values, step })} sourcePath={source.path} />}
+      {form.allowDraft && !edit && <SaveForLater slug={form.slug} locale={locale} token={draftToken} onToken={setDraftToken} snapshot={() => ({ answers: values, step })} sourcePath={source.path} />}
 
       <div className="form-actions">
         {step > 0 ? <Button type="button" onClick={() => { setErrors({}); setStep([...going].reverse().find((i) => i < step) ?? 0); setTimeout(() => head.current?.focus(), 30); }}>{t.back}</Button> : <span />}
-        <Button type="submit" variant="primary" disabled={status === "sending"}>{status === "sending" ? t.sending : last ? t.submit : t.next}</Button>
+        <Button type="submit" variant="primary" disabled={status === "sending"}>{status === "sending" ? t.sending : last ? (edit ? t.saveChanges : t.submit) : t.next}</Button>
       </div>
     </form>
   );

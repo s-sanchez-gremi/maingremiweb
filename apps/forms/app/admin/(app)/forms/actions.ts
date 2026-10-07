@@ -36,7 +36,7 @@ const payload = z.object({
   id: z.string().uuid(), name: z.string().trim().min(1).max(120), slug: z.string().max(80), active: z.boolean(),
   destination: z.enum(["crm_lead", "project", "responses_only"]), target: z.string().default(""), // "project:<id>" or "client:<id>"
   fields: formItemsSchema, settings: formSettingsSchema,
-  allowDrafts: z.boolean().default(false),
+  allowDrafts: z.boolean().default(false), allowEdits: z.boolean().default(false),
   closesAt: z.string().max(40).default(""), maxResponses: z.string().max(10).default(""), redirectUrl: z.string().max(600).default(""), // availability and ending
 });
 
@@ -76,7 +76,7 @@ export async function saveForm(fd: FormData) {
       title: s.title, confirmation: s.confirmation, consent: s.consent,
       newsletter: { enabled: s.newsletterEnabled === "yes", text: s.newsletterText },
       notifications: { staffEmail: s.staffEmail === "yes", staffAddresses: s.staffAddresses, confirmToSender: s.confirmToSender === "yes", confirmSubject: s.confirmSubject, confirmBody: s.confirmBody },
-      allowDrafts: d.allowDrafts, closesAt, maxResponses, redirectUrl: redirectUrl ?? "",
+      allowDrafts: d.allowDrafts, allowEdits: d.allowEdits, closesAt, maxResponses, redirectUrl: redirectUrl ?? "",
       updatedAt: new Date(),
     }).where(eq(forms.id, d.id));
   } catch (e) {

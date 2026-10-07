@@ -16,6 +16,16 @@
 
 Done: (none yet; Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 
+## For Joan Marc (apps/web) and his Claude — notice of 2026-10-07 from Sam (forms: edit a sent response, migration 0023)
+
+Respondents can now change what they sent through a private link (`docs/forms-v2-plan.md`, item 4c; off unless staff switch it on per form). Your area is touched in **one line**: `apps/web/lib/content-queries.ts` (`publicForm()`) also passes `allowEdit`; the shared `FormRenderer` does the rest. Do once, after merging `main`:
+
+1. `pnpm db:migrate` (migration 0023: `forms.allow_edits` and four columns on `submissions`; additive, compatible with the previous version of every app).
+2. No grants change (the Forms app already owns `submissions` and may update contacts). The CRM only reads `submissions` and will simply see the edited answers.
+3. The link opens the page the form was on with `?edit=<secret>`; your pages need no change (the form reads it in the browser, the cache ignores query strings). Nothing new is stored in the browser.
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
 ## For Joan Marc (apps/web) and his Claude — notice of 2026-10-07 from Sam (forms: save and resume, migration 0022)
 
 Forms can now let a visitor save progress and resume from a private link (`docs/forms-v2-plan.md`, item 4b; off unless staff switch it on per form). Your area is touched in **one line**: `apps/web/lib/content-queries.ts` (`publicForm()`) also passes `allowDraft` to the form shown on your pages, and the shared `FormRenderer` shows the *Desa i continua més tard* panel. Do once, after merging `main`:
