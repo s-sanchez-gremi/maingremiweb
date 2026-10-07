@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@apex/db";
 import { users } from "@apex/db/schema";
+import { AppMark } from "@apex/ui/components/AppMark";
+import { InkBar } from "@apex/ui/components/Identity";
 import { createSession, loginBlocked, loginFailed, loginSucceeded, verifyPassword } from "@apex/core/auth";
 
 async function login(formData: FormData) {
@@ -21,14 +23,18 @@ async function login(formData: FormData) {
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
   return (
-    <main style={{ maxWidth: 360, margin: "96px auto", padding: "0 16px", fontFamily: "system-ui" }}>
-      <h1 style={{ fontFamily: "Georgia, serif" }}>APEX</h1>
+    <>
+    <InkBar />
+    <main className="login">
+      <div className="brand"><AppMark app="crm" size={40} /><span className="id-eyebrow">GREMI</span></div>
+      <h1>CRM i eines internes</h1>
       <form action={login} style={{ display: "grid", gap: 12 }}>
         <label>Correu electrònic<input name="email" type="email" required autoComplete="username" style={{ width: "100%" }} /></label>
         <label>Contrasenya<input name="password" type="password" required autoComplete="current-password" style={{ width: "100%" }} /></label>
-        {error && <p role="alert" style={{ color: "#D50032" }}>{error === "blocked" ? "Massa intents. Torna-ho a provar en 15 minuts." : "Correu o contrasenya incorrectes."}</p>}
-        <button type="submit">Entra</button>
+        {error && <p role="alert" className="msg err">{error === "blocked" ? "Massa intents. Torna-ho a provar en 15 minuts." : "Correu o contrasenya incorrectes."}</p>}
+        <button className="btn primary" type="submit">Entra</button>
       </form>
     </main>
+    </>
   );
 }

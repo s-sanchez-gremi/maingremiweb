@@ -2,6 +2,7 @@ import "@apex/ui/tokens.css";
 import "@apex/ui/identity.css";
 import "@apex/ui/admin.css";
 import "./workspace.css";
+import "../crm-identity.css";
 
 export const metadata = { title: "Apex — Espai de treball", robots: { index: false, follow: false } };
 

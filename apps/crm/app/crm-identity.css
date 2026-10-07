@@ -1,0 +1,17 @@
+/* The CRM wears the magenta ink (docs/identity-plan.md). Everything that read the red --accent (admin screens and the workspace, which share
+   the .admin element) turns magenta; white on it is 6.8:1 and as text on paper 6.2:1. The client portal is NOT covered: clients see GREMI red.
+   Status colours (ok, warn, info, danger) are separate tokens and do not change. */
+[data-app="crm"] .admin { --accent: var(--spot-crm); --accent-hover: color-mix(in srgb, var(--spot-crm) 82%, var(--ink)); }
+
+/* admin: dark side menu. The magenta is too dark to read on it, so stripes and focus use a lighter mix and the light text colour. */
+[data-app="crm"] .admin .nav a[aria-current=page] { border-left-color: color-mix(in srgb, var(--spot-crm) 55%, var(--surface)); }
+[data-app="crm"] .admin .side a:focus-visible, [data-app="crm"] .admin .side button:focus-visible, [data-app="crm"] .admin .side input:focus { outline: 2px solid var(--ink-text); outline-offset: 1px; }
+[data-app="crm"] .admin .logo { display: flex; align-items: center; gap: 10px; font-size: 16px; letter-spacing: 0; }
+[data-app="crm"] .admin .logo small { font: 500 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-text); display: block; }
+[data-app="crm"] .admin .login { max-width: 360px; margin: 96px auto; padding: 0 16px; display: grid; gap: 16px; }
+[data-app="crm"] .admin .login h1 { font: 600 var(--fs-h2)/1.15 var(--serif); }
+[data-app="crm"] .admin .login .brand { display: flex; align-items: center; gap: 10px; }
+
+/* workspace: the ink line across the top of the window, and status pages on the tinted window instead of a paper slab */
+[data-app="crm"] .ws-shell::before { content: ""; position: fixed; inset: 0 0 auto 0; height: 3px; background: var(--spot); z-index: 5; pointer-events: none; }
+[data-app="crm"] .ws .id-error { background: transparent; min-height: 70vh; }
