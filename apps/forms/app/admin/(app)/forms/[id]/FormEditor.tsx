@@ -8,7 +8,7 @@ import { formSettingsFields, type FormSettings } from "@apex/forms/settings-fiel
 import type { Field } from "@apex/core/fields";
 import { copyForm, removeForm, saveForm } from "../actions";
 
-type Initial = { id: string; name: string; slug: string; active: boolean; destination: "crm_lead" | "project" | "responses_only"; target: string; fields: Item[]; settings: FormSettings; allowDrafts: boolean; closesAt: string; maxResponses: string; redirectUrl: string };
+type Initial = { id: string; name: string; slug: string; active: boolean; destination: "crm_lead" | "project" | "responses_only"; target: string; fields: Item[]; settings: FormSettings; allowDrafts: boolean; allowEdits: boolean; closesAt: string; maxResponses: string; redirectUrl: string };
 const STATE_LABEL = { open: "Actiu", closed: "Tancat", expired: "Tancat per data", full: "Complet" } as const;
 const pick = (names: string[]) => formSettingsFields.filter((f) => names.includes(f.name)) as Field[];
 const NO_MEDIA = { media: [], forms: [] };
@@ -27,10 +27,11 @@ export function FormEditor({ initial, stats, drafts, site, message, targets, sta
   const [items, setItems] = useState<Item[]>(initial.fields);
   const [settings, setSettings] = useState<Record<string, unknown>>(initial.settings as never);
   const [allowDrafts, setAllowDrafts] = useState(initial.allowDrafts);
+  const [allowEdits, setAllowEdits] = useState(initial.allowEdits);
   const [closesAt, setClosesAt] = useState(initial.closesAt);
   const [maxResponses, setMaxResponses] = useState(initial.maxResponses);
   const [redirectUrl, setRedirectUrl] = useState(initial.redirectUrl);
-  const data = JSON.stringify({ id: initial.id, name, slug, active, destination, target, fields: items, settings, allowDrafts, closesAt, maxResponses, redirectUrl });
+  const data = JSON.stringify({ id: initial.id, name, slug, active, destination, target, fields: items, settings, allowDrafts, allowEdits, closesAt, maxResponses, redirectUrl });
 
   const optionLabel = (i: Item) => `${lt(i.data.label, "ca") || formTypeByName[i.type].label}`;
   const summary = (i: Item) => {
@@ -117,6 +118,14 @@ export function FormEditor({ initial, stats, drafts, site, message, targets, sta
               <span className="hint">Deixa-ho buit per no posar límit. Quan arriba la data o el límit, el formulari deixa d&apos;acceptar respostes i la gent veu que està tancat. «Obert» continua manant: si no està marcat, sempre és tancat.</span>
               <label>Adreça on enviar la persona després d&apos;enviar-lo<input value={redirectUrl} onChange={(e) => setRedirectUrl(e.target.value)} placeholder="/ca/gracies  o  https://…" /></label>
               <span className="hint">Opcional. Si la poses, en lloc del missatge de confirmació s&apos;obre aquesta pàgina (ha de començar per https://, http:// o /).</span>
+            </div>
+            <div className="card">
+              <h3>Modificacions</h3>
+              <label style={{ gridTemplateColumns: "auto 1fr", alignItems: "center", gap: 10 }}>
+                <input type="checkbox" checked={allowEdits} onChange={(e) => setAllowEdits(e.target.checked)} style={{ width: 18 }} />
+                <span>Permet modificar la resposta enviada</span>
+              </label>
+              <span className="hint">Qui envia el formulari rep un enllaç privat (a la pantalla de gràcies i al correu de confirmació, si n&apos;hi ha) per canviar la seva resposta durant 30 dies, mentre el formulari estigui obert i no hagi passat la data de tancament. El correu del contacte no es pot canviar, els fitxers ja enviats es conserven, i la primera versió de la resposta es guarda. Si el formulari redirigeix després d&apos;enviar-lo, no ho fa quan es dóna l&apos;enllaç de modificació: es mostra l&apos;enllaç.</span>
             </div>
             <div className="card">
               <h3>Esborranys</h3>

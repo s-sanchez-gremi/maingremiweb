@@ -756,3 +756,101 @@ test("the editor can switch drafts on, and shows how many are waiting", async ({
   expect((await sql`select allow_drafts from forms where id = ${id}`)[0].allow_drafts).toBe(true);
   await expect(page.getByText("Esborranys pendents")).toBeVisible();
 });
+
+test("edit a sent response with a private link: shown once, mailed, email locked, original kept, staff told", async ({ page, context, request }) => {
+  const nom = F("text", { label: L("Nom"), required: "yes", map: "name" });
+  const em = F("email", { label: L("Correu"), required: "yes", map: "email" });
+  const notes = F("textarea", { label: L("Notes") });
+  const staff = "equip-edicions@e2e.test", visitor = "edita@e2e.test";
+  const id = await seedForm("edita-resposta", [nom, em, notes], { destination: "crm_lead", notifications: { staffEmail: true, staffAddresses: staff, confirmToSender: true }, redirectUrl: "" });
+  await sql`update forms set allow_edits = true, redirect_url = '/ca/gracies-no-ha-de-sortir' where id = ${id}`;
+  await clearMail();
+
+  await page.goto(WEB + "/ca/form/edita-resposta");
+  await page.waitForLoadState("networkidle");
+  await page.getByLabel(/^Nom/).fill("Berta Vila");
+  await page.getByLabel(/^Correu/).fill(visitor);
+  await page.getByLabel(/^Notes/).fill("Primera versió");
+  await page.getByRole("button", { name: "Envia" }).click();
+  await expect(page.getByRole("status")).toContainText("Gràcies");
+  // with edits on, the thank-you screen shows the link instead of redirecting (it would be lost)
+  expect(page.url()).toBe(WEB + "/ca/form/edita-resposta");
+  const link = await page.getByLabel("Enllaç per modificar la resposta").inputValue();
+  expect(link).toMatch(new RegExp(`^${WEB}/ca/form/edita-resposta\\?edit=[A-Za-z0-9_-]{43}$`));
+  await expect(page.getByText(/Pots modificar la teva resposta fins al/)).toBeVisible();
+  const mail = await waitMail(visitor);
+  expect(mail.Text).toContain(link);
+
+  // opening the link: filled in, the email frozen, a clear button
+  const edit = await context.newPage();
+  await edit.goto(link);
+  await expect(edit.getByText(/Estàs modificant la resposta que vas enviar el/)).toBeVisible();
+  await expect(edit.getByLabel(/^Nom/)).toHaveValue("Berta Vila");
+  await expect(edit.getByLabel(/^Notes/)).toHaveValue("Primera versió");
+  await expect(edit.getByLabel(/^Correu/)).toBeDisabled();
+  await expect(edit.getByText("Aquest camp no es pot canviar des d'aquí.")).toBeVisible();
+  const axe = await new AxeBuilder({ page: edit }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+  expect(axe.violations.map((v) => `${v.id}: ${v.nodes[0]?.target}`)).toEqual([]);
+  await edit.getByLabel(/^Nom/).fill("");
+  await edit.getByRole("button", { name: "Desa els canvis" }).click();
+  await expect(edit.getByText("Aquest camp és obligatori")).toBeVisible(); // validated like the first time
+  await edit.getByLabel(/^Nom/).fill("Berta Vila Roca");
+  await edit.getByLabel(/^Notes/).fill("Versió corregida");
+  await edit.getByRole("button", { name: "Desa els canvis" }).click();
+  await expect(edit.getByRole("status")).toContainText("Canvis desats");
+
+  const [sub] = await sql`select answers, original_answers, edit_count from submissions where form_id = ${id}`;
+  const val = (list: { label: string; value: unknown }[], label: string) => list.find((a) => a.label === label)?.value;
+  expect(val(sub.answers, "Notes")).toBe("Versió corregida");
+  expect(val(sub.answers, "Correu")).toBe(visitor); // unchanged
+  expect(val(sub.original_answers, "Notes")).toBe("Primera versió");
+  expect(sub.edit_count).toBe(1);
+  expect((await sql`select name from contacts where email = ${visitor}`)[0].name).toBe("Berta Vila Roca");
+
+  // the staff are told what changed, and see the original
+  let note = "";
+  for (let i = 0; i < 40 && !note; i++) {
+    const r = await (await fetch(`${MAILPIT}/search?query=${encodeURIComponent(`to:${staff} subject:"Resposta modificada"`)}`)).json();
+    if (r.messages?.length) note = (await (await fetch(`${MAILPIT}/message/${r.messages[0].ID}`)).json()).Text;
+    else await new Promise((res) => setTimeout(res, 250));
+  }
+  expect(note).toContain("Notes: Primera versió → Versió corregida");
+  await login(page);
+  await page.goto(`/admin/forms/${id}/submissions`);
+  await expect(page.getByText("Modificada 1 cop")).toBeVisible();
+  await page.getByText("Veure la resposta original").click();
+  await expect(page.getByText("Primera versió")).toBeVisible();
+
+  // a wrong secret, an expired window and a form that stopped offering it all look the same
+  const wrong = await context.newPage();
+  await wrong.goto(link.slice(0, -1) + (link.endsWith("A") ? "B" : "A"));
+  await expect(wrong.getByText("No hem trobat aquesta resposta o ja no es pot modificar.")).toBeVisible();
+  const token = link.split("edit=")[1];
+  const load = () => request.post("/api/forms/edita-resposta/response/load", { data: { token } });
+  expect((await load()).status()).toBe(200);
+  await sql`update submissions set created_at = now() - interval '31 days' where form_id = ${id}`;
+  expect((await load()).status()).toBe(404);
+  await sql`update submissions set created_at = now() where form_id = ${id}`;
+  await sql`update forms set allow_edits = false where id = ${id}`;
+  expect((await load()).status()).toBe(404);
+  expect((await request.post("/api/forms/edita-resposta/response/update", { data: { token, answers: {}, locale: "ca" } })).status()).toBe(404);
+});
+
+test("a form that does not allow edits gives no link, and the editor can switch edits on", async ({ page }) => {
+  const nom = F("text", { label: L("Nom"), required: "yes" });
+  const id = await seedForm("sense-edicions", [nom]);
+  await page.goto(WEB + "/ca/form/sense-edicions");
+  await page.waitForLoadState("networkidle");
+  await page.getByLabel(/^Nom/).fill("Pau");
+  await page.getByRole("button", { name: "Envia" }).click();
+  await expect(page.getByRole("status")).toContainText("Gràcies");
+  await expect(page.getByLabel("Enllaç per modificar la resposta")).toHaveCount(0);
+  expect((await sql`select edit_token_hash from submissions where form_id = ${id}`)[0].edit_token_hash).toBeNull();
+
+  await login(page);
+  await page.goto(`/admin/forms/${id}`);
+  await page.getByLabel("Permet modificar la resposta enviada").check();
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Desat");
+  expect((await sql`select allow_edits from forms where id = ${id}`)[0].allow_edits).toBe(true);
+});

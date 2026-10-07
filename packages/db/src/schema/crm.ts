@@ -28,6 +28,7 @@ export const forms = pgTable("forms", {
   maxResponses: integer("max_responses"),                       // no new responses once this many are stored (null = no limit)
   redirectUrl: text("redirect_url").notNull().default(""),      // where to send the visitor after submitting instead of showing the message ("" = show it)
   allowDrafts: boolean("allow_drafts").notNull().default(false),    // visitors may save what they typed and resume later from a private link
+  allowEdits: boolean("allow_edits").notNull().default(false),      // the respondent may change their response with a private link
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -153,6 +154,10 @@ export const submissions = pgTable("submissions", {
   consentAt: timestamp("consent_at", { withTimezone: true }),
   ipHash: text("ip_hash"),
   challengeId: text("challenge_id").unique(),
+  editTokenHash: text("edit_token_hash").unique(),                // forms with edits on: hash of the secret in the respondent's link
+  editedAt: timestamp("edited_at", { withTimezone: true }),
+  editCount: integer("edit_count").notNull().default(0),
+  originalAnswers: jsonb("original_answers").$type<Answer[]>(),   // as first sent, saved the first time the respondent changes them
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

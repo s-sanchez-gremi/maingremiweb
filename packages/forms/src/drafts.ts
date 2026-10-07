@@ -9,8 +9,8 @@ import { and, count, eq, gt, isNotNull, lt, or } from "drizzle-orm";
 import { db } from "@apex/db";
 import { formDrafts, type Locale } from "@apex/db/schema";
 import { enqueueEmail } from "@apex/core/outbox";
-import { siteUrl } from "@apex/core/site-url";
 import { formTypeByName, lt as pick, type Item } from "./fieldTypes";
+import { longDate, pageLink } from "./links";
 import { botSecret } from "./pow";
 import { fmt, msgs } from "./messages";
 
@@ -69,10 +69,7 @@ export async function mailRateLimited(emailHash: string, now = new Date()): Prom
 }
 
 /** The address a visitor opens to continue: the page they were on (or the form's own page) with the secret. */
-export function resumeLink(p: { sourcePath: string; locale: Locale; slug: string; token: string }): string {
-  const path = p.sourcePath && p.sourcePath.startsWith("/") && !p.sourcePath.startsWith("//") ? p.sourcePath.split("?")[0].split("#")[0] : `/${p.locale}/form/${p.slug}`;
-  return `${siteUrl()}${path}?resume=${p.token}`;
-}
+export const resumeLink = (p: { sourcePath: string; locale: Locale; slug: string; token: string }): string => `${pageLink(p)}?resume=${p.token}`;
 
 export type NewDraft = {
   form: { id: string; slug: string; name: string; title: unknown }; items: Item[];
@@ -94,7 +91,7 @@ export async function createDraft(d: NewDraft, now = new Date()): Promise<{ toke
       const title = pick(d.form.title, d.locale) || d.form.name;
       await enqueueEmail(tx, {
         to: d.email, subject: fmt(t.resumeSubject, { form: title }),
-        text: fmt(t.resumeBody, { form: title, link: resumeLink({ sourcePath: d.sourcePath, locale: d.locale, slug: d.form.slug, token }), date: expiresAt.toLocaleDateString(d.locale === "ca" ? "ca-ES" : d.locale === "es" ? "es-ES" : "en-GB", { dateStyle: "long", timeZone: "Europe/Madrid" }) }),
+        text: fmt(t.resumeBody, { form: title, link: resumeLink({ sourcePath: d.sourcePath, locale: d.locale, slug: d.form.slug, token }), date: longDate(expiresAt, d.locale) }),
       });
     }
   });

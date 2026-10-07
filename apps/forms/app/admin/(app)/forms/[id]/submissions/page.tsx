@@ -56,6 +56,23 @@ export default async function Submissions({ params, searchParams }: { params: Pr
             <div className="hint">
               {[email && `Contacte: ${email}`, s.sourcePath && `Origen: ${s.sourcePath}`, s.theme && `Tema: ${s.theme}`, Object.keys(s.utm).length ? `Campanya: ${Object.entries(s.utm).map(([k, v]) => `${k}=${v}`).join(", ")}` : ""].filter(Boolean).join(" · ")}
             </div>
+            {s.editCount > 0 && (
+              <div className="hint" style={{ display: "grid", gap: 6 }}>
+                <span><span className="chip">Modificada {s.editCount} {s.editCount === 1 ? "cop" : "cops"}</span> per la persona; l&apos;última, el {s.editedAt?.toLocaleString("ca-ES")}</span>
+                {s.originalAnswers && (
+                  <details>
+                    <summary>Veure la resposta original</summary>
+                    <dl style={{ margin: "6px 0 0", display: "grid", gap: 4 }}>
+                      {s.originalAnswers.map((a) => (
+                        <div key={a.id} style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: 10 }}>
+                          <dt style={{ margin: 0 }}>{a.label}</dt><dd style={{ margin: 0, overflowWrap: "anywhere" }}>{answerText(a)}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </details>
+                )}
+              </div>
+            )}
             {s.consentText && <div className="hint">Consentiment acceptat el {s.consentAt?.toLocaleString("ca-ES")}: «{s.consentText}»</div>}
             <form action={removeSubmission}>
               <input type="hidden" name="id" value={s.id} /><input type="hidden" name="formId" value={id} />
