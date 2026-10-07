@@ -295,6 +295,8 @@ describe("the queue", () => {
     expect((await deliveries(h.id)).find((x) => x.id === d.id)).toMatchObject({ status: "sent", lastStatus: 204 });
     const pingId = await queuePing(f, h.id);
     await processWebhooks({ limit: 1000 }); // other tests leave due deliveries behind: a batch of 20 may not reach this one
+    // another test file's process may have claimed it a moment earlier (the scheduler and the routes share this table): wait for it to finish
+    for (let i = 0; i < 50 && (await deliveries(h.id)).find((x) => x.id === pingId)?.status === "pending"; i++) await new Promise((r) => setTimeout(r, 100));
     const ping = (await deliveries(h.id)).find((x) => x.id === pingId)!;
     expect(ping).toMatchObject({ event: "ping", status: "sent", submissionId: null });
     expect(JSON.parse(seen.find((s) => s.headers["x-apex-delivery"] === pingId)!.body)).toMatchObject({ event: "ping", response: null });
