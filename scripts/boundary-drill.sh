@@ -8,14 +8,14 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 NET=$(docker inspect "$(docker compose ps -q db)" --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}')
 DB=apex_boundary
-PWW="Web-Drill-Pw-5521"; PWC="Crm-Drill-Pw-8841"; PWF="Forms-Drill-Pw-3367"; PWA="Admin-Drill-Pw-6173"
+PWW="Web-Drill-Pw-5521"; PWC="Crm-Drill-Pw-8841"; PWF="Forms-Drill-Pw-3367"; PWA="Admin-Drill-Pw-6173"; PWS="Sign-Drill-Pw-4592"
 fail() { echo "FAIL: $*"; exit 1; }
 su() { docker compose exec -T db psql -U apex -d "${2:-postgres}" -v ON_ERROR_STOP=1 -qtAc "$1"; }
 
 echo "== a fresh database, the restricted roles, migrations + permissions applied by the production image"
 su "drop database if exists $DB with (force)" >/dev/null
 su "create database $DB" >/dev/null
-for r in "apex_web:$PWW" "apex_crm:$PWC" "apex_forms:$PWF" "apex_admin:$PWA"; do
+for r in "apex_web:$PWW" "apex_crm:$PWC" "apex_forms:$PWF" "apex_admin:$PWA" "apex_sign:$PWS"; do
   su "do \$\$ begin if not exists (select from pg_roles where rolname = '${r%%:*}') then create role ${r%%:*} login; end if; end \$\$" >/dev/null
   su "alter role ${r%%:*} login password '${r##*:}'" >/dev/null
 done
@@ -190,6 +190,22 @@ allow $(C) "delete from contacts where email = 'drill@pipeline.test'"
 n=$((n+1)); [ "$(su "select count(*) from submissions where id = '00000000-0000-4000-8000-0000000000d1'" "$DB")" = 0 ] || fail "erasing a contact in the CRM left its submission behind"
 [ "$(su "select count(*) from leads l join forms f on f.id = l.form_id where f.slug = 'drill-forms-app'" "$DB")" = 0 ] || fail "erasing a contact in the CRM left its lead behind"
 su "delete from forms where slug = 'drill-forms-app'" "$DB" >/dev/null
+echo "== apex_sign (the Signatures app: shared tables only until step S2 adds its own)"
+S() { echo apex_sign "$PWS"; }
+allow $(S) "select count(*) from users"
+allow $(S) "update users set password_hash = password_hash where false"
+allow $(S) "insert into outbox (kind, payload) values ('email', '{}'::jsonb)"
+allow $(S) "insert into error_log (fingerprint, message) values ('drill-sign', 'x')"
+allow $(S) "delete from outbox"
+deny  $(S) "update users set role = role where false"
+deny  $(S) "delete from users where false"
+deny  $(S) "select count(*) from entries"
+deny  $(S) "select count(*) from forms"
+deny  $(S) "select count(*) from submissions"
+deny  $(S) "select count(*) from leads"
+deny  $(S) "select count(*) from clients"
+deny  $(S) "select count(*) from schema_migrations"
+deny  $(S) "create table stolen (a int)"
 echo "ok: $n permission checks behave as designed"
 
 echo "== a table nobody classified is caught (the rule for new tables)"

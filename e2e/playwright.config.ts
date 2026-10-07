@@ -1,14 +1,14 @@
-// End-to-end tests: every app as a REAL production build (web on 3100, CRM on 3101, forms on 3102, admin on 3103) on one throwaway database (apex_e2e).
+// End-to-end tests: every app as a REAL production build (web on 3100, CRM on 3101, forms on 3102, admin on 3103, sign on 3104) on one throwaway database (apex_e2e).
 // Needs the local Docker services (Postgres + S3 mock + Mailpit): `docker compose up -d`.
-// Specs live with their app: apps/web/e2e (public site), apps/admin/e2e (CMS), apps/crm/e2e (CRM, projects, ERP, portal) and apps/forms/e2e.
+// Specs live with their app: apps/web/e2e (public site), apps/admin/e2e (CMS), apps/crm/e2e (CRM, projects, ERP, portal), apps/forms/e2e and apps/sign/e2e (signatures).
 import { defineConfig } from "@playwright/test";
-import { ADMIN_PORT, ADMIN_URL, CRM_PORT, CRM_URL, CRON_SECRET, E2E_ADMIN_DB, E2E_CRM_DB, E2E_FORMS_DB, E2E_WEB_DB, FORMS_PORT, FORMS_URL, REJECTED_STATE, WEB_PORT, WEB_URL } from "./constants";
+import { ADMIN_PORT, ADMIN_URL, CRM_PORT, CRM_URL, CRON_SECRET, E2E_ADMIN_DB, E2E_CRM_DB, E2E_FORMS_DB, E2E_SIGN_DB, E2E_WEB_DB, FORMS_PORT, FORMS_URL, REJECTED_STATE, SIGN_PORT, SIGN_URL, WEB_PORT, WEB_URL } from "./constants";
 
 // scripts/ci.sh builds the apps one after the other BEFORE the tests (E2E_PREBUILT=1): two builds at once starve a small CI runner.
 const prebuilt = !!process.env.E2E_PREBUILT;
 const build = prebuilt ? "" : "rm -rf .next-e2e .next/types .next/dev/types && pnpm exec next build && ";
 
-const base = { CRON_SECRET, APP_ENV: "e2e", SITE_URL: WEB_URL, BOT_SECRET: "e2e-bot-secret-value-for-tests", E2E_WEB_URL: WEB_URL, E2E_CRM_URL: CRM_URL, E2E_FORMS_URL: FORMS_URL, E2E_ADMIN_URL: ADMIN_URL };
+const base = { CRON_SECRET, APP_ENV: "e2e", SITE_URL: WEB_URL, BOT_SECRET: "e2e-bot-secret-value-for-tests", E2E_WEB_URL: WEB_URL, E2E_CRM_URL: CRM_URL, E2E_FORMS_URL: FORMS_URL, E2E_ADMIN_URL: ADMIN_URL, E2E_SIGN_URL: SIGN_URL };
 
 export default defineConfig({
   workers: 1,
@@ -23,6 +23,7 @@ export default defineConfig({
     { name: "admin", testDir: "../apps/admin/e2e", use: { baseURL: ADMIN_URL } },
     { name: "crm", testDir: "../apps/crm/e2e", use: { baseURL: CRM_URL } },
     { name: "forms", testDir: "../apps/forms/e2e", use: { baseURL: FORMS_URL } },
+    { name: "sign", testDir: "../apps/sign/e2e", use: { baseURL: SIGN_URL } },
   ],
   // The readiness URLs must NOT touch the database: Playwright starts the servers BEFORE the global setup creates the throwaway database
   // (a /api/health URL waits forever on a fresh machine; it only worked locally because an old database was left over).
@@ -47,6 +48,11 @@ export default defineConfig({
       cwd: "../apps/admin", url: `${ADMIN_URL}/robots.txt`, timeout: 600_000, reuseExistingServer: false,
       // after every change the CMS expires the website's cache; the editor frames the website's preview (own ports here, own hosts in production)
       env: { ...base, DATABASE_URL: E2E_ADMIN_DB, NEXT_DIST_DIR: ".next-e2e", WEB_INTERNAL_URL: WEB_URL, WEB_PREVIEW_URL: WEB_URL },
+    },
+    {
+      command: `${build}pnpm exec next start -p ${SIGN_PORT}`,
+      cwd: "../apps/sign", url: `${SIGN_URL}/robots.txt`, timeout: 600_000, reuseExistingServer: false,
+      env: { ...base, DATABASE_URL: E2E_SIGN_DB, NEXT_DIST_DIR: ".next-e2e" },
     },
   ],
 });
