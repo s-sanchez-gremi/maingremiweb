@@ -2,6 +2,15 @@
 
 **For Claude Code:** at the start of a session, read the section addressed to the person you are working for, do each open item (they are safe to repeat), tell the person what you did or what needs their decision, and mark the item done (date + initials) in the same pull request as your next change. Add a new notice here when you change something the other person's side must act on (a new migration, a moved table, a new rule, a changed command). Never put secrets here.
 
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (signatures app, step S3: sending and the signer page)
+
+Nothing in `apps/web`, `apps/admin` or `packages/sections` changed in behaviour. Do once, after merging `main`:
+
+1. `pnpm install` (new dependency `pdfjs-dist`, used only by `apps/sign`). No migration in this step.
+2. Add `SIGN_SECRET=change-me` to your `.env` (it is in `.env.example`); only the Signatures app reads it, and only the Signatures app in staging/production needs a real value.
+3. **Shared files that changed:** `packages/core/src/client-ip.ts` is new: `clientIp()` (the visitor's address behind a proxy) moved there from `packages/forms/src/http.ts`, which now re-exports it, so `@apex/forms/http` and the website's test of it are unchanged. `e2e/playwright.config.ts` gives the sign server two variables. `.env.example` has `SIGN_SECRET`.
+4. The signer pages are public (`/sign/<token>` on the Signatures host); in production Caddy must leave `/sign/*` and `/_next/*` open while locking the staff screens (step S6 does this; nothing to do now).
+
 ## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (migration renumbered: 0026_signatures is now 0027_signatures)
 
 Two migrations were merged as `0026` (forms analytics, #79, and signatures, #89). The signatures one is now **`0027_signatures.sql`** (same SQL). Nothing in your apps changes. Only if your **local** database already applied `0026_signatures` (the migrator records files by name, so it would try to create the `sign_*` tables again and fail): recreate the dev database, or run once `drop table sign_consents, sign_events, sign_fields, sign_signers, sign_requests, sign_documents cascade; delete from schema_migrations where name = '0026_signatures.sql';` and then `pnpm db:migrate`. No deployed or staging database has applied it (nothing has been deployed yet).

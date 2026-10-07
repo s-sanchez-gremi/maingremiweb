@@ -52,7 +52,7 @@ export default defineConfig({
     {
       command: `${build}pnpm exec next start -p ${SIGN_PORT}`,
       cwd: "../apps/sign", url: `${SIGN_URL}/robots.txt`, timeout: 600_000, reuseExistingServer: false,
-      env: { ...base, DATABASE_URL: E2E_SIGN_DB, NEXT_DIST_DIR: ".next-e2e" },
+      env: { ...base, DATABASE_URL: E2E_SIGN_DB, NEXT_DIST_DIR: ".next-e2e", SIGN_URL, SIGN_SECRET: "e2e-sign-secret-value-for-the-hash-key" },   // SIGN_URL: the address in the emails' links
     },
   ],
 });
