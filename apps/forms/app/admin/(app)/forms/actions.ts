@@ -12,6 +12,8 @@ import { formSettingsSchema } from "@apex/forms/settings-fields";
 import { deleteForm, deleteSubmission } from "@apex/forms/admin-data";
 import { duplicateForm } from "@/lib/forms-copy";
 import { instantiateTemplate, templateByKey } from "@/lib/form-templates";
+import { cleanRedirect } from "@apex/forms/availability";
+import { madridLocalToDate } from "@/lib/madrid-time";
 
 /** A new, closed form: blank, or from a starter template (the button's `template` value; an unknown key means blank). */
 export async function createForm(fd?: FormData) {
@@ -34,6 +36,7 @@ const payload = z.object({
   id: z.string().uuid(), name: z.string().trim().min(1).max(120), slug: z.string().max(80), active: z.boolean(),
   destination: z.enum(["crm_lead", "project", "responses_only"]), target: z.string().default(""), // "project:<id>" or "client:<id>"
   fields: formItemsSchema, settings: formSettingsSchema,
+  closesAt: z.string().max(40).default(""), maxResponses: z.string().max(10).default(""), redirectUrl: z.string().max(600).default(""), // availability and ending
 });
 
 export async function saveForm(fd: FormData) {
@@ -53,6 +56,16 @@ export async function saveForm(fd: FormData) {
   }
   if (d.destination !== "responses_only" && !d.settings.consent.ca.trim()) issues.push("Cal un text de consentiment quan es desen dades de persones (CRM o projecte)");
   if (d.settings.newsletterEnabled === "yes" && !d.settings.newsletterText.ca.trim()) issues.push("Escriu el text de la casella del butlletí");
+  // availability: end date (typed in the office's time), limit of responses, where to send the visitor afterwards
+  const closesAt = d.closesAt.trim() ? madridLocalToDate(d.closesAt) : null;
+  if (d.closesAt.trim() && !closesAt) issues.push("La data de tancament no és vàlida");
+  let maxResponses: number | null = null;
+  if (d.maxResponses.trim()) {
+    const n = Number(d.maxResponses);
+    if (Number.isInteger(n) && n >= 1 && n <= 1_000_000) maxResponses = n; else issues.push("El màxim de respostes ha de ser un nombre enter d'1 en amunt");
+  }
+  const redirectUrl = cleanRedirect(d.redirectUrl);
+  if (redirectUrl === null) issues.push("L'adreça de redirecció ha de començar per https://, http:// o / (una pàgina d'aquest web)");
   if (issues.length) return fail(issues.join(" · "));
 
   const s = d.settings;
@@ -62,6 +75,7 @@ export async function saveForm(fd: FormData) {
       title: s.title, confirmation: s.confirmation, consent: s.consent,
       newsletter: { enabled: s.newsletterEnabled === "yes", text: s.newsletterText },
       notifications: { staffEmail: s.staffEmail === "yes", staffAddresses: s.staffAddresses, confirmToSender: s.confirmToSender === "yes", confirmSubject: s.confirmSubject, confirmBody: s.confirmBody },
+      closesAt, maxResponses, redirectUrl: redirectUrl ?? "",
       updatedAt: new Date(),
     }).where(eq(forms.id, d.id));
   } catch (e) {

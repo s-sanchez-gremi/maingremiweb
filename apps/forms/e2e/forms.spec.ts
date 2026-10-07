@@ -483,6 +483,7 @@ test("skip a step and combine conditions: the visitor only sees what applies, an
   await page.waitForLoadState("networkidle");
   await page.getByLabel(/^Qui ets/).selectOption("Particular");
   await expect(page.getByText("Pas 1 de 2")).toBeVisible(); // the company step is skipped, so it is not counted
+  await expect(page.getByRole("progressbar", { name: "Pas 1 de 2" })).toBeVisible(); // the progress bar follows the steps that apply
   await page.getByRole("button", { name: "Següent" }).click();
   await expect(page.getByRole("heading", { name: "Contacte" })).toBeVisible();
   await expect(page.getByText("Pas 2 de 2")).toBeVisible();
@@ -564,4 +565,75 @@ test("the editor offers more conditions, combining them and conditional steps, a
   await expect(page.getByLabel(/^Número de soci/)).toHaveCount(0);
   await page.getByLabel(/^Correu/).fill("altra@persona.cat");
   await expect(page.getByLabel(/^Número de soci/)).toBeVisible();
+});
+
+test("availability: set an end date, a limit and a redirect in the editor; they are validated, saved and obeyed", async ({ page }) => {
+  const em = F("email", { label: L("Correu"), required: "yes" });
+  const id = await seedForm("disponibilitat", [em]);
+  await login(page);
+  await page.goto(`/admin/forms/${id}`);
+
+  // refused with a clear message
+  await page.getByLabel("Adreça on enviar la persona després d'enviar-lo").fill("javascript:alert(1)");
+  await page.getByLabel("Màxim de respostes").fill("0");
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("L'adreça de redirecció ha de començar");
+  await expect(page.getByRole("status")).toContainText("El màxim de respostes");
+
+  // accepted: the date is typed in Catalonia's time and stored as the exact moment
+  await page.getByLabel("Adreça on enviar la persona després d'enviar-lo").fill("/ca/gracies-e2e");
+  await page.getByLabel("Màxim de respostes").fill("5");
+  await page.getByLabel("Es tanca el (hora de Catalunya)").fill("2030-07-01T10:00");
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Desat");
+  const [row] = await sql`select closes_at, max_responses, redirect_url from forms where id = ${id}`;
+  expect(new Date(row.closes_at).toISOString()).toBe("2030-07-01T08:00:00.000Z");
+  expect(row.max_responses).toBe(5);
+  expect(row.redirect_url).toBe("/ca/gracies-e2e");
+  await expect(page.getByLabel("Es tanca el (hora de Catalunya)")).toHaveValue("2030-07-01T10:00"); // and shown back as typed
+  await expect(page.getByText("Actiu · 0 respostes")).toBeVisible();
+
+  // obeyed: after a successful submission the visitor is sent to the page
+  await page.goto(WEB + "/ca/form/disponibilitat");
+  await page.getByLabel(/^Correu/).fill("redirigit@e2e.test");
+  await page.getByRole("button", { name: "Envia" }).click();
+  await page.waitForURL(WEB + "/ca/gracies-e2e");
+  expect(await count("submissions", sql`where form_id = ${id}`)).toBe(1);
+});
+
+test("availability: once the limit is reached the public page shows the form as closed, and the API says so", async ({ page, request }) => {
+  const em = F("email", { label: L("Correu"), required: "yes" });
+  const id = await seedForm("places-limitades", [em]);
+  await sql`update forms set max_responses = 1 where id = ${id}`;
+  await page.goto(WEB + "/ca/form/places-limitades");
+  await page.getByLabel(/^Correu/).fill("primera@e2e.test");
+  await page.getByRole("button", { name: "Envia" }).click();
+  await expect(page.getByRole("status")).toContainText("Gràcies");
+
+  // a page cached while there was room asks the Forms app when it opens, so anyone arriving later sees it closed
+  await page.reload();
+  await expect(page.getByText("Aquest formulari ja no accepta respostes.")).toBeVisible();
+  await expect(page.getByLabel(/^Correu/)).toHaveCount(0);
+  expect(await (await request.get("/api/forms/places-limitades/status")).json()).toEqual({ open: false });
+  expect(await (await request.get("/api/forms/disponibilitat/status")).json()).toEqual({ open: true }); // the other form is still open
+  expect(await (await request.get("/api/forms/no-existeix-gens/status")).json()).toEqual({ open: false });
+  expect((await request.get("/api/forms/places-limitades/challenge")).status()).toBe(410);
+  expect((await request.get("/api/forms/places-limitades/challenge")).headers()["x-frame-options"]).toBe("DENY");
+  expect(await count("submissions", sql`where form_id = ${id}`)).toBe(1);
+});
+
+test("availability: a page cached before the end date shows the form as closed once the date has passed", async ({ page, request }) => {
+  const em = F("email", { label: L("Correu"), required: "yes" });
+  const id = await seedForm("fins-una-hora", [em]);
+  await sql`update forms set closes_at = now() + interval '5 seconds' where id = ${id}`;
+  await page.goto(WEB + "/ca/form/fins-una-hora");
+  await expect(page.getByLabel(/^Correu/)).toBeVisible(); // open, and now cached
+  await page.waitForTimeout(6000);
+  await page.reload(); // the cached page still carries the form; the browser notices the date has passed
+  await expect(page.getByText("Aquest formulari ja no accepta respostes.")).toBeVisible();
+  await expect(page.getByLabel(/^Correu/)).toHaveCount(0);
+  expect((await request.get("/api/forms/fins-una-hora/challenge")).status()).toBe(410);
+  const forged = await submitApi(request, "fins-una-hora", { [em.id]: "tard@e2e.test" }).catch(() => null);
+  expect(forged === null || forged.status() >= 400).toBe(true); // the server refuses it as well, whatever the browser does
+  expect(await count("submissions", sql`where form_id = ${id}`)).toBe(0);
 });

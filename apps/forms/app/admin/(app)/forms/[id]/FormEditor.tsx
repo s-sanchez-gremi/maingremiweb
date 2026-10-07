@@ -8,11 +8,13 @@ import { formSettingsFields, type FormSettings } from "@apex/forms/settings-fiel
 import type { Field } from "@apex/core/fields";
 import { copyForm, removeForm, saveForm } from "../actions";
 
-type Initial = { id: string; name: string; slug: string; active: boolean; destination: "crm_lead" | "project" | "responses_only"; target: string; fields: Item[]; settings: FormSettings };
+type Initial = { id: string; name: string; slug: string; active: boolean; destination: "crm_lead" | "project" | "responses_only"; target: string; fields: Item[]; settings: FormSettings; closesAt: string; maxResponses: string; redirectUrl: string };
+const STATE_LABEL = { open: "Actiu", closed: "Tancat", expired: "Tancat per data", full: "Complet" } as const;
 const pick = (names: string[]) => formSettingsFields.filter((f) => names.includes(f.name)) as Field[];
 const NO_MEDIA = { media: [], forms: [] };
 
-export function FormEditor({ initial, stats, site, message, targets }: {
+export function FormEditor({ initial, stats, site, message, targets, state }: {
+  state: keyof typeof STATE_LABEL;
   targets: { projects: { id: string; name: string }[]; clients: { id: string; name: string }[] };
   initial: Initial; stats: { submissions: number; starts: number; completion: number | null }; site: string; message: { kind: "ok" | "err"; text: string } | null;
 }) {
@@ -23,7 +25,10 @@ export function FormEditor({ initial, stats, site, message, targets }: {
   const [target, setTarget] = useState(initial.target);
   const [items, setItems] = useState<Item[]>(initial.fields);
   const [settings, setSettings] = useState<Record<string, unknown>>(initial.settings as never);
-  const data = JSON.stringify({ id: initial.id, name, slug, active, destination, target, fields: items, settings });
+  const [closesAt, setClosesAt] = useState(initial.closesAt);
+  const [maxResponses, setMaxResponses] = useState(initial.maxResponses);
+  const [redirectUrl, setRedirectUrl] = useState(initial.redirectUrl);
+  const data = JSON.stringify({ id: initial.id, name, slug, active, destination, target, fields: items, settings, closesAt, maxResponses, redirectUrl });
 
   const optionLabel = (i: Item) => `${lt(i.data.label, "ca") || formTypeByName[i.type].label}`;
   const summary = (i: Item) => {
@@ -45,7 +50,7 @@ export function FormEditor({ initial, stats, site, message, targets }: {
           <h1>{name || "Formulari"}</h1>
         </div>
         <div className="row">
-          <span className={active ? "chip ok" : "chip"}>{active ? `Actiu · ${stats.submissions} respostes` : "Tancat"}</span>
+          <span className={state === "open" ? "chip ok" : "chip"}>{state === "open" ? `Actiu · ${stats.submissions} respostes` : state === "full" ? `Complet · ${stats.submissions} respostes` : STATE_LABEL[state]}</span>
           <button className="btn primary" type="submit">Desa</button>
         </div>
       </div>
@@ -103,6 +108,14 @@ export function FormEditor({ initial, stats, site, message, targets }: {
               )}
             </fieldset>
 
+            <div className="card">
+              <h3>Disponibilitat</h3>
+              <label>Es tanca el (hora de Catalunya)<input type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} /></label>
+              <label>Màxim de respostes<input inputMode="numeric" placeholder="Sense límit" value={maxResponses} onChange={(e) => setMaxResponses(e.target.value)} /></label>
+              <span className="hint">Deixa-ho buit per no posar límit. Quan arriba la data o el límit, el formulari deixa d&apos;acceptar respostes i la gent veu que està tancat. «Obert» continua manant: si no està marcat, sempre és tancat.</span>
+              <label>Adreça on enviar la persona després d&apos;enviar-lo<input value={redirectUrl} onChange={(e) => setRedirectUrl(e.target.value)} placeholder="/ca/gracies  o  https://…" /></label>
+              <span className="hint">Opcional. Si la poses, en lloc del missatge de confirmació s&apos;obre aquesta pàgina (ha de començar per https://, http:// o /).</span>
+            </div>
             <div className="card"><h3>Text públic</h3><FieldForm fields={pick(["title", "confirmation", "consent"])} data={settings} onChange={setSettings} options={NO_MEDIA} /></div>
             <div className="card"><h3>Butlletí</h3><FieldForm fields={pick(["newsletterEnabled", "newsletterText"])} data={settings} onChange={setSettings} options={NO_MEDIA} /></div>
             <div className="card"><h3>Notificacions</h3><FieldForm fields={pick(["staffEmail", "staffAddresses", "confirmToSender", "confirmSubject", "confirmBody"])} data={settings} onChange={setSettings} options={NO_MEDIA} /></div>

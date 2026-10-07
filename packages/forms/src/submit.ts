@@ -1,5 +1,6 @@
 // The lead-capture pipeline. Everything the guide lists happens here, in this order:
 // validate → consent → files → (one transaction: submission, contact upsert, lead, newsletter opt-in, email outbox).
+import { count, eq, sql } from "drizzle-orm";
 import { db } from "@apex/db";
 import { forms, leads, newsletterOptins, submissions, type Answer, type Locale } from "@apex/db/schema";
 import { deletePrivatePrefix, putPrivate } from "@apex/core/storage";
@@ -8,6 +9,7 @@ import { siteUrl } from "@apex/core/site-url";
 import { lt, type Item } from "./fieldTypes";
 import { classifyUpload, safeName, type Upload } from "@apex/core/files";
 import { answerText } from "./answer-text";
+import { availability } from "./availability";
 import { upsertContact } from "./contacts";
 import { msgs } from "./messages";
 import { MAX_FILE_BYTES, validateAnswers, type Answers, type Cleaned } from "./validate";
@@ -36,10 +38,13 @@ export const parseAddresses = (s: string | undefined) => [...new Set((s ?? "").s
 
 const valueText = (a: Cleaned | Answer): string => answerText(a);
 
+class FormFull extends Error {}
+
 export async function processSubmission(input: SubmitInput): Promise<SubmitResult> {
   const { form, locale, meta } = input;
   const t = msgs(locale);
-  if (!form.active) return { ok: false, code: "closed", errors: { _form: t.closed } };
+  const closed = { ok: false, code: "closed", errors: { _form: t.closed } } as const;
+  if ((await availability(form)) !== "open") return closed; // switched off, past its end date, or at its limit
   const items = form.fields as Item[];
 
   // 1. Files: identify by bytes and size BEFORE validating, so the validator sees trustworthy metadata.
@@ -89,6 +94,12 @@ export async function processSubmission(input: SubmitInput): Promise<SubmitResul
 
     // 5. One transaction: everything or nothing.
     await db.transaction(async (tx) => {
+      if (form.maxResponses) {
+        // Several visitors can submit at the same moment: lock the form row so they are counted one after the other and the limit is never exceeded.
+        await tx.execute(sql`select id from forms where id = ${form.id} for update`);
+        const [stored] = await tx.select({ n: count() }).from(submissions).where(eq(submissions.formId, form.id));
+        if (stored.n >= form.maxResponses) throw new FormFull();
+      }
       const contactId = wantsCrm ? await upsertContact(tx, { email: mapped.email, name: mapped.name, phone: mapped.phone, company: mapped.company, locale }) : null;
       const attach = form.destination === "project" ? { projectId: form.targetProjectId, clientId: form.targetClientId } : { projectId: null, clientId: null };
       await tx.insert(submissions).values({
@@ -125,6 +136,7 @@ export async function processSubmission(input: SubmitInput): Promise<SubmitResul
     });
   } catch (e) {
     await deletePrivatePrefix(`submissions/${id}/`).catch(() => {});
+    if (e instanceof FormFull) return closed;
     const code = (e as { code?: string; cause?: { code?: string } }).cause?.code ?? (e as { code?: string }).code;
     if (code === "23505") return { ok: false, code: "replay", errors: { _form: t.botFail } }; // same bot-check token used twice
     throw e;
