@@ -7,15 +7,23 @@
 -- file refuses to continue while any table has no permissions, so nobody can forget (and CI runs it).
 -- Ownership (docs/split-plan.md section 4, docs/forms-app-plan.md): admin = content tables and accounts; web = none, it only reads
 -- them; forms = forms, form_starts, submissions, form_drafts, form_webhooks, webhook_deliveries, form_field_reach; crm = every business table (contacts, leads, newsletter opt-ins, clients, projects,
--- ERP...); shared = sessions, outbox, heartbeats, error_log.
+-- ERP...); shared = outbox, heartbeats, error_log. Sessions: one table PER APP (sessions = CMS admin, crm_sessions, forms_sessions, sign_sessions).
 
 revoke all on all tables in schema public from apex_web, apex_admin, apex_crm, apex_forms, apex_sign;
 revoke all on all sequences in schema public from apex_web, apex_admin, apex_crm, apex_forms, apex_sign;
 grant usage on schema public to apex_web, apex_admin, apex_crm, apex_forms, apex_sign;
 
 -- ---- shared by the apps that write (the website only reads sessions to recognise staff, and ends a session on sign-out) ----
-grant select, insert, update, delete on sessions, outbox, heartbeats, error_log to apex_admin, apex_crm, apex_forms, apex_sign;
+grant select, insert, update, delete on outbox, heartbeats, error_log to apex_admin, apex_crm, apex_forms, apex_sign;
+-- Sessions: each app signs people in to its OWN table and no other role can write it. With one shared table, a compromised CRM/Forms/Signatures
+-- database user could insert a session row for an admin and walk into the CMS admin. The CMS admin may DELETE from the others (it signs a person
+-- out everywhere when their role or password changes, and its scheduler removes expired rows), never insert.
+grant select, insert, update, delete on sessions to apex_admin;
 grant select, delete on sessions to apex_web;      -- the staff bar and the preview recognise a signed-in person; "Surt" ends the session
+grant select, insert, update, delete on crm_sessions to apex_crm;
+grant select, insert, update, delete on forms_sessions to apex_forms;
+grant select, insert, update, delete on sign_sessions to apex_sign;
+grant select, delete on crm_sessions, forms_sessions, sign_sessions to apex_admin;
 grant select on heartbeats to apex_web;            -- the deep health check reads the CMS scheduler's heartbeat
 grant select, insert, update on error_log to apex_web;
 
@@ -23,15 +31,14 @@ grant select, insert, update on error_log to apex_web;
 grant usage, select on sequence outbox_id_seq, error_log_id_seq to apex_admin, apex_crm, apex_forms, apex_sign;
 grant usage, select on sequence error_log_id_seq to apex_web;
 
--- ---- users: accounts are managed in the CMS admin; the other apps only read them (the CRM and Forms apps let a person change THEIR OWN password) ----
+-- ---- users: accounts AND passwords are managed in the CMS admin only; the other apps read them (their own login needs the hash) ----
+-- No other role may write password_hash: with that column writable, a compromised CRM/Forms/Signatures database user could set an admin's password
+-- and sign in to the CMS. "Change my password" in those apps is a link to the CMS admin's account page.
 grant select, insert, update, delete on users to apex_admin;
 grant select on users to apex_web;
 grant select on users to apex_crm;
-grant update (password_hash) on users to apex_crm;
 grant select on users to apex_forms;
-grant update (password_hash) on users to apex_forms;   -- a person may change their own password in the Forms app too (same rule as the CRM)
 grant select on users to apex_sign;
-grant update (password_hash) on users to apex_sign;    -- and in the Signatures app (same rule)
 
 -- ---- apex_admin: the CMS (content, media, categories, settings) ----
 grant select, insert, update, delete on entries, entry_translations, entry_versions, categories, media, settings to apex_admin;

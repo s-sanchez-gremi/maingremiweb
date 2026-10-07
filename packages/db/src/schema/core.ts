@@ -16,11 +16,18 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const sessions = pgTable("sessions", {
-  id: text().primaryKey(),
+// One sessions table PER APP, each written only by its own database role (db/grants.sql). A shared table would let a compromised CRM, Forms or
+// Signatures app insert a session row for an admin and walk into the CMS admin. `sessions` belongs to the CMS admin (the website only reads it).
+const sessionTable = (name: string) => pgTable(name, {
+  id: text().primaryKey(), // SHA-256 of the cookie token
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 });
+export const sessions = sessionTable("sessions");
+export const crmSessions = sessionTable("crm_sessions");
+export const formsSessions = sessionTable("forms_sessions");
+export const signSessions = sessionTable("sign_sessions");
+export const sessionTables = [sessions, crmSessions, formsSessions, signSessions];
 
 export const outbox = pgTable("outbox", {
   id: bigserial({ mode: "number" }).primaryKey(),
