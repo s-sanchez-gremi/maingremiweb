@@ -23,9 +23,15 @@ export async function applyGrants(url: string, file = join(dirname(findMigration
   } finally { await sql.end(); }
 }
 
+/** Migrations that were renamed after being applied somewhere (two people took the same number). Their record is renamed, never re-run. */
+export const RENAMED_MIGRATIONS: Record<string, string> = { "0026_signatures.sql": "0027_signatures.sql" };
+
 export async function migrate(url: string, dir = findMigrationsDir()) {
   const sql = postgres(url, { max: 1, onnotice: () => {} });
   await sql`create table if not exists schema_migrations (name text primary key, applied_at timestamptz not null default now())`;
+  for (const [from, to] of Object.entries(RENAMED_MIGRATIONS)) {
+    await sql`update schema_migrations set name = ${to} where name = ${from} and not exists (select 1 from schema_migrations where name = ${to})`;
+  }
   const done = new Set((await sql`select name from schema_migrations`).map((r) => r.name));
   const applied: string[] = [];
   for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
