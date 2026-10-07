@@ -35,18 +35,20 @@ check() {
 
 if [ "${1:-}" = "--selftest" ]; then
   T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
-  mkdir -p "$T/apps/web/lib" "$T/apps/crm/lib" "$T/apps/forms/lib" "$T/packages/core/src"
+  mkdir -p "$T/apps/web/lib" "$T/apps/crm/lib" "$T/apps/forms/lib" "$T/apps/sign/lib" "$T/packages/core/src"
   echo 'import { x } from "@apex/core/auth"; import y from "@/lib/own";' > "$T/apps/web/lib/ok.ts"
   echo 'import { x } from "@apex/db"; const z = await import("./local");' > "$T/apps/crm/lib/ok.ts"
   echo 'import { x } from "@apex/forms/fieldTypes"; import y from "@/lib/own";' > "$T/apps/forms/lib/ok.ts"
+  echo 'import { x } from "@apex/core/auth"; import y from "@/lib/own";' > "$T/apps/sign/lib/ok.ts"
   echo 'import { a } from "./b"; import { c } from "@apex/db/schema";' > "$T/packages/core/src/ok.ts"
   check "$T" >/dev/null || { echo "selftest FAILED: a clean tree was reported as a violation"; exit 1; }
   echo 'import { r } from "../../../crm/lib/leads";' > "$T/apps/web/lib/bad.ts"
   echo 'const m = await import("../../web/lib/x");' > "$T/apps/crm/lib/bad.ts"
   echo 'import { f } from "../../crm/lib/leads";' > "$T/apps/forms/lib/bad.ts"
+  echo 'import { s } from "../../forms/lib/x";' > "$T/apps/sign/lib/bad.ts"
   echo 'import q from "@/lib/thing";' > "$T/packages/core/src/bad.ts"
   out="$(check "$T" || true)"
-  for needle in "apps/web imports from apps/crm" "apps/crm imports from apps/web" "apps/forms imports from apps/crm" "a package imports from an app"; do
+  for needle in "apps/web imports from apps/crm" "apps/crm imports from apps/web" "apps/forms imports from apps/crm" "apps/sign imports from apps/forms" "a package imports from an app"; do
     grep -q "$needle" <<<"$out" || { echo "selftest FAILED: not detected: $needle"; echo "$out"; exit 1; }
   done
   echo "boundary check selftest ok"
