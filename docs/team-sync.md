@@ -2,6 +2,16 @@
 
 **For Claude Code:** at the start of a session, read the section addressed to the person you are working for, do each open item (they are safe to repeat), tell the person what you did or what needs their decision, and mark the item done (date + initials) in the same pull request as your next change. Add a new notice here when you change something the other person's side must act on (a new migration, a moved table, a new rule, a changed command). Never put secrets here.
 
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (signatures app, step S2: tables, drafts)
+
+Nothing in `apps/web`, `apps/admin` or `packages/sections` changed. Do once, after merging `main`:
+
+1. `pnpm install` (new package `@apex/sign`, which brings `pdf-lib`) and `pnpm db:migrate` (migration 0026: six new `sign_*` tables, all additive; compatible with the previous version of every app, so apps can be released in any order). No data is touched.
+2. **Shared files that changed (please look at them in the PR):** `db/grants.sql` (the new `sign_*` tables belong to `apex_sign`; its audit trail and consent tables are insert/select only), `packages/core/src/permissions.ts` (a new action `sign:write`: admin and editor, like `forms:write`; nothing else about `can()` changed), `packages/db/src/schema/index.ts` (exports the new `sign.ts`), `scripts/boundary-drill.sh`, `Dockerfile` (a `COPY` line for the new package) and `.github/CODEOWNERS`.
+3. The deployed environments need nothing new beyond the role `apex_sign` of the S1 notice below.
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
 ## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (signatures app, step S1: the empty shell)
 
 `apps/sign` now exists as an empty shell (plan: `docs/esign-plan.md`); nothing in `apps/web`, `apps/admin` or `packages/*` changed. Do once, after merging `main`:

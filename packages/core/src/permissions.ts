@@ -2,10 +2,10 @@
 export type Role = "admin" | "editor";
 export type Action =
   | "content:write" | "content:publish" | "media:write"
-  | "forms:write" | "categories:write" | "projects:write" | "leads:write" | "erp:write"
+  | "forms:write" | "sign:write" | "categories:write" | "projects:write" | "leads:write" | "erp:write"
   | "users:manage" | "settings:write" | "data:erase";
 
-const editorActions: Action[] = ["content:write", "content:publish", "media:write", "forms:write", "categories:write", "projects:write", "leads:write"];
+const editorActions: Action[] = ["content:write", "content:publish", "media:write", "forms:write", "sign:write", "categories:write", "projects:write", "leads:write"];
 
 export function can(user: { role: Role } | null | undefined, action: Action): boolean {
   if (!user) return false;

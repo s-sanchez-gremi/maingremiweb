@@ -2,7 +2,7 @@
 -- Five login roles, created once by whoever sets up the database (see deploy/ionos/README.md): apex_web (the public website:
 -- READ-ONLY on content), apex_admin (the CMS admin: writes content, media, settings and accounts), apex_crm (CRM, projects, ERP,
 -- portal, records) and apex_forms (the Forms app, docs/forms-app-plan.md: the form builder, responses and the public submission
--- pipeline) and apex_sign (the Signatures app, docs/esign-plan.md: owns no table yet, step S2 adds them). None can change the schema; each can only touch its own tables, plus the narrow exceptions below.
+-- pipeline) and apex_sign (the Signatures app, docs/esign-plan.md: owns the sign_* tables). None can change the schema; each can only touch its own tables, plus the narrow exceptions below.
 -- THE RULE FOR A NEW TABLE: add it to ONE of the lists below in the same pull request as its migration. The check at the end of this
 -- file refuses to continue while any table has no permissions, so nobody can forget (and CI runs it).
 -- Ownership (docs/split-plan.md section 4, docs/forms-app-plan.md): admin = content tables and accounts; web = none, it only reads
@@ -49,6 +49,13 @@ grant select on events to apex_forms;              -- ...and an event as the pla
 grant select, insert, update on contacts to apex_forms;        -- upsert by email (insert ... on conflict do update needs select)
 grant insert on leads to apex_forms;
 grant select, insert, update on newsletter_optins to apex_forms; -- upsert by email
+
+-- ---- apex_sign: the Signatures app (docs/esign-plan.md) ----
+grant select, insert, update, delete on sign_documents, sign_requests, sign_signers, sign_fields to apex_sign;
+-- the audit trail and the consents are APPEND-ONLY for the app: it can write and read them, never change or delete a row
+-- (rows only go with their request, by foreign-key cascade, which runs with the table owner's rights)
+grant select, insert on sign_events, sign_consents to apex_sign;
+grant usage, select on sequence sign_events_id_seq to apex_sign;
 
 -- ---- apex_crm: everything else ----
 grant select on forms, submissions to apex_crm;   -- leads and attached responses show them; the Forms app owns and changes them
