@@ -16,6 +16,17 @@
 
 Done: (none yet; Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 
+## For Joan Marc (apps/web) and his Claude — notice of 2026-10-08 from Sam (forms: webhooks, migration 0024)
+
+Forms can now tell other systems about new and changed responses (`docs/forms-v2-plan.md`, item 5). **Nothing in `apps/web` changes.** Do once, after merging `main`:
+
+1. `pnpm db:migrate` (migration 0024: two new tables, `form_webhooks` and `webhook_deliveries`; additive, compatible with the previous version of every app).
+2. The new tables are classified in `db/grants.sql` (they belong to `apex_forms`; the website and the CRM cannot read them, proven by `scripts/boundary-drill.sh`).
+3. **New rule for servers:** `WEBHOOK_ALLOW_PRIVATE` must never be set in staging or production (the app refuses to start). Locally it only matters for the Forms app's e2e; `.env` needs nothing.
+4. Deliveries carry response data to systems the form's owners choose: worth one line in the privacy text when the first form uses it.
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
 ## For Joan Marc (apps/web) and his Claude — notice of 2026-10-07 from Sam (forms: edit a sent response, migration 0023)
 
 Respondents can now change what they sent through a private link (`docs/forms-v2-plan.md`, item 4c; off unless staff switch it on per form). Your area is touched in **one line**: `apps/web/lib/content-queries.ts` (`publicForm()`) also passes `allowEdit`; the shared `FormRenderer` does the rest. Do once, after merging `main`:

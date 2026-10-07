@@ -40,7 +40,7 @@ export default defineConfig({
     {
       command: `${build}pnpm exec next start -p ${FORMS_PORT}`,
       cwd: "../apps/forms", url: `${FORMS_URL}/robots.txt`, timeout: 600_000, reuseExistingServer: false,
-      env: { ...base, DATABASE_URL: E2E_FORMS_DB, NEXT_DIST_DIR: ".next-e2e", WEB_INTERNAL_URL: WEB_URL },   // after a form changes, the Forms app expires the website's cache
+      env: { ...base, DATABASE_URL: E2E_FORMS_DB, NEXT_DIST_DIR: ".next-e2e", WEB_INTERNAL_URL: WEB_URL, WEBHOOK_ALLOW_PRIVATE: "1" },   // after a form changes, the Forms app expires the website's cache
     },
     {
       command: `${build}pnpm exec next start -p ${ADMIN_PORT}`,

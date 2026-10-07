@@ -1,6 +1,9 @@
 // Form builder + lead pipeline, end to end: real browser, real production build, real database, real SMTP (Mailpit) and S3 mock.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { createHmac } from "node:crypto";
+import http from "node:http";
+import type { AddressInfo } from "node:net";
 import postgres from "postgres";
 import { CRM_URL as CRM, E2E_DB, WEB_URL as WEB } from "@apex/e2e/constants"; // public pages are drawn by the website; the API and the builder live in the Forms app; leads and projects in the CRM app
 import { solve } from "@apex/forms/pow";
@@ -853,4 +856,96 @@ test("a form that does not allow edits gives no link, and the editor can switch 
   await page.getByRole("button", { name: "Desa", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Desat");
   expect((await sql`select allow_edits from forms where id = ${id}`)[0].allow_edits).toBe(true);
+});
+
+test("webhooks: add an endpoint, a response reaches it signed, failures are retried and shown, staff can test, disable and delete", async ({ page }) => {
+  // a receiver on this machine
+  const got: { headers: http.IncomingHttpHeaders; body: string }[] = [];
+  let answer = 200;
+  const server = http.createServer((req, res) => { let b = ""; req.on("data", (c) => (b += c)); req.on("end", () => { got.push({ headers: req.headers, body: b }); res.statusCode = answer; res.end(answer === 200 ? "ok" : "receiver says no"); }); });
+  await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+  const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/hook`;
+  try {
+    const nom = F("text", { label: L("Nom"), required: "yes" });
+    const cv = F("file", { label: L("CV") });
+    const id = await seedForm("amb-webhook", [nom, cv]);
+    await login(page);
+    await page.goto(`/admin/forms/${id}/integrations`);
+    const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+    expect(axe.violations.map((v) => `${v.id}: ${v.nodes[0]?.target}`)).toEqual([]);
+
+    // an address that is not allowed is refused with a reason
+    for (const bad of ["ftp://exemple.cat/x", "javascript:alert(1)", "exemple.cat/hook"]) {
+      await page.getByLabel("Adreça de l'endpoint").fill(bad);
+      await page.getByRole("button", { name: "Afegeix l'endpoint" }).click();
+      await expect(page.getByRole("alert").filter({ hasText: /L'adreça/ })).toBeVisible();
+    }
+    await page.getByLabel("Adreça de l'endpoint").fill(url);
+    await page.getByRole("button", { name: "Afegeix l'endpoint" }).click();
+    await expect(page.getByRole("status")).toContainText("Endpoint afegit");
+    const [hook] = await sql`select id, secret from form_webhooks where form_id = ${id}`;
+    expect(hook.secret).toMatch(/^whsec_/);
+    await page.getByText("Veure el secret per signar").click();
+    await expect(page.getByText(hook.secret)).toBeVisible();
+
+    // a response reaches the endpoint, signed, with the files left out
+    const send = async (who: string) => {
+      await page.goto(WEB + "/ca/form/amb-webhook");
+      await page.waitForLoadState("networkidle");
+      await page.getByLabel(/^Nom/).fill(who);
+      await page.getByRole("button", { name: "Envia" }).click();
+      await expect(page.getByRole("status")).toContainText("Gràcies");
+    };
+    await send("Marta Ros");
+    await expect.poll(() => got.length, { timeout: 15_000 }).toBe(1);
+    const first = got[0];
+    expect(first.headers["x-apex-event"]).toBe("response.created");
+    const [t, v1] = String(first.headers["x-apex-signature"]).split(",").map((p) => p.split("=")[1]);
+    expect(createHmac("sha256", hook.secret).update(`${t}.${first.body}`).digest("hex")).toBe(v1);
+    const payload = JSON.parse(first.body);
+    expect(payload).toMatchObject({ event: "response.created", form: { slug: "amb-webhook" }, response: { locale: "ca" } });
+    expect(payload.response.answers.map((a: { label: string; text: string }) => `${a.label}=${a.text}`)).toContain("Nom=Marta Ros");
+    expect(payload.delivery).toBe(first.headers["x-apex-delivery"]);
+
+    await page.goto(`/admin/forms/${id}/integrations`);
+    await expect(page.getByRole("row", { name: /response\.created/ })).toContainText("Enviat");
+    await expect(page.getByRole("row", { name: /response\.created/ })).toContainText("HTTP 200");
+
+    // a failing endpoint: the attempt is kept as pending with the reason, then retried by hand once it works
+    answer = 500;
+    await send("Pere Soler");
+    await expect.poll(() => got.length, { timeout: 15_000 }).toBe(2);
+    await page.goto(`/admin/forms/${id}/integrations`);
+    const failing = page.getByRole("row", { name: /Pendent/ });
+    await expect(failing).toContainText("500");
+    await expect(failing).toContainText("receiver says no");
+    answer = 200;
+    await failing.getByRole("button", { name: "Torna-ho a provar" }).click();
+    await expect(page.getByRole("status")).toContainText("Reintent fet");
+    expect(got.length).toBe(3);
+    expect(got[2].headers["x-apex-delivery"]).toBe(got[1].headers["x-apex-delivery"]); // the same delivery id on the retry, so the receiver can ignore duplicates
+    await expect(page.getByRole("row", { name: /Pendent/ })).toHaveCount(0);
+
+    // a test event
+    await page.getByRole("button", { name: /Envia una prova/ }).click();
+    await expect(page.getByRole("status")).toContainText("Prova enviada");
+    expect(got[got.length - 1].headers["x-apex-event"]).toBe("ping");
+    expect(JSON.parse(got[got.length - 1].body)).toMatchObject({ event: "ping", response: null });
+
+    // disabled endpoints are not told; deleting one removes its history
+    await page.getByRole("button", { name: /^Desactiva/ }).click();
+    await expect(page.getByText("Desactivat")).toBeVisible();
+    const before = got.length;
+    await send("Cap avís");
+    await page.waitForTimeout(1500);
+    expect(got.length).toBe(before);
+    expect(await count("webhook_deliveries", sql`where webhook_id = ${hook.id} and payload::text like '%Cap av%'`)).toBe(0);
+    await page.goto(`/admin/forms/${id}/integrations`);
+    page.once("dialog", (d) => d.accept());
+    await page.getByRole("button", { name: "Elimina" }).click();
+    await expect(page.getByRole("status")).toContainText("Endpoint eliminat");
+    expect(await count("webhook_deliveries", sql`where webhook_id = ${hook.id}`)).toBe(0);
+  } finally {
+    await new Promise((r) => server.close(r));
+  }
 });

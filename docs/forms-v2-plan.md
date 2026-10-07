@@ -9,7 +9,7 @@ Apex already has its own form builder (phase 5 in `CLAUDE.md`): 11 field types, 
 4. **Respondent experience**, in small PRs. **4a done (migration 0021):** progress bar on multi-step forms; redirect to a page after submitting (the custom thank-you message already existed: *confirmation*); close on a date (typed in Catalonia's time) or after N responses. **4b done (migration 0022):** save and resume by link: opt-in per form, a private link (also by email), text answers only, kept 30 days, deleted when the form is sent. **4c done (migration 0023):** edit a submitted response through a private link (opt-in per form, 30 days, the contact's email locked, files kept, the first version preserved, staff told what changed). **Wave 1 is complete.**
 
 ## Wave 2: automation (instead of Zapier)
-5. **Webhooks per form.** POST the answers after submission, signed payload, retries and a log, reusing the `outbox` retry pattern.
+5. **Webhooks per form.** **Done (migration 0024):** up to 5 endpoints per form; `response.created` and `response.updated` (with what changed) are POSTed as signed JSON, retried with backoff for about two days, and logged on the form's *Integracions* page with a test button and manual retry. Built on the outbox pattern; SSRF-hardened (see `CLAUDE.md`).
 6. **More destinations.** Create an event attendance row, a company or person record, or a case (labour, training), reusing the records engine.
 7. **Calculated fields** (hidden score or total). Already listed as "later" in `CLAUDE.md`.
 8. **Prefill from the URL** (`?name=…&company=…`), whitelisted per field.

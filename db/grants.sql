@@ -6,7 +6,7 @@
 -- THE RULE FOR A NEW TABLE: add it to ONE of the lists below in the same pull request as its migration. The check at the end of this
 -- file refuses to continue while any table has no permissions, so nobody can forget (and CI runs it).
 -- Ownership (docs/split-plan.md section 4, docs/forms-app-plan.md): admin = content tables and accounts; web = none, it only reads
--- them; forms = forms, form_starts, submissions, form_drafts; crm = every business table (contacts, leads, newsletter opt-ins, clients, projects,
+-- them; forms = forms, form_starts, submissions, form_drafts, form_webhooks, webhook_deliveries; crm = every business table (contacts, leads, newsletter opt-ins, clients, projects,
 -- ERP...); shared = sessions, outbox, heartbeats, error_log.
 
 revoke all on all tables in schema public from apex_web, apex_admin, apex_crm, apex_forms;
@@ -39,7 +39,7 @@ grant select on forms to apex_admin;   -- the page editor offers the forms to pl
 grant select on entries, entry_translations, entry_versions, categories, media, settings, forms to apex_web;   -- forms: to draw a form
 
 -- ---- apex_forms: the Forms app ----
-grant select, insert, update, delete on forms, form_starts, submissions, form_drafts to apex_forms;
+grant select, insert, update, delete on forms, form_starts, submissions, form_drafts, form_webhooks, webhook_deliveries to apex_forms;
 grant select on projects, clients to apex_forms;   -- the builder offers them as the destination of a form (it never changes them)
 -- Decision A of docs/forms-app-plan.md: the submission pipeline hands a lead to the CRM by writing these three rows, nothing more.
 -- No read of leads, no change of their status or owner, no delete: the CRM owns what happens to a lead afterwards.

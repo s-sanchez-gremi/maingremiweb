@@ -15,6 +15,7 @@ import { parseAddresses } from "./addresses";
 import type { Item } from "./fieldTypes";
 import { formsAdminUrl, longDate, pageLink } from "./links";
 import { msgs } from "./messages";
+import { enqueueWebhooks } from "./webhooks";
 import { validateAnswers, type Answers } from "./validate";
 
 type FormRow = typeof forms.$inferSelect;
@@ -122,6 +123,7 @@ export async function applyEdit(form: FormRow, token: unknown, input: { answers:
     await tx.update(submissions).set({
       answers: snapshot, editedAt: now, editCount: sub.editCount + 1, originalAnswers: sub.originalAnswers ?? sub.answers,
     }).where(eq(submissions.id, sub.id));
+    await enqueueWebhooks(tx, form, "response.updated", { id: sub.id, createdAt: sub.createdAt, locale: sub.locale, sourcePath: sub.sourcePath, theme: sub.theme, utm: sub.utm, answers: snapshot, changes, editCount: sub.editCount + 1 });
     // The contact keeps its identity (the email is locked); its name, phone and company follow the response, and a blank never erases what is known.
     if (sub.contactId && form.destination === "crm_lead") {
       const set: Partial<typeof contacts.$inferInsert> = {};
