@@ -40,6 +40,7 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
   const [doneMessage, setDoneMessage] = useState("");
   const [closedNow, setClosedNow] = useState(false); // the form closed after this page was loaded (or cached)
   const started = useRef(false);
+  const reached = useRef(new Set<string>()); // questions already counted on this page load (anonymous drop-off statistics)
   const pow = useRef<Promise<Solution> | null>(null);
   const head = useRef<HTMLHeadingElement>(null);
   const done = useRef<HTMLDivElement>(null);
@@ -58,6 +59,15 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
     fetch(`/api/forms/${form.slug}/start`, { method: "POST", keepalive: true }).catch(() => {});
     pow.current = fetchSolution(form.slug);
     pow.current.catch((e) => { if (e instanceof FormClosedError) setClosedNow(true); });
+  };
+
+  // Drop-off statistics: the first time someone reaches a question on this page load, count it (a total per question; no cookie, nothing about the person).
+  const reach = (target: EventTarget | null) => {
+    if (edit || !(target instanceof Element)) return;
+    const id = target.closest("[data-field-id]")?.getAttribute("data-field-id");
+    if (!id || reached.current.has(id)) return;
+    reached.current.add(id);
+    fetch(`/api/forms/${form.slug}/reach`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ field: id }), keepalive: true }).catch(() => {});
   };
 
   const answers = (): Answers => {
@@ -219,7 +229,7 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
   const position = Math.max(0, going.indexOf(step));
 
   return (
-    <form ref={root} className="apex-form" noValidate onSubmit={submit} onFocusCapture={begin} onPointerDown={begin} aria-label={lt(form.title, locale) || form.name}>
+    <form ref={root} className="apex-form" noValidate onSubmit={submit} onFocusCapture={(e) => { begin(); reach(e.target); }} onPointerDown={begin} aria-label={lt(form.title, locale) || form.name}>
       {going.length > 1 && (
         <div>
           <progress max={going.length} value={position + 1} aria-label={fmt(t.stepOf, { a: position + 1, b: going.length })} style={{ width: "100%", height: 8, accentColor: "var(--accent)" }} />
