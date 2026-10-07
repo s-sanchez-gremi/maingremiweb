@@ -2,6 +2,28 @@
 
 **For Claude Code:** at the start of a session, read the section addressed to the person you are working for, do each open item (they are safe to repeat), tell the person what you did or what needs their decision, and mark the item done (date + initials) in the same pull request as your next change. Add a new notice here when you change something the other person's side must act on (a new migration, a moved table, a new rule, a changed command). Never put secrets here.
 
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (signatures app, step S1: the empty shell)
+
+`apps/sign` now exists as an empty shell (plan: `docs/esign-plan.md`); nothing in `apps/web`, `apps/admin` or `packages/*` changed. Do once, after merging `main`:
+
+1. `pnpm install` (the lockfile gained the new app). `pnpm dev` now also starts it on :3004 and links its `.env` itself. Add `SIGN_URL=http://localhost:3004` to your `.env` from `.env.example` (nothing uses it yet; it is for menu links later).
+2. Nothing for your local database (one all-powerful user). The e2e run creates the new role `apex_sign` by itself and starts a fifth server on port 3104 (`E2E_PORT_OFFSET` still shifts every port; the build in `scripts/ci.sh` takes a bit longer).
+3. **Deployed environments that use restricted database users** (`APPLY_GRANTS=1`): create the fifth role before the next release, `create role apex_sign login password '…';` (see `DEPLOY.md`), or `db/grants.sql` refuses to apply and the migration step stops the release. The Signatures app itself is not in the image's services yet (step S6), so no new host or variable is needed until then.
+4. Rule for your reviews: `apps/sign` never imports another app and no app imports it (`scripts/check-boundaries.sh` covers every app under `apps/` automatically; its self-test now includes it). It reads the shared `users`, `sessions`, `outbox`, `heartbeats` and `error_log` only (`db/grants.sql`).
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam: a fifth app is planned (e-signatures)
+
+Heads-up only, **nothing to do now and nothing in your apps changes.** We decided to build electronic signatures in-house as a separate app, `apps/sign` (plan: `docs/esign-plan.md`, merged in #74; the new section "Signatures app" in `CLAUDE.md` summarises it). It is Sam's area. What matters to you:
+
+1. **You will be asked to review only the shared files** when the steps land: a migration + `db/grants.sql` (S2), the Dockerfile, compose, `deploy.sh`, Caddy and `scripts/*-drill.sh` (S6), `check-boundaries.sh`, CI and `CLAUDE.md`. Nothing in `apps/web`, `apps/admin` or `packages/sections`.
+2. **Rules that will apply to everyone:** `apps/sign` never imports another app and no app imports it; a new database role `apex_sign` (like `apex_forms`: create the role before `APPLY_GRANTS=1` on any environment that uses restricted users; we will add a notice when S1 and S6 land); new env vars `SIGN_DOMAIN`, `SIGN_URL` and a seal certificate (`SIGN_SEAL_P12` + passphrase) in S6.
+3. **Open for your opinion (section 9 of the plan):** a fourth separate staff login is accepted for the forms app; same trade-off here. Say so if you would rather share a login.
+4. **Legal:** the consent wording, retention of sealed PDFs and the list of allowed documents need the client's legal adviser, the same as the privacy policy text on your side. If you already talk to them, it saves a round.
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when read)
+
 ## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-05 from Sam: the CMS admin is now its own app
 
 `apps/web` is now only the public website. Everything under `/admin` that edits content moved to a new app, `apps/admin` (history kept with `git mv`). Do these once, in order, after the pull request "Split the CMS admin out of the website" is merged:

@@ -157,7 +157,7 @@ export async function enqueueWebhooks(tx: Tx, form: FormInfo, event: WebhookEven
   const hooks = await tx.select({ id: formWebhooks.id }).from(formWebhooks).where(and(eq(formWebhooks.formId, form.id), eq(formWebhooks.enabled, true)));
   if (!hooks.length) return 0;
   const payload = buildPayload(event, form, response);
-  await tx.insert(webhookDeliveries).values(hooks.map((h) => ({ webhookId: h.id, submissionId: response.id, event, payload })));
+  await tx.insert(webhookDeliveries).values(hooks.map((h) => ({ webhookId: h.id, submissionId: response.id, event, payload, runAfter: new Date() })));
   return hooks.length;
 }
 
@@ -204,8 +204,9 @@ export async function retryDelivery(id: string): Promise<void> {
 }
 
 /** Staff: send a harmless sample event to see the endpoint work (shows in the delivery list like any other). */
+// runAfter is set from the app's own clock (not the database default): the scheduler compares it with the app's clock, and a database clock a hair ahead made a brand-new delivery wait for the next run.
 export async function queuePing(form: FormInfo, webhookId: string): Promise<string> {
-  const [row] = await db.insert(webhookDeliveries).values({ webhookId, event: "ping", payload: buildPayload("ping", form, null) }).returning({ id: webhookDeliveries.id });
+  const [row] = await db.insert(webhookDeliveries).values({ webhookId, event: "ping", payload: buildPayload("ping", form, null), runAfter: new Date() }).returning({ id: webhookDeliveries.id });
   return row.id;
 }
 
