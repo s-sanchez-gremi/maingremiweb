@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 const nextConfig: NextConfig = {
   agentRules: false,
   // Workspace packages are plain TypeScript source (no build step): Next compiles them with the app.
-  transpilePackages: ["@apex/db", "@apex/core", "@apex/ui"],
+  transpilePackages: ["@apex/db", "@apex/core", "@apex/ui", "@apex/sign"],
   // Development only: lets the team open `pnpm dev` from other devices over Tailscale; Next 16 blocks other dev origins.
   allowedDevOrigins: ["**.ts.net"],
   // Staff upload the PDF to be signed (max 15 MB + form overhead); default is 1 MB.

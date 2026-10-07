@@ -2,7 +2,7 @@
 import { after } from "next/server";
 import { isRateLimited } from "@apex/forms/limits";
 import { TooLarge, boundedFormData, clientHash, cleanLocale, cleanPath, cleanUtm, loadForm } from "@apex/forms/http";
-import { verifySolution } from "@apex/forms/pow";
+import { secondsSinceIssued, verifySolution } from "@apex/forms/pow";
 import { processSubmission } from "@apex/forms/submit";
 import { editDeadline, editLink } from "@apex/forms/edit";
 import { msgs } from "@apex/forms/messages";
@@ -51,7 +51,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     consent: payload.consent === true, newsletter: payload.newsletter === true,
     meta: {
       sourcePath: cleanPath(payload.sourcePath), sourceEntryId: typeof payload.sourceEntryId === "string" && /^[0-9a-f-]{36}$/i.test(payload.sourceEntryId) ? payload.sourceEntryId : null,
-      theme: typeof payload.theme === "string" ? payload.theme.slice(0, 80) : "", utm: cleanUtm(payload.utm), ipHash: ip, challengeId,
+      theme: typeof payload.theme === "string" ? payload.theme.slice(0, 80) : "", utm: cleanUtm(payload.utm), ipHash: ip, challengeId, durationSeconds: secondsSinceIssued(payload.pow as { expires: number }),
       draftToken: typeof payload.draftToken === "string" ? payload.draftToken : null,
     },
   });
