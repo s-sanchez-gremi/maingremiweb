@@ -1085,3 +1085,57 @@ test("prefill from the link: only the fields staff named are filled, bad values 
   const [row] = await sql`select fields from forms where id = ${id}`;
   expect(row.fields[0].data.prefill).toBe("nom-complet");
 });
+
+test("calculated fields: build one in the editor, the visitor sees the total live, the server stores its own result, staff read it", async ({ page }) => {
+  const qty = F("number", { label: L("Entrades"), required: "yes" });
+  const level = F("dropdown", { label: L("Nivell"), options: [{ label: L("Bàsic"), points: "1" }, { label: L("Premium"), points: "4" }] });
+  const id = await seedForm("calcul-e2e", [qty, level], { consent: L("Accepto") });
+  await login(page);
+  await page.goto(`/admin/forms/${id}`);
+  const card = (n: number) => page.locator(".col-main > .card").nth(n + 1);
+
+  // the builder: a total of both questions, the second counting double, shown to the visitor
+  await page.locator(".add button", { hasText: "Resultat calculat" }).first().click();
+  const c = card(2);
+  await c.getByLabel("CA").first().fill("Total de punts");
+  await c.getByLabel("Qui ho veu").selectOption("yes");
+  await c.getByRole("button", { name: "+ Afegeix" }).click();
+  await c.locator(".nested .card").nth(0).getByLabel("Pregunta anterior").selectOption({ label: "Entrades" });
+  await c.getByRole("button", { name: "+ Afegeix" }).click();
+  const second = c.locator(".nested .card").nth(1);
+  await second.getByLabel("Pregunta anterior").selectOption({ label: "Nivell" });
+  await second.getByLabel(/^Pes/).fill("2");
+  await c.getByLabel(/^Sumar-hi un número fix/).fill("1");
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Desat");
+  const [row] = await sql`select fields from forms where id = ${id}`;
+  expect(row.fields[2].data).toMatchObject({ op: "sum", show: "yes", offset: "1", terms: [{ field: qty.id, weight: "" }, { field: level.id, weight: "2" }] });
+
+  // an unfinished one is refused, saying why
+  await page.locator(".add button", { hasText: "Resultat calculat" }).first().click();
+  await card(3).getByLabel("CA").first().fill("Buit");
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("tria almenys una pregunta que compti");
+  await page.goto(`/admin/forms/${id}`); // leave the unsaved one behind
+
+  // the visitor: the total follows the answers
+  await page.goto(WEB + "/ca/form/calcul-e2e");
+  await page.waitForLoadState("networkidle");
+  const out = page.locator("output");
+  await expect(out).toHaveText("1"); // nothing answered: the sum starts from the fixed number
+  await page.getByLabel(/^Entrades/).fill("3");
+  await page.getByLabel(/^Nivell/).selectOption("Premium");
+  await expect(out).toHaveText("12"); // 3 + 4*2 + 1
+  await page.getByLabel(/^Nivell/).selectOption("Bàsic");
+  await expect(out).toHaveText("6");
+  await page.getByLabel("Accepto").check();
+  await page.getByRole("button", { name: "Envia" }).click();
+  await expect(page.getByRole("status")).toContainText("Gràcies");
+
+  const [sub] = await sql`select answers from submissions where form_id = ${id}`;
+  expect(sub.answers.find((a: { type: string }) => a.type === "calculated")).toMatchObject({ label: "Total de punts", value: 6 });
+  await page.goto(`/admin/forms/${id}/submissions`);
+  await expect(page.getByText("Total de punts")).toBeVisible();
+  const csv = await (await page.request.get(`/admin/forms/${id}/export`)).text();
+  expect(csv).toContain("Total de punts");
+});
