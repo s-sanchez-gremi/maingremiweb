@@ -33,3 +33,19 @@ describe("login throttle", () => {
     expect(loginBlocked("after-spray@example.org")).toBe(true);
   });
 });
+
+describe("purgeExpiredSessions()", () => {
+  it("removes only expired staff sessions", async () => {
+    const { db } = await import("@apex/db");
+    const { sessions, users } = await import("@apex/db/schema");
+    const { purgeExpiredSessions } = await import("@apex/core/session-purge");
+    await db.delete(users);
+    const [u] = await db.insert(users).values({ email: "purge@example.org", passwordHash: "x", role: "editor" }).returning();
+    await db.insert(sessions).values([
+      { id: "old", userId: u.id, expiresAt: new Date(Date.now() - 1000) },
+      { id: "new", userId: u.id, expiresAt: new Date(Date.now() + 3_600_000) },
+    ]);
+    await purgeExpiredSessions();
+    expect((await db.select().from(sessions)).map((s) => s.id)).toEqual(["new"]);
+  });
+});

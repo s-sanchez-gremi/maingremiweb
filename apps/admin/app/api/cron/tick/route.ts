@@ -6,6 +6,7 @@ import { purgeOldErrors } from "@apex/core/errors";
 import { beat } from "@apex/core/heartbeat";
 import { cronAuthorized } from "@apex/core/cron-auth";
 import { processOutbox } from "@apex/core/outbox";
+import { purgeExpiredSessions } from "@apex/core/session-purge";
 import { publishDue } from "@/lib/publish";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,7 @@ async function handle(req: Request) {
   if (published.length) await revalidateContent();
   const mail = await processOutbox();
   await purgeOldErrors();
+  await purgeExpiredSessions();
   await beat("admin");
   return Response.json({ published: published.length, emails: mail });
 }
