@@ -16,6 +16,16 @@
 
 Done: (none yet; Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 
+## For Joan Marc (apps/web) and his Claude — notice of 2026-10-08 from Sam (forms: records as a destination, migration 0025)
+
+Forms can now create CRM records from a response (a person, an event registration, a labour case, a training request, a job-board candidate) (`docs/forms-v2-plan.md`, item 6). **Nothing in `apps/web` changes.** Do once, after merging `main`:
+
+1. `pnpm db:migrate` (migration 0025: a new allowed value for `forms.destination` (`records`), `forms.routing`, and routing columns on `submissions`; additive and compatible with the previous version of every app, any release order).
+2. `db/grants.sql`: the CRM app may now update **only** the routing columns of `submissions` (column-level `UPDATE`), and the Forms app may read `events`. Nothing for the website.
+3. The CRM app does the work, so **the CRM scheduler (`/api/cron/tick` on `CRM_DOMAIN`) must keep running every minute** (it already does for mail): without it, responses of these forms stay "Pendent".
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
 ## For Joan Marc (apps/web) and his Claude — notice of 2026-10-08 from Sam (forms: webhooks, migration 0024)
 
 Forms can now tell other systems about new and changed responses (`docs/forms-v2-plan.md`, item 5). **Nothing in `apps/web` changes.** Do once, after merging `main`:

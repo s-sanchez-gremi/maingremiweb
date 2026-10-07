@@ -81,7 +81,8 @@ The Forms app took over the form builder, the responses and `/api/forms/*` from 
 4. Add the scheduler line and the uptime check for `FORMS_DOMAIN` (see above).
 5. Release with `deploy.sh <tag> all` (the release workflow's `only: all`). The copied `Caddyfile` and `compose.yml` change in the same release, so public forms keep working: `/api/forms/*` goes to the Forms app from the moment it is healthy.
 6. Webhooks (optional, per form): outgoing requests go from the Forms container to the receivers' public addresses, so the server needs outbound HTTPS and **no firewall rule that lets that container reach your private network**. `WEBHOOK_ALLOW_PRIVATE` must stay unset (the app refuses to start if it is set).
-7. Afterwards: submit a test form from the public site, open the response at `https://FORMS_DOMAIN/admin/forms`, and check the staff notification email links there.
+7. Forms that create CRM records (destination *Crear registres al CRM*) are processed by the **CRM app's** scheduler line (`https://CRM_DOMAIN/api/cron/tick`, every minute): keep it, and its uptime check, in place.
+8. Afterwards: submit a test form from the public site, open the response at `https://FORMS_DOMAIN/admin/forms`, and check the staff notification email links there.
 Rollback of the Forms app alone (`deploy.sh <old-tag> forms`) is safe; rolling back to a version **before** the Forms app existed means rolling back `all`, because the old CRM app is then the only one that serves `/api/forms/*` (and the Caddyfile must go back with it).
 
 ## First deployment checklist

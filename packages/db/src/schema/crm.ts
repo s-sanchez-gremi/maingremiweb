@@ -17,7 +17,8 @@ export const forms = pgTable("forms", {
   title: jsonb().$type<LText>().notNull().default({}),
   active: boolean().notNull().default(true),
   fields: jsonb().$type<FormItem[]>().notNull().default([]),
-  destination: text().$type<"crm_lead" | "project" | "responses_only">().notNull().default("crm_lead"),
+  destination: text().$type<"crm_lead" | "project" | "responses_only" | "records">().notNull().default("crm_lead"),
+  routing: jsonb().$type<{ target: string; map: Record<string, string>; fixed: Record<string, string> } | null>(), // destination "records": what the CRM app creates from each response
   targetProjectId: uuid("target_project_id"), // FK to projects is enforced in SQL (migration 0007); not declared here so the website file does not depend on the CRM file
   targetClientId: uuid("target_client_id"),  // same for clients
   notifications: jsonb().$type<FormNotifications>().notNull().default({}),
@@ -182,6 +183,11 @@ export const submissions = pgTable("submissions", {
   editedAt: timestamp("edited_at", { withTimezone: true }),
   editCount: integer("edit_count").notNull().default(0),
   originalAnswers: jsonb("original_answers").$type<Answer[]>(),   // as first sent, saved the first time the respondent changes them
+  routingStatus: text("routing_status").$type<"pending" | "done" | "failed">(),   // destination "records": waiting for the CRM app, done, or given up (null: not routed)
+  routingAttempts: integer("routing_attempts").notNull().default(0),
+  routedAt: timestamp("routed_at", { withTimezone: true }),
+  routingError: text("routing_error"),
+  routedRecords: jsonb("routed_records").$type<{ entity: string; id: string; label: string; action: "created" | "updated" | "unchanged" }[]>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
