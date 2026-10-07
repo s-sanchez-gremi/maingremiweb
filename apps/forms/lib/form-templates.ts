@@ -99,6 +99,7 @@ export function instantiateTemplate(t: FormTemplate, id: string = crypto.randomU
   const fields: Item[] = t.fields.map((f) => {
     const data = fill(f.type, f.data);
     if (typeof data.showField === "string" && data.showField) data.showField = ids.get(data.showField) ?? "";
+    if (Array.isArray(data.showExtra)) data.showExtra = (data.showExtra as Record<string, unknown>[]).map((c) => ({ ...c, field: ids.get(String(c.field)) ?? "" })); // extra conditions point at the new ids too
     return { id: ids.get(f.key)!, type: f.type, data };
   });
   return {

@@ -9,11 +9,40 @@ const common: Field[] = [
   { name: "help", label: "Text d'ajuda (opcional)", kind: "ltext" },
   { name: "required", label: "Obligatori", kind: "select", options: yesNo },
 ];
-const logic: Field[] = [
-  { name: "showField", label: "Mostra només si… (un camp anterior)", kind: "fieldref" },
-  { name: "showOp", label: "Condició", kind: "select", options: [{ value: "equals", label: "és igual a" }, { value: "not_equals", label: "no és igual a" }] },
-  { name: "showValue", label: "Valor (per a caselles: yes / no)", kind: "text" },
+// Show-only-if logic. The first condition keeps the keys forms have always had (showField / showOp / showValue), so every saved form
+// works unchanged; "more conditions" (showExtra) and how they combine (showMatch) are optional additions.
+export const CONDITION_OPS = ["equals", "not_equals", "contains", "empty", "not_empty"] as const;
+export type CondOp = (typeof CONDITION_OPS)[number];
+export type Condition = { field: string; op: CondOp; value: string };
+export const MAX_EXTRA_CONDITIONS = 5;
+const opOptions = [
+  { value: "equals", label: "és igual a" }, { value: "not_equals", label: "no és igual a" }, { value: "contains", label: "conté el text" },
+  { value: "empty", label: "està buit" }, { value: "not_empty", label: "no està buit" },
 ];
+const conditionFields = (fieldLabel: string, fieldName: string, opName: string, valueName: string): Field[] => [
+  { name: fieldName, label: fieldLabel, kind: "fieldref" },
+  { name: opName, label: "Condició", kind: "select", options: opOptions },
+  { name: valueName, label: "Valor (Sí / No: yes o no; una nota: el número; no s'usa amb «està buit»)", kind: "text" },
+];
+const logicWith = (firstLabel: string): Field[] => [
+  ...conditionFields(firstLabel, "showField", "showOp", "showValue"),
+  { name: "showExtra", label: "Més condicions", kind: "list", max: MAX_EXTRA_CONDITIONS, fields: conditionFields("Camp anterior", "field", "op", "value") },
+  { name: "showMatch", label: "Si n'hi ha més d'una", kind: "select", options: [{ value: "all", label: "Cal que es compleixin totes" }, { value: "any", label: "Basta que es compleixi una" }] },
+];
+const logic: Field[] = logicWith("Mostra només si… (un camp anterior)");
+const stepLogic: Field[] = logicWith("Mostra aquest pas només si… (un camp d'un pas anterior)");
+
+/** The conditions of a field or step, in order: the original one (when a field is chosen) then the extra ones, and how they combine. */
+export function conditionsOf(item: { data: Record<string, unknown> }): { match: "all" | "any"; list: Condition[] } {
+  const d = item.data;
+  const op = (v: unknown): CondOp => ((CONDITION_OPS as readonly unknown[]).includes(v) ? (v as CondOp) : "equals");
+  const list: Condition[] = [];
+  if (d.showField) list.push({ field: String(d.showField), op: op(d.showOp), value: String(d.showValue ?? "") });
+  if (Array.isArray(d.showExtra)) for (const e of d.showExtra as Record<string, unknown>[]) list.push({ field: String(e?.field ?? ""), op: op(e?.op), value: String(e?.value ?? "") });
+  return { match: d.showMatch === "any" ? "any" : "all", list };
+}
+/** Fields that can be tested with «conté el text» (the others have fixed options or a number: use «és igual a»). */
+export const TEXT_LIKE = ["text", "textarea", "email", "phone", "url", "address"];
 const mapField: Field = {
   name: "map", label: "Guarda-ho al contacte com a", kind: "select",
   options: [{ value: "", label: "— res —" }, { value: "name", label: "Nom" }, { value: "email", label: "Correu" }, { value: "phone", label: "Telèfon" }, { value: "company", label: "Empresa" }],
@@ -41,7 +70,7 @@ export const formTypeDefs: readonly FormTypeDef[] = [
   { name: "address", label: "Adreça (carrer, codi postal, població)", input: true, fields: [...common, ...logic] },
   { name: "heading", label: "Títol (només text, sense resposta)", input: false, fields: [{ name: "title", label: "Títol", kind: "ltext", required: true }, ...logic] },
   { name: "paragraph", label: "Paràgraf (només text, sense resposta)", input: false, fields: [{ name: "body", label: "Text (admet **negreta**, *cursiva*, [text](enllaç) i llistes amb «- »)", kind: "ltextarea", required: true }, ...logic] },
-  { name: "pagebreak", label: "Salt de pàgina", input: false, fields: [{ name: "title", label: "Títol del pas", kind: "ltext", required: true }] },
+  { name: "pagebreak", label: "Salt de pàgina", input: false, fields: [{ name: "title", label: "Títol del pas", kind: "ltext", required: true }, ...stepLogic] },
 ];
 export const formTypeByName: Record<string, FormTypeDef> = Object.fromEntries(formTypeDefs.map((d) => [d.name, d]));
 
@@ -70,15 +99,23 @@ export function checkDefinition(items: Item[], destination: string, target?: str
   for (const item of items) {
     const def = formTypeByName[item.type];
     if (!def) { issues.push(`Tipus de camp desconegut: ${item.type}`); continue; }
-    if (item.data.showField) {
-      const ref = seenBefore.get(String(item.data.showField));
-      if (!ref) issues.push(`«${label(item)}»: la condició ha de dependre d'un camp anterior`);
-      else if (["dropdown", "choice"].includes(ref.type) && item.data.showValue && !optionValues(ref).includes(String(item.data.showValue)))
-        issues.push(`«${label(item)}»: el valor de la condició no és cap opció de «${label(ref)}»`);
-      else if (ref.type === "yesno" && !["yes", "no"].includes(String(item.data.showValue))) issues.push(`«${label(item)}»: el valor de la condició d'un camp Sí / No ha de ser yes o no`);
-      else if (ref.type === "rating" && !(Number.isInteger(Number(item.data.showValue)) && Number(item.data.showValue) >= 1 && Number(item.data.showValue) <= ratingMax(ref)))
-        issues.push(`«${label(item)}»: el valor de la condició ha de ser una nota entre 1 i ${ratingMax(ref)}`);
-      else if (!item.data.showValue) issues.push(`«${label(item)}»: indica el valor de la condició`);
+    const { list: conds } = conditionsOf(item);
+    for (const c of conds) {
+      const ref = seenBefore.get(c.field);
+      const mark = conds.length > 1 ? ` (condició ${conds.indexOf(c) + 1})` : "";
+      if (!ref) { issues.push(`«${label(item)}»${mark}: la condició ha de dependre d'un camp anterior`); continue; }
+      if (c.op === "empty" || c.op === "not_empty") continue; // any answerable field can be empty; no value needed
+      if (c.op === "contains") {
+        if (!TEXT_LIKE.includes(ref.type)) issues.push(`«${label(item)}»${mark}: «conté el text» només serveix per a camps de text; per a opcions, nombres o notes usa «és igual a»`);
+        else if (!c.value.trim()) issues.push(`«${label(item)}»${mark}: indica el text que ha de contenir`);
+        continue;
+      }
+      if (["dropdown", "choice"].includes(ref.type) && c.value && !optionValues(ref).includes(c.value))
+        issues.push(`«${label(item)}»${mark}: el valor de la condició no és cap opció de «${label(ref)}»`);
+      else if (ref.type === "yesno" && !["yes", "no"].includes(c.value)) issues.push(`«${label(item)}»${mark}: el valor de la condició d'un camp Sí / No ha de ser yes o no`);
+      else if (ref.type === "rating" && !(Number.isInteger(Number(c.value)) && Number(c.value) >= 1 && Number(c.value) <= ratingMax(ref)))
+        issues.push(`«${label(item)}»${mark}: el valor de la condició ha de ser una nota entre 1 i ${ratingMax(ref)}`);
+      else if (!c.value) issues.push(`«${label(item)}»${mark}: indica el valor de la condició`);
     }
     if (["dropdown", "choice"].includes(item.type)) {
       const vals = optionValues(item);

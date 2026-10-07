@@ -6,7 +6,7 @@ import { CheckboxField } from "@apex/ui/components/Field";
 import { InlineText } from "@apex/ui/richtext";
 import { lt, type Item } from "@apex/forms/fieldTypes";
 import { fmt, msgs } from "@apex/forms/messages";
-import { isVisible, toSteps, validateAnswers, type Answers } from "@apex/forms/validate";
+import { isVisible, shownSteps, toSteps, validateAnswers, type Answers } from "@apex/forms/validate";
 import type { PublicForm } from "../public-form";
 import type { Locale } from "@apex/db/schema";
 import { FieldInput } from "./Inputs";
@@ -38,7 +38,9 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
 
   const consentText = lt(form.consent, locale);
   const newsletterText = form.newsletter.enabled ? lt(form.newsletter.text, locale) : "";
-  const last = step === steps.length - 1;
+  // A step whose page break has a condition that does not hold is skipped, going forward and back; only the steps the visitor will see are counted.
+  const going = shownSteps(items, values);
+  const last = !going.some((i) => i > step);
 
   // First interaction: count the start (anonymous) and begin the bot-check in the background.
   const begin = () => {
@@ -66,7 +68,7 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
     const here = Object.fromEntries(Object.entries(all).filter(([id]) => stepOf(id) === step));
     setErrors(here);
     if (Object.keys(here).length) { focusField(Object.keys(here)[0]); return; }
-    setStep(step + 1);
+    setStep(going.find((i) => i > step) ?? step);
     setTimeout(() => head.current?.focus(), 30);
   };
 
@@ -122,12 +124,13 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
   const current = steps[step];
   const shown = current.items.filter((it) => isVisible(items, it, values));
   const errorCount = Object.keys(errors).length;
+  const position = Math.max(0, going.indexOf(step));
 
   return (
     <form ref={root} className="apex-form" noValidate onSubmit={submit} onFocusCapture={begin} onPointerDown={begin} aria-label={lt(form.title, locale) || form.name}>
-      {steps.length > 1 && (
+      {going.length > 1 && (
         <div>
-          <p className="hint">{fmt(t.stepOf, { a: step + 1, b: steps.length })}</p>
+          <p className="hint">{fmt(t.stepOf, { a: position + 1, b: going.length })}</p>
           {current.page && <h2 className="step-title" tabIndex={-1} ref={head}>{lt(current.page.data.title, locale)}</h2>}
         </div>
       )}
@@ -155,7 +158,7 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
       <div className="hp" aria-hidden="true"><label>Website<input type="text" name="website" tabIndex={-1} autoComplete="off" /></label></div>
 
       <div className="form-actions">
-        {step > 0 ? <Button type="button" onClick={() => { setErrors({}); setStep(step - 1); setTimeout(() => head.current?.focus(), 30); }}>{t.back}</Button> : <span />}
+        {step > 0 ? <Button type="button" onClick={() => { setErrors({}); setStep([...going].reverse().find((i) => i < step) ?? 0); setTimeout(() => head.current?.focus(), 30); }}>{t.back}</Button> : <span />}
         <Button type="submit" variant="primary" disabled={status === "sending"}>{status === "sending" ? t.sending : last ? t.submit : t.next}</Button>
       </div>
     </form>

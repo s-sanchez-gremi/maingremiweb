@@ -469,3 +469,99 @@ test("new field types: rating, yes/no, web address, address, title and paragraph
   expect(csv).toContain('"Carrer Major 1, 08001 Barcelona"');
   expect(csv).toMatch(/;4;No;Massa car;https:\/\/example\.cat\/pagina;/);
 });
+
+test("skip a step and combine conditions: the visitor only sees what applies, and the count of steps follows", async ({ page }) => {
+  const who = F("dropdown", { label: L("Qui ets?"), required: "yes", options: [{ label: L("Particular") }, { label: L("Empresa") }] });
+  const pbEmpresa = F("pagebreak", { title: L("Dades de l'empresa"), showField: who.id, showOp: "equals", showValue: "Empresa" });
+  const cif = F("text", { label: L("CIF"), required: "yes" });
+  const pbContact = F("pagebreak", { title: L("Contacte") });
+  const em = F("email", { label: L("Correu"), required: "yes" });
+  const gremi = F("text", { label: L("Número de soci"), showField: em.id, showOp: "contains", showValue: "gremi", showMatch: "any", showExtra: [{ field: cif.id, op: "not_empty", value: "" }] });
+  const id = await seedForm("pas-condicional", [who, pbEmpresa, cif, pbContact, em, gremi]);
+
+  await page.goto(WEB + "/ca/form/pas-condicional");
+  await page.waitForLoadState("networkidle");
+  await page.getByLabel(/^Qui ets/).selectOption("Particular");
+  await expect(page.getByText("Pas 1 de 2")).toBeVisible(); // the company step is skipped, so it is not counted
+  await page.getByRole("button", { name: "Següent" }).click();
+  await expect(page.getByRole("heading", { name: "Contacte" })).toBeVisible();
+  await expect(page.getByText("Pas 2 de 2")).toBeVisible();
+  await expect(page.getByLabel(/^CIF/)).toHaveCount(0);
+
+  // contains ignores case and accents; «any»: either condition shows the field
+  await expect(page.getByLabel(/^Número de soci/)).toHaveCount(0);
+  await page.getByLabel(/^Correu/).fill("maria@ALTRES.cat");
+  await expect(page.getByLabel(/^Número de soci/)).toHaveCount(0);
+  await page.getByLabel(/^Correu/).fill("maria@GREMI.cat");
+  await expect(page.getByLabel(/^Número de soci/)).toBeVisible();
+
+  // going back and choosing «Empresa» brings the step in, with its own required field
+  await page.getByRole("button", { name: "Enrere" }).click();
+  await page.getByLabel(/^Qui ets/).selectOption("Empresa");
+  await expect(page.getByText("Pas 1 de 3")).toBeVisible();
+  await page.getByRole("button", { name: "Següent" }).click();
+  await expect(page.getByRole("heading", { name: "Dades de l'empresa" })).toBeVisible();
+  await page.getByRole("button", { name: "Següent" }).click();
+  await expect(page.getByText("Aquest camp és obligatori")).toBeVisible(); // the CIF of the shown step is enforced
+  await page.getByLabel(/^CIF/).fill("B12345678");
+  await page.getByRole("button", { name: "Següent" }).click();
+  await expect(page.getByText("Pas 3 de 3")).toBeVisible();
+  await page.getByLabel(/^Correu/).fill("empresa@altres.cat");
+  await expect(page.getByLabel(/^Número de soci/)).toBeVisible(); // the CIF now fills the second condition
+  await page.getByRole("button", { name: "Envia" }).click();
+  await expect(page.getByRole("status")).toContainText("Gràcies");
+
+  const [sub] = await sql`select answers from submissions where form_id = ${id}`;
+  expect(sub.answers.map((a: { label: string }) => a.label)).toEqual(["Qui ets?", "CIF", "Correu", "Número de soci"]); // the shown optional field is stored empty; nothing from a skipped step ever is
+});
+
+test("the editor offers more conditions, combining them and conditional steps, and what it saves works", async ({ page }) => {
+  const nom = F("text", { label: L("Nom") });
+  const em = F("email", { label: L("Correu") });
+  const id = await seedForm("editor-condicions", [nom, em]);
+  await login(page);
+  await page.goto(`/admin/forms/${id}`);
+  const card = (n: number) => page.locator(".col-main > .card").nth(n + 1); // card 0 is the name/slug card
+  const chip = (t: string) => page.locator(".add button", { hasText: t }).first();
+
+  await chip("Text curt").click();
+  const f = card(2);
+  await f.getByLabel("CA").first().fill("Número de soci");
+  await f.getByLabel("Mostra només si… (un camp anterior)").selectOption({ label: "Nom" });
+  await f.getByLabel("Condició").first().selectOption("contains");
+  await f.getByLabel(/^Valor/).first().fill("gremi");
+  await f.getByRole("button", { name: "+ Afegeix" }).click();
+  const extra = f.locator(".nested .card").first();
+  await extra.getByLabel("Camp anterior").selectOption({ label: "Correu" });
+  await extra.getByLabel("Condició").selectOption("not_empty");
+  await f.getByLabel("Si n'hi ha més d'una").selectOption("any");
+
+  await chip("Salt de pàgina").click();
+  const step = card(3);
+  await step.getByLabel("CA").first().fill("Només amb correu");
+  await step.getByLabel("Mostra aquest pas només si… (un camp d'un pas anterior)").selectOption({ label: "Correu" });
+  await step.getByLabel("Condició").first().selectOption("not_empty");
+  await expect(page.getByText("Salt de pàgina · pas condicional")).toBeVisible();
+  await chip("Text curt").click();
+  await card(4).getByLabel("CA").first().fill("Dins del pas");
+
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Desat");
+
+  const [row] = await sql`select fields from forms where id = ${id}`;
+  const saved = row.fields[2].data;
+  expect(saved).toMatchObject({ showField: nom.id, showOp: "contains", showValue: "gremi", showMatch: "any" });
+  expect(saved.showExtra).toEqual([{ field: em.id, op: "not_empty", value: "" }]);
+  expect(row.fields[3].data).toMatchObject({ showField: em.id, showOp: "not_empty" });
+
+  // the saved form behaves as built: «any» shows the field from either condition
+  await page.goto(WEB + "/ca/form/editor-condicions");
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByLabel(/^Número de soci/)).toHaveCount(0);
+  await page.getByLabel(/^Nom/).fill("Soci del GREMI");
+  await expect(page.getByLabel(/^Número de soci/)).toBeVisible();
+  await page.getByLabel(/^Nom/).fill("Altra persona");
+  await expect(page.getByLabel(/^Número de soci/)).toHaveCount(0);
+  await page.getByLabel(/^Correu/).fill("altra@persona.cat");
+  await expect(page.getByLabel(/^Número de soci/)).toBeVisible();
+});

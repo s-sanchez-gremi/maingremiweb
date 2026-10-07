@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { FieldForm, emptyData } from "@apex/ui/components/FieldForm";
 import { ListEditor } from "@apex/ui/components/ListEditor";
-import { formTypeByName, formTypeDefs, lt, type Item } from "@apex/forms/fieldTypes";
+import { conditionsOf, formTypeByName, formTypeDefs, lt, type Item } from "@apex/forms/fieldTypes";
 import { formSettingsFields, type FormSettings } from "@apex/forms/settings-fields";
 import type { Field } from "@apex/core/fields";
 import { copyForm, removeForm, saveForm } from "../actions";
@@ -27,10 +27,11 @@ export function FormEditor({ initial, stats, site, message, targets }: {
 
   const optionLabel = (i: Item) => `${lt(i.data.label, "ca") || formTypeByName[i.type].label}`;
   const summary = (i: Item) => {
-    if (i.type === "pagebreak") return "Salt de pàgina";
-    if (!formTypeByName[i.type].input) return `${formTypeByName[i.type].label.split(" (")[0]}${i.data.showField ? " · condicional" : ""}`;
+    const conditional = conditionsOf(i).list.length > 0;
+    if (i.type === "pagebreak") return `Salt de pàgina${conditional ? " · pas condicional (es salta si no es compleix)" : ""}`;
+    if (!formTypeByName[i.type].input) return `${formTypeByName[i.type].label.split(" (")[0]}${conditional ? " · condicional" : ""}`;
     const bits = [formTypeByName[i.type].label, i.data.required === "yes" ? "obligatori" : "opcional"];
-    if (i.data.showField) bits.push("condicional");
+    if (conditional) bits.push("condicional");
     return bits.join(" · ");
   };
 
@@ -65,7 +66,7 @@ export function FormEditor({ initial, stats, site, message, targets }: {
             <ListEditor
               items={items}
               onChange={setItems}
-              title={(i) => (i.type === "pagebreak" ? "Salt de pàgina" : summary(i))}
+              title={summary}
               render={(item, update, index) => (
                 <FieldForm
                   fields={formTypeByName[item.type].fields}
