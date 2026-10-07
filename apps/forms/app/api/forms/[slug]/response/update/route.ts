@@ -1,5 +1,6 @@
 // The respondent saves their changes. The secret in the link is the permission; no bot check is needed because nobody without it can get here.
 import { after } from "next/server";
+import { boundedJson } from "@apex/forms/http";
 import { processOutbox } from "@apex/core/outbox";
 import { applyEdit } from "@apex/forms/edit";
 import { processWebhooks } from "@apex/forms/webhooks";
@@ -15,7 +16,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
   const form = await loadForm((await params).slug);
   if (!form || !form.allowEdits) return json({ error: "not_found" }, 404);
   let body: unknown;
-  try { body = await req.json(); } catch { return json({ error: "bad_request" }, 400); }
+  try { body = await boundedJson(req); } catch { return json({ error: "bad_request" }, 400); }
   if (!isRecord(body)) return json({ error: "bad_request" }, 400);
   const locale = cleanLocale(body.locale), t = msgs(locale);
   const r = await applyEdit(form, body.token, { answers: body.answers, locale });

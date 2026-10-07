@@ -2,6 +2,7 @@
 //   no token  -> create: needs the bot check, is rate limited per address, and may mail the link (limited per email address)
 //   token     -> update that draft (the secret is the permission; at most one save per second)
 import { after } from "next/server";
+import { boundedJson } from "@apex/forms/http";
 import { processOutbox } from "@apex/core/outbox";
 import { availability } from "@apex/forms/availability";
 import { DraftTooLarge, cleanEmail, createDraft, createRateLimited, emailKey, mailRateLimited, resumeLink, updateDraft } from "@apex/forms/drafts";
@@ -19,7 +20,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
   const form = await loadForm((await params).slug);
   if (!form || !form.allowDrafts) return json({ error: "not_found" }, 404);
   let body: unknown;
-  try { body = await req.json(); } catch { return json({ error: "bad_request" }, 400); }
+  try { body = await boundedJson(req); } catch { return json({ error: "bad_request" }, 400); }
   if (!isRecord(body)) return json({ error: "bad_request" }, 400);
   const locale = cleanLocale(body.locale), t = msgs(locale);
   if ((await availability(form)) !== "open") return json({ error: "closed", message: t.closed }, 410);
