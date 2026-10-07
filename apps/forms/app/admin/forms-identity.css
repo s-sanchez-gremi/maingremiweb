@@ -20,3 +20,5 @@
 [data-app="forms"] .admin .login { max-width: 360px; margin: 96px auto; padding: 0 16px; display: grid; gap: 16px; }
 [data-app="forms"] .admin .login h1 { font: 600 var(--fs-h2)/1.15 var(--serif); }
 [data-app="forms"] .admin .login .brand { display: flex; align-items: center; gap: 10px; }
+/* native radios and checkboxes: the ink, not the browser blue */
+[data-app="forms"] .admin input[type=radio], [data-app="forms"] .admin input[type=checkbox] { accent-color: var(--ink); }
