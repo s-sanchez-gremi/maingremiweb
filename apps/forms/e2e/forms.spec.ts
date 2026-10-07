@@ -1095,3 +1095,53 @@ test("calculated fields: build one in the editor, the visitor sees the total liv
   const csv = await (await page.request.get(`/admin/forms/${id}/export`)).text();
   expect(csv).toContain("Total de punts");
 });
+
+test("response views: a table with a column per question, a board by a choice question, search and filter", async ({ page }) => {
+  const nom = F("text", { label: L("Nom"), required: "yes" });
+  const lvl = F("dropdown", { label: L("Nivell"), options: [{ label: L("Bàsic") }, { label: L("Premium") }] });
+  const id = await seedForm("vistes-e2e", [nom, lvl]);
+  const add = (who: string, level: string | null) => sql`insert into submissions (form_id, answers, locale) values (${id}, ${sql.json([
+    { id: nom.id, type: "text", label: "Nom", value: who }, ...(level ? [{ id: lvl.id, type: "dropdown", label: "Nivell", value: level }] : []),
+  ] as never)}, 'ca')`;
+  await add("Anna Vilà", "Premium"); await add("Pau Sàbat", "Bàsic"); await add("Eva Roca", null);
+  await login(page);
+  const base = `/admin/forms/${id}/submissions`;
+
+  // cards stay the default and still page in the database
+  await page.goto(base);
+  await expect(page.getByRole("link", { name: "Targetes" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByText("Anna Vilà")).toBeVisible();
+
+  // the table: one column per question
+  await page.getByRole("link", { name: "Taula" }).click();
+  await expect(page.getByRole("columnheader", { name: "Nivell" })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Anna Vilà.*Premium/ })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Eva Roca/ })).toBeVisible();
+
+  // search ignores accents; the filter keeps only the chosen value
+  await page.getByLabel("Cerca").fill("vila");
+  await page.getByRole("button", { name: "Filtra" }).click();
+  await expect(page.getByRole("row", { name: /Anna Vilà/ })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Pau Sàbat/ })).toHaveCount(0);
+  await page.getByRole("link", { name: "Treu la cerca" }).click();
+  await page.getByLabel("Pregunta").selectOption({ label: "Nivell" });
+  await page.getByLabel("Valor").fill("Bàsic");
+  await page.getByRole("button", { name: "Filtra" }).click();
+  await expect(page.getByRole("row", { name: /Pau Sàbat/ })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Anna Vilà/ })).toHaveCount(0);
+
+  // the board: a lane per option, plus those that did not answer; a card opens the response
+  await page.goto(base + "?view=board");
+  await expect(page.getByRole("region", { name: "Premium: 1" })).toContainText("Anna Vilà");
+  await expect(page.getByRole("region", { name: "Bàsic: 1" })).toContainText("Pau Sàbat");
+  await expect(page.getByRole("region", { name: "Sense resposta: 1" })).toContainText("Eva Roca");
+  await page.getByRole("region", { name: "Premium: 1" }).getByRole("link").click();
+  await expect(page.getByRole("heading", { name: /Respostes/ })).toBeVisible();
+  await expect(page.getByText("Anna Vilà")).toBeVisible();
+  await expect(page.getByText("Pau Sàbat")).toHaveCount(0);
+
+  // a form with no choice question explains why there is no board
+  const plain = await seedForm("vistes-sense-opcions", [F("text", { label: L("Nom") })]);
+  await page.goto(`/admin/forms/${plain}/submissions?view=board`);
+  await expect(page.getByText("no té cap pregunta d'opcions")).toBeVisible();
+});
