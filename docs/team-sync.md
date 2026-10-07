@@ -13,6 +13,27 @@ Direction A of `docs/identity-plan.md` is approved; this is its step 2. **No vis
 
 Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when read)
 
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (signatures app, step S2: tables, drafts)
+
+Nothing in `apps/web`, `apps/admin` or `packages/sections` changed. Do once, after merging `main`:
+
+1. `pnpm install` (new package `@apex/sign`, which brings `pdf-lib`) and `pnpm db:migrate` (migration 0026: six new `sign_*` tables, all additive; compatible with the previous version of every app, so apps can be released in any order). No data is touched.
+2. **Shared files that changed (please look at them in the PR):** `db/grants.sql` (the new `sign_*` tables belong to `apex_sign`; its audit trail and consent tables are insert/select only), `packages/core/src/permissions.ts` (a new action `sign:write`: admin and editor, like `forms:write`; nothing else about `can()` changed), `packages/db/src/schema/index.ts` (exports the new `sign.ts`), `scripts/boundary-drill.sh`, `Dockerfile` (a `COPY` line for the new package) and `.github/CODEOWNERS`.
+3. The deployed environments need nothing new beyond the role `apex_sign` of the S1 notice below.
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (signatures app, step S1: the empty shell)
+
+`apps/sign` now exists as an empty shell (plan: `docs/esign-plan.md`); nothing in `apps/web`, `apps/admin` or `packages/*` changed. Do once, after merging `main`:
+
+1. `pnpm install` (the lockfile gained the new app). `pnpm dev` now also starts it on :3004 and links its `.env` itself. Add `SIGN_URL=http://localhost:3004` to your `.env` from `.env.example` (nothing uses it yet; it is for menu links later).
+2. Nothing for your local database (one all-powerful user). The e2e run creates the new role `apex_sign` by itself and starts a fifth server on port 3104 (`E2E_PORT_OFFSET` still shifts every port; the build in `scripts/ci.sh` takes a bit longer).
+3. **Deployed environments that use restricted database users** (`APPLY_GRANTS=1`): create the fifth role before the next release, `create role apex_sign login password '…';` (see `DEPLOY.md`), or `db/grants.sql` refuses to apply and the migration step stops the release. The Signatures app itself is not in the image's services yet (step S6), so no new host or variable is needed until then.
+4. Rule for your reviews: `apps/sign` never imports another app and no app imports it (`scripts/check-boundaries.sh` covers every app under `apps/` automatically; its self-test now includes it). It reads the shared `users`, `sessions`, `outbox`, `heartbeats` and `error_log` only (`db/grants.sql`).
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
 ## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam: a fifth app is planned (e-signatures)
 
 Heads-up only, **nothing to do now and nothing in your apps changes.** We decided to build electronic signatures in-house as a separate app, `apps/sign` (plan: `docs/esign-plan.md`, merged in #74; the new section "Signatures app" in `CLAUDE.md` summarises it). It is Sam's area. What matters to you:
