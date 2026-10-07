@@ -105,6 +105,11 @@ allow $(C) "select count(*) from users"
 allow $(C) "update users set password_hash = password_hash where false"   # a person changes their own password
 allow $(C) "select count(*) from forms"                      # shows the form of a lead (read-only)
 allow $(C) "select count(*) from submissions"                # shows the answers of a lead (read-only)
+allow $(C) "update submissions set routing_status = routing_status, routing_attempts = routing_attempts, routed_records = routed_records where false"   # the CRM reports what it created from a form response...
+allow $(C) "select id from submissions where routing_status = 'pending' limit 1 for update skip locked"   # ...and claims responses with a row lock
+deny  $(C) "update submissions set answers = answers where false"       # ...but can never change the answers, the consent or the edit link
+deny  $(C) "update submissions set consent_text = consent_text where false"
+deny  $(C) "update submissions set edit_token_hash = edit_token_hash where false"
 allow $(C) "update leads set status = status where false"
 allow $(C) "update clients set name = name where false"
 allow $(C) "update erp_entries set notes = notes where false"
@@ -143,6 +148,7 @@ allow $(F) "delete from outbox"
 allow $(F) "update forms set name = name where false"
 allow $(F) "delete from form_starts where false"
 allow $(F) "update submissions set locale = locale where false"
+allow $(F) "select count(*) from events"                                  # the editor offers an event to sign people up to
 allow $(F) "update form_drafts set step = step where false"        # saved progress on long forms belongs to the Forms app
 allow $(F) "delete from form_drafts where false"
 allow $(F) "update form_webhooks set enabled = enabled where false"       # webhook endpoints and their delivery queue belong to the Forms app
@@ -163,6 +169,14 @@ deny  $(F) "delete from leads where false"
 deny  $(F) "delete from contacts where false"
 deny  $(F) "delete from newsletter_optins where false"
 deny  $(F) "update clients set name = name where false"
+# records created from responses (people, registrations, cases, training, candidates) are written by the CRM app, never by the Forms app
+deny  $(F) "update events set name = name where false"
+deny  $(F) "update people set name = name where false"
+deny  $(F) "insert into people (name) values ('x')"
+deny  $(F) "update event_attendance set notes = notes where false"
+deny  $(F) "update labour_cases set title = title where false"
+deny  $(F) "update training_courses set name = name where false"
+deny  $(F) "update job_seekers set name = name where false"
 deny  $(F) "update projects set name = name where false"
 deny  $(F) "select count(*) from erp_entries"
 deny  $(F) "select count(*) from portal_users"

@@ -7,13 +7,16 @@ import { conditionsOf, formTypeByName, formTypeDefs, lt, type Item } from "@apex
 import { formSettingsFields, type FormSettings } from "@apex/forms/settings-fields";
 import type { Field } from "@apex/core/fields";
 import { copyForm, removeForm, saveForm } from "../actions";
+import type { Routing } from "@apex/forms/routing";
+import { RoutingPanel, type EventChoice } from "./RoutingPanel";
 
-type Initial = { id: string; name: string; slug: string; active: boolean; destination: "crm_lead" | "project" | "responses_only"; target: string; fields: Item[]; settings: FormSettings; allowDrafts: boolean; allowEdits: boolean; closesAt: string; maxResponses: string; redirectUrl: string };
+type Initial = { id: string; name: string; slug: string; active: boolean; destination: "crm_lead" | "project" | "responses_only" | "records"; target: string; routing: Routing | null; fields: Item[]; settings: FormSettings; allowDrafts: boolean; allowEdits: boolean; closesAt: string; maxResponses: string; redirectUrl: string };
 const STATE_LABEL = { open: "Actiu", closed: "Tancat", expired: "Tancat per data", full: "Complet" } as const;
 const pick = (names: string[]) => formSettingsFields.filter((f) => names.includes(f.name)) as Field[];
 const NO_MEDIA = { media: [], forms: [] };
 
-export function FormEditor({ initial, stats, drafts, site, message, targets, state }: {
+export function FormEditor({ initial, stats, drafts, site, message, targets, state, events }: {
+  events: EventChoice[];
   drafts: number;
   state: keyof typeof STATE_LABEL;
   targets: { projects: { id: string; name: string }[]; clients: { id: string; name: string }[] };
@@ -24,6 +27,7 @@ export function FormEditor({ initial, stats, drafts, site, message, targets, sta
   const [active, setActive] = useState(initial.active);
   const [destination, setDestination] = useState(initial.destination);
   const [target, setTarget] = useState(initial.target);
+  const [routing, setRouting] = useState<Routing | null>(initial.routing);
   const [items, setItems] = useState<Item[]>(initial.fields);
   const [settings, setSettings] = useState<Record<string, unknown>>(initial.settings as never);
   const [allowDrafts, setAllowDrafts] = useState(initial.allowDrafts);
@@ -31,7 +35,7 @@ export function FormEditor({ initial, stats, drafts, site, message, targets, sta
   const [closesAt, setClosesAt] = useState(initial.closesAt);
   const [maxResponses, setMaxResponses] = useState(initial.maxResponses);
   const [redirectUrl, setRedirectUrl] = useState(initial.redirectUrl);
-  const data = JSON.stringify({ id: initial.id, name, slug, active, destination, target, fields: items, settings, allowDrafts, allowEdits, closesAt, maxResponses, redirectUrl });
+  const data = JSON.stringify({ id: initial.id, name, slug, active, destination, target, routing, fields: items, settings, allowDrafts, allowEdits, closesAt, maxResponses, redirectUrl });
 
   const optionLabel = (i: Item) => `${lt(i.data.label, "ca") || formTypeByName[i.type].label}`;
   const summary = (i: Item) => {
@@ -95,11 +99,12 @@ export function FormEditor({ initial, stats, drafts, site, message, targets, sta
             <fieldset className="card" style={{ border: "1px solid var(--line)" }}>
               <legend style={{ display: "none" }}>Destinació</legend>
               <h3>Destinació de les respostes</h3>
-              {([["crm_lead", "Crear contacte i lead al CRM"], ["project", "Adjuntar a un projecte o client"], ["responses_only", "Només recollir respostes"]] as const).map(([v, l]) => (
+              {([["crm_lead", "Crear contacte i lead al CRM"], ["project", "Adjuntar a un projecte o client"], ["records", "Crear registres al CRM (inscripció a un esdeveniment, persona, cas…)"], ["responses_only", "Només recollir respostes"]] as const).map(([v, l]) => (
                 <label key={v} style={{ gridTemplateColumns: "auto 1fr", alignItems: "center", gap: 10, color: "var(--ink)", fontSize: 13 }}>
                   <input type="radio" name="dest" checked={destination === v} onChange={() => setDestination(v)} style={{ width: 16 }} /><span>{l}</span>
                 </label>
               ))}
+              {destination === "records" && <RoutingPanel value={routing} onChange={setRouting} items={items} events={events} />}
               {destination === "project" && (
                 <label>Adjunta les respostes a
                   <select value={target} onChange={(e) => setTarget(e.target.value)}>

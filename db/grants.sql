@@ -41,6 +41,7 @@ grant select on entries, entry_translations, entry_versions, categories, media, 
 -- ---- apex_forms: the Forms app ----
 grant select, insert, update, delete on forms, form_starts, submissions, form_drafts, form_webhooks, webhook_deliveries to apex_forms;
 grant select on projects, clients to apex_forms;   -- the builder offers them as the destination of a form (it never changes them)
+grant select on events to apex_forms;              -- ...and an event as the place a registration form signs people up to (it never changes events)
 -- Decision A of docs/forms-app-plan.md: the submission pipeline hands a lead to the CRM by writing these three rows, nothing more.
 -- No read of leads, no change of their status or owner, no delete: the CRM owns what happens to a lead afterwards.
 grant select, insert, update on contacts to apex_forms;        -- upsert by email (insert ... on conflict do update needs select)
@@ -49,6 +50,9 @@ grant select, insert, update on newsletter_optins to apex_forms; -- upsert by em
 
 -- ---- apex_crm: everything else ----
 grant select on forms, submissions to apex_crm;   -- leads and attached responses show them; the Forms app owns and changes them
+-- The CRM app turns responses of "records" forms into CRM records through its own records engine, and reports back in these columns ONLY
+-- (it still cannot change the answers). The Forms app never writes the CRM's tables for these destinations.
+grant update (routing_status, routing_attempts, routed_at, routing_error, routed_records) on submissions to apex_crm;
 -- (deleting a contact or a form still removes their submissions: foreign-key actions run with the table owner's rights)
 grant select, insert, update, delete on
   newsletter_optins,

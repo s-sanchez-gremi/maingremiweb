@@ -111,6 +111,7 @@ export async function processSubmission(input: SubmitInput): Promise<SubmitResul
         id, formId: form.id, contactId, ...attach, answers: snapshot, locale, sourcePath: meta.sourcePath.slice(0, 300), sourceEntryId: meta.sourceEntryId ?? null,
         theme: meta.theme.slice(0, 80), utm: meta.utm, consentText, consentAt: consentText ? new Date() : null, ipHash: meta.ipHash, challengeId: meta.challengeId,
         editTokenHash: editToken ? hashToken(editToken) : null, createdAt: sentAt,
+        routingStatus: form.destination === "records" ? "pending" : null, // the CRM app turns it into records (packages/forms/src/routing.ts)
       });
       await enqueueWebhooks(tx, form, "response.created", { id, createdAt: sentAt, locale, sourcePath: meta.sourcePath.slice(0, 300), theme: meta.theme.slice(0, 80), utm: meta.utm, answers: snapshot });
       if (contactId) await tx.insert(leads).values({ contactId, formId: form.id, submissionId: id, sourcePath: meta.sourcePath.slice(0, 300), sourceEntryId: meta.sourceEntryId ?? null, theme: meta.theme.slice(0, 80), locale, utm: meta.utm });

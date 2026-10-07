@@ -949,3 +949,95 @@ test("webhooks: add an endpoint, a response reaches it signed, failures are retr
     await new Promise((r) => server.close(r));
   }
 });
+
+test("records destination: a registration form signs people up to an event in the CRM, failures are visible, and retrying works", async ({ page, request }) => {
+  const nom = F("text", { label: L("Nom"), required: "yes" });
+  const em = F("email", { label: L("Correu"), required: "yes" });
+  const empresa = F("text", { label: L("Empresa") });
+  const id = await seedForm("inscripcio-gala", [nom, em, empresa], { consent: L("Accepto") });
+  const [ev] = await sql`insert into events (name, starts_on) values ('Gala e2e', '2026-11-20') returning id`;
+  await login(page);
+
+  const open = async () => {
+    await page.goto(`/admin/forms/${id}`);
+    await page.getByLabel("Crear registres al CRM (inscripció a un esdeveniment, persona, cas…)").check();
+    await page.getByLabel("Què es crea al CRM amb cada resposta").selectOption({ label: "Inscripció a un esdeveniment" });
+    return page.locator("fieldset", { hasText: "Destinació de les respostes" });
+  };
+
+  // an incomplete setup is refused, naming what is missing
+  await open();
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("«Esdeveniment»: cal triar-ne un");
+  await expect(page.getByRole("status")).toContainText("«Nom»: tria quin camp");
+  await expect(page.getByRole("status")).toContainText("«Correu»: tria quin camp");
+
+  // a complete one is saved
+  const panel = await open();
+  await panel.getByLabel(/^Esdeveniment \*/).selectOption({ label: "Gala e2e · 2026-11-20" });
+  await panel.getByLabel(/^Nom \*/).selectOption({ label: "Nom" });
+  await panel.getByLabel(/^Correu \*/).selectOption({ label: "Correu" });
+  await panel.getByLabel(/^Empresa \(pel nom/).selectOption({ label: "Empresa" });
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Desat");
+  const [saved] = await sql`select destination, routing from forms where id = ${id}`;
+  expect(saved.destination).toBe("records");
+  expect(saved.routing).toEqual({ target: "attendance", map: { name: nom.id, email: em.id, company: empresa.id }, fixed: { eventId: ev.id } });
+
+  const register = async (who: string, address: string) => {
+    await page.goto(WEB + "/ca/form/inscripcio-gala");
+    await page.waitForLoadState("networkidle");
+    await page.getByLabel(/^Nom/).fill(who);
+    await page.getByLabel(/^Correu/).fill(address);
+    await page.getByLabel(/^Empresa/).fill("Gràfiques e2e");
+    await page.getByLabel("Accepto").check();
+    await page.getByRole("button", { name: "Envia" }).click();
+    await expect(page.getByRole("status")).toContainText("Gràcies");
+  };
+  const tick = async () => {
+    const r = await request.post(CRM + "/api/cron/tick", { headers: { authorization: "Bearer e2e-cron-secret-value" } });
+    expect(r.status()).toBe(200);
+    return (await r.json()).routed as { done: number; failed: number };
+  };
+
+  // the response waits for the CRM, which then creates the person and the registration through its own records engine
+  await register("Marta Ros", "marta.gala@e2e.test");
+  await page.goto(`/admin/forms/${id}/submissions`);
+  await expect(page.getByText("El CRM encara no n'ha creat els registres")).toBeVisible();
+  expect(await count("people", sql`where email = 'marta.gala@e2e.test'`)).toBe(0); // the Forms app never writes CRM tables itself
+  expect((await tick()).done).toBeGreaterThanOrEqual(1);
+  await page.reload();
+  await expect(page.getByText("Passat al CRM")).toBeVisible();
+  await expect(page.getByText("Persona: Marta Ros (creat)")).toBeVisible();
+  await expect(page.getByText("Inscripció: Gala e2e (creat)")).toBeVisible();
+  const [person] = await sql`select id, name, source from people where email = 'marta.gala@e2e.test'`;
+  expect(person).toMatchObject({ name: "Marta Ros" });
+  expect(person.source).toContain("Formulari:");
+  expect(await count("event_attendance", sql`where event_id = ${ev.id} and person_id = ${person.id} and status = 'confirmed'`)).toBe(1);
+  const [hist] = await sql`select action, user_name from record_history where entity = 'people' and record_id = ${person.id}`;
+  expect(hist.action).toBe("create");
+  expect(hist.user_name).toContain("Formulari");
+
+  // the same person registering again changes nothing
+  await register("Marta Ros", "marta.gala@e2e.test");
+  await tick();
+  expect(await count("event_attendance", sql`where event_id = ${ev.id}`)).toBe(1);
+
+  // the event disappears: the response fails with a reason, the list warns, and staff can retry once it is fixed
+  await sql`delete from events where id = ${ev.id}`;
+  await register("Pere Soler", "pere.gala@e2e.test");
+  expect((await tick()).failed).toBeGreaterThanOrEqual(1);
+  await page.goto(`/admin/forms/${id}/submissions`);
+  await expect(page.getByRole("alert").filter({ hasText: "No s'ha pogut passar al CRM" })).toContainText("esdeveniment triat ja no existeix");
+  await page.goto("/admin/forms");
+  await expect(page.getByRole("alert").filter({ hasText: "no s'han pogut passar al CRM" })).toBeVisible();
+  const [ev2] = await sql`insert into events (name, starts_on) values ('Gala e2e 2', '2026-12-05') returning id`;
+  await sql`update forms set routing = jsonb_set(routing, '{fixed,eventId}', to_jsonb(${ev2.id}::text)) where id = ${id}`;
+  await page.goto(`/admin/forms/${id}/submissions`);
+  await page.getByRole("button", { name: "Torna-ho a provar" }).click();
+  await expect(page.getByRole("status")).toContainText("Es tornarà a provar al CRM");
+  expect((await tick()).done).toBeGreaterThanOrEqual(1);
+  await page.goto(`/admin/forms/${id}/submissions`);
+  await expect(page.getByText("Inscripció: Gala e2e 2 (creat)")).toBeVisible();
+  expect(await count("event_attendance", sql`where event_id = ${ev2.id}`)).toBe(1);
+});
