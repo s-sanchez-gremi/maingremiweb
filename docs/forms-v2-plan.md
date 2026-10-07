@@ -15,7 +15,7 @@ Apex already has its own form builder (phase 5 in `CLAUDE.md`): 11 field types, 
 8. **Prefill from the URL** (`?name=…&company=…`), whitelisted per field. **Done (no migration):** a field gets an optional link name (`prefill`); the browser fills it from the address (`packages/forms/src/prefill.ts`).
 
 ## Wave 3: insight
-9. **Response analytics:** drop-off per field, time to complete, charts per choice field (reuse the workspace chart view).
+9. **Done (migration 0026): response analytics** (*Estadístiques* page): completion, time to complete, drop-off per question, charts per choice question. Original wording: **Response analytics:** drop-off per field, time to complete, charts per choice field (reuse the workspace chart view).
 10. **Response views:** a form's answers as a workspace table, board or chart.
 11. **XLSX export**, only if CSV proves insufficient for staff.
 

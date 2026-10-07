@@ -63,6 +63,7 @@ deny  $(W) "select count(*) from submissions"
 deny  $(W) "select count(*) from form_drafts"                  # what visitors saved is never readable by the website
 deny  $(W) "select count(*) from form_webhooks"                 # webhook secrets and deliveries (which hold response data) are not the website's
 deny  $(W) "select count(*) from webhook_deliveries"
+deny  $(W) "select count(*) from form_field_reach"
 deny  $(W) "select count(*) from record_notes"
 deny  $(W) "select count(*) from job_seekers"
 deny  $(W) "select count(*) from schema_migrations"
@@ -153,6 +154,7 @@ allow $(F) "update form_drafts set step = step where false"        # saved progr
 allow $(F) "delete from form_drafts where false"
 allow $(F) "update form_webhooks set enabled = enabled where false"       # webhook endpoints and their delivery queue belong to the Forms app
 allow $(F) "update webhook_deliveries set attempts = attempts where false"
+allow $(F) "update form_field_reach set n = n where false"                 # the anonymous drop-off counters
 allow $(F) "select count(*) from projects"                    # destination pickers of the builder
 allow $(F) "select count(*) from clients"
 # the pipeline's hand-over (decision A): upsert a contact, add a lead, upsert a newsletter opt-in

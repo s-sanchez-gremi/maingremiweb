@@ -1141,3 +1141,49 @@ test("calculated fields: build one in the editor, the visitor sees the total liv
   const csv = await (await page.request.get(`/admin/forms/${id}/export`)).text();
   expect(csv).toContain("Total de punts");
 });
+
+test("analytics: drop-off per question, time to complete and a chart per choice question, all anonymous", async ({ page }) => {
+  const nom = F("text", { label: L("Nom"), required: "yes" });
+  const lvl = F("dropdown", { label: L("Nivell"), options: [{ label: L("Bàsic") }, { label: L("Premium") }] });
+  const web = F("text", { label: L("Comentari") });
+  const id = await seedForm("estadistiques-e2e", [nom, lvl, web], { consent: L("Accepto") });
+
+  // visitor 1 gives up after the first question; visitor 2 goes all the way
+  await page.goto(WEB + "/ca/form/estadistiques-e2e");
+  await page.waitForLoadState("networkidle");
+  await page.getByLabel(/^Nom/).fill("Abandona");
+  await page.goto(WEB + "/ca/form/estadistiques-e2e");
+  await page.waitForLoadState("networkidle");
+  await page.getByLabel(/^Nom/).fill("Anna");
+  await page.getByLabel(/^Nivell/).focus(); // a person's hand reaches the question first (selectOption alone does not focus it)
+  await page.getByLabel(/^Nivell/).selectOption("Premium");
+  await page.getByLabel(/^Comentari/).fill("Hola");
+  await page.getByLabel("Accepto").check();
+  await page.getByRole("button", { name: "Envia" }).click();
+  await expect(page.getByRole("status")).toContainText("Gràcies");
+
+  // only totals per question are kept: no row says who, when or from where
+  await expect.poll(async () => JSON.stringify((await sql`select n from form_field_reach where form_id = ${id} order by n desc`).map((r) => r.n))).toBe("[2,1,1]");
+  const reach = Object.fromEntries((await sql`select field_id, n from form_field_reach where form_id = ${id}`).map((r) => [r.field_id as string, r.n as number]));
+  expect(reach[nom.id]).toBe(2);
+  expect(reach[lvl.id]).toBe(1);
+  const [sub] = await sql`select duration_seconds from submissions where form_id = ${id}`;
+  expect(sub.duration_seconds).toBeGreaterThanOrEqual(0);
+  expect(sub.duration_seconds).toBeLessThan(120);
+
+  // a request for a question that does not exist, or for a form that does not exist, stores nothing
+  const bad = await page.request.post(WEB + "/api/forms/estadistiques-e2e/reach", { data: { field: "no-existeix" } });
+  expect(bad.status()).toBe(204);
+  expect((await sql`select 1 from form_field_reach where form_id = ${id}`).length).toBe(3);
+
+  await login(page);
+  await page.goto(`/admin/forms/${id}/analytics`);
+  await expect(page.getByRole("heading", { name: "Estadístiques" })).toBeVisible();
+  await expect(page.getByText("han començat a omplir-lo")).toBeVisible();
+  await expect(page.getByText(/hi arriben · .* dels inicis · −50 % respecte l'anterior/)).toBeVisible(); // 2 reached Nom, 1 reached Nivell
+  await expect(page.getByRole("heading", { name: "Nivell" })).toBeVisible();
+  await expect(page.locator(".card", { hasText: "Premium" }).getByText("1 · 100 %")).toBeVisible();
+  await page.goto(`/admin/forms/${id}`);
+  await page.getByRole("link", { name: "Estadístiques" }).click();
+  await expect(page).toHaveURL(/\/analytics$/);
+});
