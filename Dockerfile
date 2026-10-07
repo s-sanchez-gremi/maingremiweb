@@ -14,11 +14,13 @@ COPY apps/web/package.json apps/web/
 COPY apps/admin/package.json apps/admin/
 COPY apps/crm/package.json apps/crm/
 COPY apps/forms/package.json apps/forms/
+COPY apps/sign/package.json apps/sign/
 COPY packages/db/package.json packages/db/
 COPY packages/core/package.json packages/core/
 COPY packages/ui/package.json packages/ui/
 COPY packages/forms/package.json packages/forms/
 COPY packages/sections/package.json packages/sections/
+COPY packages/sign/package.json packages/sign/
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
 
 # 2) build (needs no database: pages are generated on first visit)
