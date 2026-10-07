@@ -637,3 +637,122 @@ test("availability: a page cached before the end date shows the form as closed o
   expect(forged === null || forged.status() >= 400).toBe(true); // the server refuses it as well, whatever the browser does
   expect(await count("submissions", sql`where form_id = ${id}`)).toBe(0);
 });
+
+test("save and continue later: a private link, an email, restored answers and step, and the draft goes when the form is sent", async ({ page, context }) => {
+  const nom = F("text", { label: L("Nom"), required: "yes" });
+  const pb = F("pagebreak", { title: L("Detalls") });
+  const notes = F("textarea", { label: L("Notes") });
+  const id = await seedForm("curs-llarg", [nom, pb, notes]);
+  await sql`update forms set allow_drafts = true, title = ${sql.json(L("Inscripció llarga") as never)} where id = ${id}`;
+  await clearMail();
+
+  await page.goto(WEB + "/ca/form/curs-llarg");
+  await page.waitForLoadState("networkidle");
+  await page.getByLabel(/^Nom/).fill("Núria Soler");
+  await page.getByRole("button", { name: "Següent" }).click();
+  await expect(page.getByRole("heading", { name: "Detalls" })).toBeVisible();
+  await page.getByLabel(/^Notes/).fill("Escrit al segon pas");
+
+  // save, and have the link mailed
+  await page.getByRole("button", { name: "Desa i continua més tard" }).click();
+  const panel = page.getByRole("group", { name: "Desa i continua més tard" });
+  const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+  expect(axe.violations.map((v) => `${v.id}: ${v.nodes[0]?.target}`)).toEqual([]);
+  await panel.getByLabel(/Correu per rebre l'enllaç/).fill("reprendre@e2e.test");
+  await panel.getByRole("button", { name: "Desa l'esborrany" }).click();
+  const link = await panel.getByLabel(/Esborrany desat/).inputValue();
+  expect(link).toMatch(new RegExp(`^${WEB}/ca/form/curs-llarg\\?resume=[A-Za-z0-9_-]{43}$`));
+  await expect(panel.getByText("T'hem enviat l'enllaç per correu.")).toBeVisible();
+  const mail = await waitMail("reprendre@e2e.test");
+  expect(mail.Subject).toBe("Continua el formulari «Inscripció llarga»");
+  expect(mail.Text).toContain(link);
+
+  // only the hash of the secret is stored, and the address is not kept
+  const [d] = await sql`select token_hash, answers, step, email_hash from form_drafts where form_id = ${id}`;
+  expect(link).not.toContain(d.token_hash);
+  expect(d.step).toBe(1);
+  expect(d.email_hash).not.toBeNull();
+  expect(JSON.stringify(d)).not.toContain("reprendre@e2e.test");
+
+  // saving again updates the same draft (not more than once a second)
+  await page.getByLabel(/^Notes/).fill("Escrit al segon pas, i afegit després");
+  await page.waitForTimeout(1200);
+  await panel.getByRole("button", { name: "Desa l'esborrany" }).click();
+  await expect(page.getByText("Esborrany actualitzat.")).toBeVisible();
+  expect(await count("form_drafts", sql`where form_id = ${id}`)).toBe(1);
+
+  // another visitor session opens the link: the answers and the step come back
+  const again = await context.newPage();
+  await again.goto(link);
+  await expect(again.getByText("Hem recuperat el que havies escrit")).toBeVisible();
+  await expect(again.getByRole("heading", { name: "Detalls" })).toBeVisible();
+  await expect(again.getByLabel(/^Notes/)).toHaveValue("Escrit al segon pas, i afegit després");
+  await again.getByRole("button", { name: "Enrere" }).click();
+  await expect(again.getByLabel(/^Nom/)).toHaveValue("Núria Soler");
+  await again.getByRole("button", { name: "Següent" }).click();
+  await again.getByRole("button", { name: "Envia" }).click();
+  await expect(again.getByRole("status").filter({ hasText: "Gràcies" })).toBeVisible();
+  expect(await count("form_drafts", sql`where form_id = ${id}`)).toBe(0); // sending the form deletes the draft
+  expect(await count("submissions", sql`where form_id = ${id}`)).toBe(1);
+  const reuse = await context.newPage();
+  await reuse.goto(link);
+  await expect(reuse.getByText("No hem trobat aquest esborrany")).toBeVisible(); // the link no longer opens anything
+  await expect(reuse.getByLabel(/^Nom/)).toBeVisible(); // and the form is still usable
+});
+
+test("save and continue later: a wrong or expired link, deleting your own draft, and forms that do not offer it", async ({ page, request }) => {
+  const nom = F("text", { label: L("Nom"), required: "yes" });
+  const id = await seedForm("esborrany-prova", [nom]);
+  await sql`update forms set allow_drafts = true where id = ${id}`;
+
+  await page.goto(WEB + "/ca/form/esborrany-prova");
+  await page.waitForLoadState("networkidle");
+  await page.getByLabel(/^Nom/).fill("Laia");
+  await page.getByRole("button", { name: "Desa i continua més tard" }).click();
+  await page.getByRole("button", { name: "Desa l'esborrany" }).click();
+  const link = await page.getByLabel(/Esborrany desat/).inputValue();
+  expect(await count("form_drafts", sql`where form_id = ${id}`)).toBe(1);
+
+  // a tampered secret and an expired draft both say the same thing
+  await page.goto(link.slice(0, -1) + (link.endsWith("A") ? "B" : "A"));
+  await expect(page.getByText("No hem trobat aquest esborrany")).toBeVisible();
+  await sql`update form_drafts set expires_at = now() - interval '1 minute' where form_id = ${id}`;
+  await page.goto(link);
+  await expect(page.getByText("No hem trobat aquest esborrany")).toBeVisible();
+  await sql`update form_drafts set expires_at = now() + interval '1 day' where form_id = ${id}`;
+
+  // the person can delete their own draft
+  await page.goto(link);
+  await expect(page.getByText("Hem recuperat el que havies escrit")).toBeVisible();
+  await page.getByRole("button", { name: "Desa i continua més tard" }).click();
+  await page.getByRole("button", { name: "Esborra l'esborrany" }).click();
+  await expect(page.getByText("Esborrany esborrat.")).toBeVisible();
+  expect(await count("form_drafts", sql`where form_id = ${id}`)).toBe(0);
+
+  // a form that does not allow drafts offers nothing, and its API says not found
+  await seedForm("sense-esborranys", [nom]);
+  await page.goto(WEB + "/ca/form/sense-esborranys");
+  await expect(page.getByLabel(/^Nom/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Desa i continua més tard" })).toHaveCount(0);
+  expect((await request.post("/api/forms/sense-esborranys/draft", { data: { answers: {}, step: 0, locale: "ca" } })).status()).toBe(404);
+  expect((await request.post("/api/forms/sense-esborranys/draft/load", { data: { token: "A".repeat(43) } })).status()).toBe(404);
+
+  // the API refuses a save without the bot check, and a draft of a form that closed
+  expect((await request.post("/api/forms/esborrany-prova/draft", { data: { answers: {}, step: 0, locale: "ca" } })).status()).toBe(400);
+  await sql`update forms set max_responses = 1 where id = ${id}`;
+  await sql`insert into submissions (form_id, answers, locale) values (${id}, '[]'::jsonb, 'ca')`;
+  expect((await request.post("/api/forms/esborrany-prova/draft", { data: { answers: {}, step: 0, locale: "ca" } })).status()).toBe(410);
+});
+
+test("the editor can switch drafts on, and shows how many are waiting", async ({ page }) => {
+  const nom = F("text", { label: L("Nom") });
+  const id = await seedForm("editor-esborranys", [nom]);
+  await login(page);
+  await page.goto(`/admin/forms/${id}`);
+  await expect(page.getByText("Esborranys pendents")).toHaveCount(0);
+  await page.getByLabel("Permet desar i continuar més tard").check();
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Desat");
+  expect((await sql`select allow_drafts from forms where id = ${id}`)[0].allow_drafts).toBe(true);
+  await expect(page.getByText("Esborranys pendents")).toBeVisible();
+});

@@ -60,6 +60,7 @@ deny  $(W) "select count(*) from erp_entries"
 deny  $(W) "select count(*) from members"
 deny  $(W) "select count(*) from portal_users"
 deny  $(W) "select count(*) from submissions"
+deny  $(W) "select count(*) from form_drafts"                  # what visitors saved is never readable by the website
 deny  $(W) "select count(*) from record_notes"
 deny  $(W) "select count(*) from job_seekers"
 deny  $(W) "select count(*) from schema_migrations"
@@ -116,6 +117,7 @@ deny  $(C) "update forms set name = name where false"          # forms and their
 deny  $(C) "update submissions set locale = locale where false"
 deny  $(C) "delete from submissions where false"
 deny  $(C) "select count(*) from form_starts"
+deny  $(C) "select count(*) from form_drafts"                  # nor by the CRM: a draft is not a response yet
 deny  $(C) "update users set role = role where false"           # cannot make someone an admin
 deny  $(C) "delete from users where false"
 deny  $(C) "insert into users (email, name, role, password_hash) values ('x@x.test', 'x', 'admin', 'x')"
@@ -137,6 +139,8 @@ allow $(F) "delete from outbox"
 allow $(F) "update forms set name = name where false"
 allow $(F) "delete from form_starts where false"
 allow $(F) "update submissions set locale = locale where false"
+allow $(F) "update form_drafts set step = step where false"        # saved progress on long forms belongs to the Forms app
+allow $(F) "delete from form_drafts where false"
 allow $(F) "select count(*) from projects"                    # destination pickers of the builder
 allow $(F) "select count(*) from clients"
 # the pipeline's hand-over (decision A): upsert a contact, add a lead, upsert a newsletter opt-in

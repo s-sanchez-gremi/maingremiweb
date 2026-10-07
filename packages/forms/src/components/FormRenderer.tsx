@@ -11,6 +11,7 @@ import type { PublicForm } from "../public-form";
 import type { Locale } from "@apex/db/schema";
 import { FieldInput } from "./Inputs";
 import { FormClosedError, fetchSolution } from "./pow-client";
+import { SaveForLater } from "./SaveForLater";
 
 export type Source = { path: string; entryId?: string | null; theme: string };
 type Solution = Awaited<ReturnType<typeof fetchSolution>>;
@@ -30,6 +31,8 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
   const [step, setStep] = useState(0);
   const [status, setStatus] = useState<"idle" | "sending" | "done">("idle");
   const [banner, setBanner] = useState("");
+  const [draftToken, setDraftToken] = useState<string | null>(null); // the secret of this visitor's saved draft, kept in memory only
+  const [resumeNote, setResumeNote] = useState("");
   const [closedNow, setClosedNow] = useState(false); // the form closed after this page was loaded (or cached)
   const started = useRef(false);
   const pow = useRef<Promise<Solution> | null>(null);
@@ -95,13 +98,14 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
       for (const k of UTM) { const v = params.get(k); if (v) utm[k] = v; }
       const body = new FormData();
       body.append("payload", JSON.stringify({
-        locale, answers: values, consent, newsletter, pow: solution, website: (root.current?.elements.namedItem("website") as HTMLInputElement | null)?.value ?? "",
+        locale, answers: values, consent, newsletter, pow: solution, draftToken, website: (root.current?.elements.namedItem("website") as HTMLInputElement | null)?.value ?? "",
         sourcePath: source.path, sourceEntryId: source.entryId ?? null, theme: source.theme, utm,
       }));
       for (const it of items) { const f = files[it.id]; if (it.type === "file" && f && isVisible(items, it, values)) body.append(`file:${it.id}`, f); }
       const res = await fetch(`/api/forms/${form.slug}/submit`, { method: "POST", body });
       if (res.ok) {
         setStatus("done");
+        setDraftToken(null); // the server deleted it with the submission
         const to = form.redirectUrl;
         if (to && (/^\/(?![/\\])/.test(to) || /^https?:\/\//i.test(to))) { window.location.assign(to); return; } // the message below stays as the fallback
         setTimeout(() => done.current?.focus(), 30);
@@ -134,6 +138,24 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
       .catch(() => {});
   }, [form.checkOpen, form.slug]);
 
+  // Opened from a "continue later" link: bring back what was saved (cleaned again by the server against the form as it is now).
+  useEffect(() => {
+    const token = form.allowDraft ? new URLSearchParams(window.location.search).get("resume") : null;
+    if (!token) return;
+    fetch(`/api/forms/${form.slug}/draft/load`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token }) })
+      .then(async (r) => {
+        if (!r.ok) { setResumeNote(t.draftNotFound); return; }
+        const d = (await r.json()) as { answers: Answers; step: number };
+        setValues(d.answers);
+        const reachable = shownSteps(items, d.answers);
+        setStep(reachable.includes(d.step) ? d.step : [...reachable].reverse().find((i) => i < d.step) ?? 0); // the step it was saved on, or the nearest one that still applies
+        setDraftToken(token);
+        setResumeNote(t.draftResumed);
+      })
+      .catch(() => setResumeNote(t.draftNotFound));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the page opens
+  }, []);
+
   if (!form.active || closedNow) return <p className="empty">{t.closed}</p>;
   if (status === "done") {
     return <div className="form-done" role="status" tabIndex={-1} ref={done}><p>{lt(form.confirmation, locale) || t.thanks}</p></div>;
@@ -153,6 +175,7 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
           {current.page && <h2 className="step-title" tabIndex={-1} ref={head}>{lt(current.page.data.title, locale)}</h2>}
         </div>
       )}
+      {resumeNote && <div className="form-banner" role="status">{resumeNote}</div>}
       {errorCount > 0 && <div className="form-banner err" role="alert">{t.errorSummary}</div>}
       {banner && <div className="form-banner err" role="alert">{banner}</div>}
 
@@ -175,6 +198,8 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
 
       {/* Honeypot: invisible to people and assistive technology; bots that fill every field give themselves away. */}
       <div className="hp" aria-hidden="true"><label>Website<input type="text" name="website" tabIndex={-1} autoComplete="off" /></label></div>
+
+      {form.allowDraft && <SaveForLater slug={form.slug} locale={locale} token={draftToken} onToken={setDraftToken} snapshot={() => ({ answers: values, step })} sourcePath={source.path} />}
 
       <div className="form-actions">
         {step > 0 ? <Button type="button" onClick={() => { setErrors({}); setStep([...going].reverse().find((i) => i < step) ?? 0); setTimeout(() => head.current?.focus(), 30); }}>{t.back}</Button> : <span />}

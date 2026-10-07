@@ -8,12 +8,13 @@ import { formSettingsFields, type FormSettings } from "@apex/forms/settings-fiel
 import type { Field } from "@apex/core/fields";
 import { copyForm, removeForm, saveForm } from "../actions";
 
-type Initial = { id: string; name: string; slug: string; active: boolean; destination: "crm_lead" | "project" | "responses_only"; target: string; fields: Item[]; settings: FormSettings; closesAt: string; maxResponses: string; redirectUrl: string };
+type Initial = { id: string; name: string; slug: string; active: boolean; destination: "crm_lead" | "project" | "responses_only"; target: string; fields: Item[]; settings: FormSettings; allowDrafts: boolean; closesAt: string; maxResponses: string; redirectUrl: string };
 const STATE_LABEL = { open: "Actiu", closed: "Tancat", expired: "Tancat per data", full: "Complet" } as const;
 const pick = (names: string[]) => formSettingsFields.filter((f) => names.includes(f.name)) as Field[];
 const NO_MEDIA = { media: [], forms: [] };
 
-export function FormEditor({ initial, stats, site, message, targets, state }: {
+export function FormEditor({ initial, stats, drafts, site, message, targets, state }: {
+  drafts: number;
   state: keyof typeof STATE_LABEL;
   targets: { projects: { id: string; name: string }[]; clients: { id: string; name: string }[] };
   initial: Initial; stats: { submissions: number; starts: number; completion: number | null }; site: string; message: { kind: "ok" | "err"; text: string } | null;
@@ -25,10 +26,11 @@ export function FormEditor({ initial, stats, site, message, targets, state }: {
   const [target, setTarget] = useState(initial.target);
   const [items, setItems] = useState<Item[]>(initial.fields);
   const [settings, setSettings] = useState<Record<string, unknown>>(initial.settings as never);
+  const [allowDrafts, setAllowDrafts] = useState(initial.allowDrafts);
   const [closesAt, setClosesAt] = useState(initial.closesAt);
   const [maxResponses, setMaxResponses] = useState(initial.maxResponses);
   const [redirectUrl, setRedirectUrl] = useState(initial.redirectUrl);
-  const data = JSON.stringify({ id: initial.id, name, slug, active, destination, target, fields: items, settings, closesAt, maxResponses, redirectUrl });
+  const data = JSON.stringify({ id: initial.id, name, slug, active, destination, target, fields: items, settings, allowDrafts, closesAt, maxResponses, redirectUrl });
 
   const optionLabel = (i: Item) => `${lt(i.data.label, "ca") || formTypeByName[i.type].label}`;
   const summary = (i: Item) => {
@@ -116,6 +118,14 @@ export function FormEditor({ initial, stats, site, message, targets, state }: {
               <label>Adreça on enviar la persona després d&apos;enviar-lo<input value={redirectUrl} onChange={(e) => setRedirectUrl(e.target.value)} placeholder="/ca/gracies  o  https://…" /></label>
               <span className="hint">Opcional. Si la poses, en lloc del missatge de confirmació s&apos;obre aquesta pàgina (ha de començar per https://, http:// o /).</span>
             </div>
+            <div className="card">
+              <h3>Esborranys</h3>
+              <label style={{ gridTemplateColumns: "auto 1fr", alignItems: "center", gap: 10 }}>
+                <input type="checkbox" checked={allowDrafts} onChange={(e) => setAllowDrafts(e.target.checked)} style={{ width: 18 }} />
+                <span>Permet desar i continuar més tard</span>
+              </label>
+              <span className="hint">Pensat per a formularis llargs. La persona pot desar el que ha escrit (sense fitxers) i continuar amb un enllaç privat, que també pot rebre per correu. Es guarda 30 dies i s&apos;esborra en enviar el formulari. Són dades personals abans del consentiment: esmenta-ho al text de privacitat.</span>
+            </div>
             <div className="card"><h3>Text públic</h3><FieldForm fields={pick(["title", "confirmation", "consent"])} data={settings} onChange={setSettings} options={NO_MEDIA} /></div>
             <div className="card"><h3>Butlletí</h3><FieldForm fields={pick(["newsletterEnabled", "newsletterText"])} data={settings} onChange={setSettings} options={NO_MEDIA} /></div>
             <div className="card"><h3>Notificacions</h3><FieldForm fields={pick(["staffEmail", "staffAddresses", "confirmToSender", "confirmSubject", "confirmBody"])} data={settings} onChange={setSettings} options={NO_MEDIA} /></div>
@@ -124,6 +134,7 @@ export function FormEditor({ initial, stats, site, message, targets, state }: {
               <h3>Respostes</h3>
               <div className="row"><span className="hint">Enviaments</span><strong>{stats.submissions}</strong></div>
               <div className="row"><span className="hint">Han començat a omplir-lo</span><strong>{stats.starts}</strong></div>
+              {initial.allowDrafts && <div className="row"><span className="hint">Esborranys pendents</span><strong>{drafts}</strong></div>}
               <div className="row"><span className="hint">Taxa de finalització</span><strong>{stats.completion === null ? "—" : `${Math.round(stats.completion * 100)}%`}</strong></div>
               <Link href={`/admin/forms/${initial.id}/submissions`} className="btn" style={{ textAlign: "center" }}>Veure les respostes</Link>
               <a href={`/admin/forms/${initial.id}/export`} style={{ color: "var(--accent)", fontWeight: 600, fontSize: 13 }}>Exporta com a full de càlcul (CSV) →</a>

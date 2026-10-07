@@ -50,6 +50,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     meta: {
       sourcePath: cleanPath(payload.sourcePath), sourceEntryId: typeof payload.sourceEntryId === "string" && /^[0-9a-f-]{36}$/i.test(payload.sourceEntryId) ? payload.sourceEntryId : null,
       theme: typeof payload.theme === "string" ? payload.theme.slice(0, 80) : "", utm: cleanUtm(payload.utm), ipHash: ip, challengeId,
+      draftToken: typeof payload.draftToken === "string" ? payload.draftToken : null,
     },
   });
 
