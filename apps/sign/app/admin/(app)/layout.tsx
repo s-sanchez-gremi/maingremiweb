@@ -17,7 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <aside className="side">
         <div>
           <div className="logo">APEX <span style={{ fontSize: 12, letterSpacing: 2 }}>SIGNATURES</span></div>
-          <nav aria-label="Menú principal">
+          <nav className="nav" aria-label="Menú principal">
             <a href="/admin">Tauler</a>
             {crmUrl && <a href={`${crmUrl}/admin`}>CRM ↗</a>}
             {formsUrl && <a href={`${formsUrl}/admin`}>Formularis ↗</a>}

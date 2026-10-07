@@ -20,6 +20,7 @@ COPY packages/core/package.json packages/core/
 COPY packages/ui/package.json packages/ui/
 COPY packages/forms/package.json packages/forms/
 COPY packages/sections/package.json packages/sections/
+COPY packages/sign/package.json packages/sign/
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
 
 # 2) build (needs no database: pages are generated on first visit)

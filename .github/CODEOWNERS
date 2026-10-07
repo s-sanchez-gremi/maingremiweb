@@ -37,5 +37,7 @@
 /packages/db/src/schema/crm.ts      @s-sanchez-gremi                      # includes the forms tables (forms, form_starts, newsletter_optins)
 /packages/db/src/schema/records.ts  @s-sanchez-gremi
 /packages/db/src/schema/events.ts   @s-sanchez-gremi
+/packages/db/src/schema/sign.ts     @s-sanchez-gremi
+/packages/sign/                     @s-sanchez-gremi
 /packages/db/src/schema/erp.ts      @s-sanchez-gremi
 /docs/erp-plan.md                   @s-sanchez-gremi
