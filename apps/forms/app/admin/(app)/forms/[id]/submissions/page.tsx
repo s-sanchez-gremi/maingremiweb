@@ -31,7 +31,6 @@ export default async function Submissions({ params, searchParams }: { params: Pr
   const base = db.select({ s: submissions, email: contacts.email }).from(submissions).leftJoin(contacts, eq(contacts.id, submissions.contactId))
     .where(eq(submissions.formId, id)).orderBy(desc(submissions.createdAt));
   const loaded = wide ? await base.limit(2000) : await base.limit(PAGE).offset((page - 1) * PAGE);
-  const emails = new Map(loaded.map(({ s, email }) => [s.id, email]));
   const shown = wide
     ? filterRows(loaded.map(({ s }) => ({ id: s.id, createdAt: s.createdAt, locale: s.locale, answers: s.answers })), columns, { q, field: filterField?.id, value: filterValue }).filter((r) => !open || r.id === open)
     : null;
