@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EmptyState } from "@apex/ui/components/Identity";
 import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "@apex/db";
 import { entries, entryTranslations, locales } from "@apex/db/schema";
@@ -61,7 +62,9 @@ export default async function ContentList({ searchParams }: { searchParams: Prom
           ))}
         </nav>
         {shown.length === 0 ? (
-          <p className="hint">{rows.length === 0 ? `Encara no hi ha cap ${type === "post" ? "article" : "pàgina"}.` : "No hi ha res que coincideixi."}</p>
+          rows.length === 0
+            ? <EmptyState eyebrow={type === "post" ? "Articles" : "Pàgines"} title={`Encara no hi ha cap ${type === "post" ? "article" : "pàgina"}`}>Fes servir el botó Crea del menú per començar. Quan en publiquis una, la veuràs aquí amb les llengües en què ja és visible.</EmptyState>
+            : <p className="hint">No hi ha res que coincideixi.</p>
         ) : (
           <div className="entries" role="table" aria-label={type === "post" ? "Articles" : "Pàgines"}>
             <div className="entry head" role="row">

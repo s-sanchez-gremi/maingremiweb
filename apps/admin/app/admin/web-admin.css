@@ -1,5 +1,8 @@
 /* The website's admin look (client request 2026-10-02: "more modern, attractive and simple").
    Scoped to .wa so the shared @apex/ui/admin.css (also used by the CRM app) keeps its own look. Tokens only. */
+/* The CMS admin wears the cyan ink (docs/identity-plan.md): everything below that reads --accent turns cyan. What must NOT follow is set after it:
+   the header preview copies the website (red), the error counter is an alarm (danger) and "missing translation" is a warning. */
+[data-app="admin"] .wa{--accent:var(--spot-admin);--accent-hover:color-mix(in srgb,var(--spot-admin) 82%,var(--ink))}
 .wa{background:var(--bg);font-size:15px}
 .wa h1,.wa h2,.wa h3{font-family:var(--serif);font-weight:600;letter-spacing:-.01em}
 .wa .eyebrow{display:block;font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
@@ -24,7 +27,7 @@
 .wa .nav a,.wa .nav-out a{display:flex;align-items:center;gap:12px;min-height:40px;padding:0 12px;border-radius:var(--r);border:0;color:var(--ink)}
 .wa .nav a:hover,.wa .nav-out a:hover{background:var(--bg)}
 .wa .nav a[aria-current=page]{background:color-mix(in srgb,var(--accent) 10%,var(--surface));color:var(--accent-hover);font-weight:600;border:0}
-.wa .nav .count{margin-left:auto;min-width:22px;padding:1px 7px;border-radius:999px;background:var(--accent);color:var(--surface);font-size:12px;font-weight:600;text-align:center;box-sizing:border-box}
+.wa .nav .count{margin-left:auto;min-width:22px;padding:1px 7px;border-radius:999px;background:var(--danger);color:var(--surface);font-size:12px;font-weight:600;text-align:center;box-sizing:border-box}
 .wa .nav-out{margin-top:auto;display:grid;gap:2px}
 .wa .nav-out a{color:var(--text2)}
 .wa .who{display:flex;align-items:center;gap:10px;padding:12px 10px 0;border-top:1px solid var(--line);color:var(--ink);font-size:14px}
@@ -141,10 +144,10 @@
 .wa .langswitch div{display:inline-flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
 .wa .langswitch button{min-height:36px;min-width:52px;padding:0 10px;border:0;background:none;font-family:var(--mono);font-size:12px;cursor:pointer;color:var(--ink)}
 .wa .langswitch button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
-.wa .langswitch .missing{color:var(--accent-hover)}
+.wa .langswitch .missing{color:var(--warn)}
 .wa .langswitch button[aria-pressed=true] .missing{color:var(--surface)}
 .wa .settings-grid{display:grid;grid-template-columns:minmax(0,760px) minmax(0,1fr);gap:32px;align-items:start}
-.wa .preview-head{background:var(--accent);border-radius:var(--r);padding:16px 20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;color:var(--surface)}
+.wa .preview-head{background:var(--spot-web);border-radius:var(--r);padding:16px 20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;color:var(--surface)}
 .wa .preview-head img{height:36px;filter:brightness(0) invert(1)}
 .wa .preview-head ul{display:flex;gap:16px;list-style:none;margin:0;padding:0;flex:1;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;flex-wrap:wrap}
 .wa .preview-head .pb{font-size:12px;font-weight:600;border:1px solid var(--surface);border-radius:var(--r);padding:7px 10px}
@@ -175,3 +178,8 @@
   .wa .hello h1{font-size:32px}
 }
 @media (max-width:560px){.wa .card{padding:12px}.wa .nested{padding-left:8px}.wa .row{flex-wrap:wrap}.wa table{display:block;overflow-x:auto}.wa .quick{grid-template-columns:minmax(0,1fr)}.wa .entry{grid-template-columns:minmax(0,1fr)}.wa .entry .acts{justify-content:flex-start}}
+
+/* login */
+.wa .login{max-width:360px;margin:96px auto;padding:0 16px;display:grid;gap:16px}
+.wa .login h1{font-size:var(--fs-h2);line-height:1.15}
+.wa .login .brand{padding:0;gap:12px}

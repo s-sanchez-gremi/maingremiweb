@@ -5,6 +5,7 @@ import { db } from "@apex/db";
 import { errorLog } from "@apex/db/schema";
 import { destroySession, requireUser } from "@apex/core/auth";
 import { can } from "@apex/core/permissions";
+import { InkBar } from "@apex/ui/components/Identity";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { StaffHint } from "@/components/admin/StaffHint";
 import { clearStaffHint } from "@apex/core/staff-hint";
@@ -42,7 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </span>
         </div>
       </aside>
-      <div className="main">{children}</div>
+      <div className="main"><InkBar />{children}</div>
       <StaffHint domain={process.env.SESSION_COOKIE_DOMAIN || undefined} />
     </div>
   );

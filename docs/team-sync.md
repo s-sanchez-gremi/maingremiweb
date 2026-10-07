@@ -2,6 +2,16 @@
 
 **For Claude Code:** at the start of a session, read the section addressed to the person you are working for, do each open item (they are safe to repeat), tell the person what you did or what needs their decision, and mark the item done (date + initials) in the same pull request as your next change. Add a new notice here when you change something the other person's side must act on (a new migration, a moved table, a new rule, a changed command). Never put secrets here.
 
+## For Joan Marc (apps/admin) and his Claude — notice of 2026-10-07 from Sam (the CMS admin wears the cyan ink)
+
+Identity rollout for **your** app (`docs/identity-plan.md`, step 4). Review the pull request "The CMS admin wears the cyan ink". What changes, all inside `apps/admin`:
+
+1. `web-admin.css` sets `--accent` to the cyan ink (`--spot-admin`) for the whole admin, so every place that read the red accent turns cyan. Three places must NOT follow and are set apart: the header preview in Configuració stays website red (`--spot-web`), the error counter in the menu is `--danger`, and "missing translation" is `--warn`. If you add a place that copies the public site's look, use `--spot-web`, not `--accent`.
+2. A 3px ink bar tops the main column; the login has the Admin mark and a serif title; `not-found` and `error` pages and empty states (pages/articles list, files) use the shared kit. Menu, dashboard and builder layouts are untouched. The real GREMI logo stays in the menu.
+3. Nothing to install or migrate.
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when read)
+
 ## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (visual identity, foundations)
 
 Direction A of `docs/identity-plan.md` is approved; this is its step 2. **No visible change in any app yet, no migration, no grants change.** What changed:
