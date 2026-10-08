@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EmptyState } from "@apex/ui/components/Identity";
 import { and, desc, like, sql, type SQL } from "drizzle-orm";
 import { db } from "@apex/db";
 import { media } from "@apex/db/schema";
@@ -38,7 +39,9 @@ export default async function MediaPage({ searchParams }: { searchParams: Promis
             <Link key={k} className="btn" href={filterHref(k)} aria-current={k === t ? "page" : undefined}>{TYPES[k]}</Link>
           ))}
         </nav>
-        {rows.length === 0 && <p className="hint">{q || t !== "all" ? "Cap fitxer coincideix amb la cerca." : "Encara no hi ha fitxers."}</p>}
+        {rows.length === 0 && (q || t !== "all"
+          ? <p className="hint">Cap fitxer coincideix amb la cerca.</p>
+          : <EmptyState eyebrow="Fitxers i imatges" title="Encara no hi ha fitxers">Arrossega imatges o documents a la zona de pujada. Cada fitxer tindrà un enllaç públic per compartir.</EmptyState>)}
         {rows.length === 200 && <p className="hint">Es mostren els 200 més recents. Fes servir el cercador per trobar-ne d&apos;altres.</p>}
         <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
           {rows.map((m) => {
