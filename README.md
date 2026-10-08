@@ -14,8 +14,15 @@ Then open http://localhost:3000/ca (site) and http://localhost:3000/admin. By ha
 ```
 cp .env.example .env
 pnpm install
-pnpm dev        # starts Docker services, then the apps: website on :3000, CRM + forms + portal on :3001, CMS admin on :3003
+pnpm dev        # starts Docker services, then the apps: website on :3000, CRM + portal on :3001, forms :3002, CMS admin :3003, signatures :3004, hub :3005
 ```
+Everything in Docker instead (no Node needed; builds the production image from this checkout, so the first build takes a while; do not run it together with `pnpm dev`):
+```
+cp .env.example .env
+docker compose -f docker-compose.yml -f docker-compose.apps.yml up -d --build
+```
+Ports: website :3000, CRM/workspace/portal :3001, forms :3002, CMS admin :3003, signatures :3004, hub :3005.
+
 Mail caught at http://localhost:8025 · S3 (s3mock) http://localhost:9090
 
 ## Environments
