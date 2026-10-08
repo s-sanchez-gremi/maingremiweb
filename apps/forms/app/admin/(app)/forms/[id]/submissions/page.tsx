@@ -158,7 +158,7 @@ export default async function Submissions({ params, searchParams }: { params: Pr
     <>
       <div className="top">
         <div><div className="crumb"><Link href="/admin/forms">Formularis</Link> / <Link href={`/admin/forms/${id}`}>{f.name}</Link></div><h1>Respostes ({n})</h1></div>
-        <a className="btn" href={`/admin/forms/${id}/export`}>Exporta (CSV)</a>
+        <div className="row" style={{ gap: 6 }}><a className="btn" href={`/admin/forms/${id}/export`}>Exporta (CSV)</a><a className="btn" href={`/admin/forms/${id}/export?format=xlsx`}>Exporta (Excel)</a></div>
       </div>
       <div className="body" style={{ display: "grid", gap: 14, maxWidth: view === "cards" ? 900 : undefined }}>
         <div className="row" style={{ justifyContent: "flex-start", gap: 12, flexWrap: "wrap" }}>

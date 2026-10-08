@@ -1237,3 +1237,22 @@ test("analytics: drop-off per question, time to complete and a chart per choice 
   await page.getByRole("link", { name: "Estadístiques" }).click();
   await expect(page).toHaveURL(/\/analytics$/);
 });
+
+test("export to Excel: the same answers as the CSV, numbers as numbers, only for staff", async ({ page, request }) => {
+  const nom = F("text", { label: L("Nom"), required: "yes" });
+  const qty = F("number", { label: L("Places") });
+  const id = await seedForm("excel-e2e", [nom, qty]);
+  await sql`insert into submissions (form_id, answers, locale) values (${id}, ${sql.json([{ id: nom.id, type: "text", label: "Nom", value: "=HYPERLINK(1)" }, { id: qty.id, type: "number", label: "Places", value: 3 }] as never)}, 'ca')`;
+  expect((await request.get(`/admin/forms/${id}/export?format=xlsx`)).status()).toBe(401); // not signed in
+  await login(page);
+  const res = await page.request.get(`/admin/forms/${id}/export?format=xlsx`);
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"]).toContain("spreadsheetml.sheet");
+  expect(res.headers()["content-disposition"]).toContain(".xlsx");
+  const bytes = await res.body();
+  expect(bytes.subarray(0, 4).toString("hex")).toBe("504b0304"); // a zip
+  const text = bytes.toString("latin1");
+  expect(text).toContain("xl/worksheets/sheet1.xml");
+  await page.goto(`/admin/forms/${id}/submissions`);
+  await expect(page.getByRole("link", { name: "Exporta (Excel)" })).toHaveAttribute("href", `/admin/forms/${id}/export?format=xlsx`);
+});
