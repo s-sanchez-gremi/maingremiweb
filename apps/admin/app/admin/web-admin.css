@@ -1,0 +1,177 @@
+/* The website's admin look (client request 2026-10-02: "more modern, attractive and simple").
+   Scoped to .wa so the shared @apex/ui/admin.css (also used by the CRM app) keeps its own look. Tokens only. */
+.wa{background:var(--bg);font-size:15px}
+.wa h1,.wa h2,.wa h3{font-family:var(--serif);font-weight:600;letter-spacing:-.01em}
+.wa .eyebrow{display:block;font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+
+/* side menu: white, grouped, icons */
+.wa .side{width:256px;background:var(--surface);color:var(--ink);border-right:1px solid var(--line);justify-content:flex-start;gap:18px;padding:22px 14px 14px;box-sizing:border-box;position:sticky;top:0;height:100vh;overflow-y:auto}
+.wa .brand{display:flex;align-items:center;gap:10px;padding:0 10px}
+.wa .brand img{height:34px;width:auto;filter:brightness(0)}
+.wa .brand span{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text2);border:1px solid var(--line);border-radius:var(--r);padding:3px 6px}
+.wa .create{position:relative}
+.wa .create>summary{list-style:none;display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;background:var(--accent);color:var(--surface);border-radius:var(--r);font-weight:600;cursor:pointer}
+.wa .create>summary::-webkit-details-marker{display:none}
+.wa .create>summary:hover{background:var(--accent-hover)}
+.wa .create>summary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.wa .create-menu{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-card);padding:6px;display:grid}
+.wa .create-menu form{display:contents}
+.wa .create-menu button,.wa .create-menu a{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border:0;background:none;font:inherit;color:var(--ink);text-align:left;border-radius:var(--r);cursor:pointer}
+.wa .create-menu button:hover,.wa .create-menu a:hover{background:var(--bg)}
+.wa .nav{padding:0;gap:16px}
+.wa .nav-group{display:grid;gap:2px}
+.wa .nav-group h2{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--text2);padding:0 12px 6px}
+.wa .nav a,.wa .nav-out a{display:flex;align-items:center;gap:12px;min-height:40px;padding:0 12px;border-radius:var(--r);border:0;color:var(--ink)}
+.wa .nav a:hover,.wa .nav-out a:hover{background:var(--bg)}
+.wa .nav a[aria-current=page]{background:color-mix(in srgb,var(--accent) 10%,var(--surface));color:var(--accent-hover);font-weight:600;border:0}
+.wa .nav .count{margin-left:auto;min-width:22px;padding:1px 7px;border-radius:999px;background:var(--accent);color:var(--surface);font-size:12px;font-weight:600;text-align:center;box-sizing:border-box}
+.wa .nav-out{margin-top:auto;display:grid;gap:2px}
+.wa .nav-out a{color:var(--text2)}
+.wa .who{display:flex;align-items:center;gap:10px;padding:12px 10px 0;border-top:1px solid var(--line);color:var(--ink);font-size:14px}
+.wa .avatar{width:36px;height:36px;flex-shrink:0;border-radius:50%;background:var(--ink);color:var(--ink-text);display:grid;place-items:center;font-weight:600;font-size:13px}
+.wa .who-text{display:grid;min-width:0}
+.wa .who-text strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wa .who-text>span{font-size:13px;color:var(--text2)}
+.wa .who-text a,.wa .who-text button{color:var(--text2);text-decoration:underline;text-underline-offset:2px;display:inline-block;padding:6px 0}
+.wa .who-text form{display:inline}
+.wa .who-text button{font:inherit;border:0;background:none;cursor:pointer}
+.wa .who-text a:hover,.wa .who-text button:hover{color:var(--accent)}
+
+/* page frame */
+.wa .top{background:none;border:0;padding:32px 40px 8px;align-items:flex-end;flex-wrap:wrap}
+.wa .top h1{font-size:34px;line-height:1.15}
+.wa .crumb{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.wa .body{padding:20px 40px 48px}
+.wa .lede{margin:6px 0 0;color:var(--text2);font-size:15px}
+
+/* shared pieces */
+.wa .card{border-radius:var(--r);padding:20px;box-sizing:border-box;min-width:0}
+.wa .settings-grid>*,.wa .settings-grid [role=tabpanel]>*{min-width:0}
+.wa .card h3{font-family:var(--serif);font-size:18px;font-weight:600}
+.wa .btn{border-radius:var(--r);min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-sizing:border-box}
+.wa .btn.primary{color:var(--surface)}
+.wa .btn[aria-current=page]{border-radius:999px}
+.wa input,.wa select,.wa textarea{border-radius:var(--r);min-height:44px;font-size:15px;font-weight:400}
+.wa textarea{min-height:110px}
+.wa label{font-size:14px;color:var(--ink);font-weight:600}
+.wa .chip{border-radius:999px;text-transform:none;letter-spacing:0;font-size:12px;font-weight:600;padding:4px 10px}
+.wa .chip.draft{background:var(--warn-bg);color:var(--warn)}
+.wa .chip.sched{background:var(--info-bg);color:var(--info)}
+.wa table{border-radius:var(--r)}
+.wa th{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase}
+.wa .add{border-radius:var(--r);border-color:var(--field-border)}
+.wa .add button{border-radius:var(--r);min-height:40px;font-size:14px}
+.wa .tools button{width:36px;height:36px}
+.wa .listsearch input[type=search]{max-width:420px}
+.wa .filters{display:flex;gap:6px;flex-wrap:wrap}
+.wa .filters a{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:14px}
+.wa .filters a:hover{border-color:var(--ink)}
+.wa .filters a[aria-current=page]{background:var(--ink);border-color:var(--ink);color:var(--surface);font-weight:600}
+
+/* dashboard */
+.wa .hello{padding:36px 40px 0}
+.wa .hello h1{font-size:40px;line-height:1.1}
+.wa .quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.wa .quick form{display:contents}
+.wa .quick a,.wa .quick button{display:grid;gap:14px;align-content:start;padding:20px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);font:inherit;color:var(--ink);text-align:left;cursor:pointer}
+.wa .quick a:hover,.wa .quick button:hover{border-color:var(--ink);box-shadow:var(--shadow-card)}
+.wa .quick .ico{width:44px;height:44px;border-radius:var(--r);display:grid;place-items:center;background:var(--bg2);color:var(--ink)}
+.wa .quick .ico.red{background:var(--accent);color:var(--surface)}
+.wa .quick .ico.ink{background:var(--ink);color:var(--surface)}
+.wa .quick strong{display:block;font-size:16px}
+.wa .quick small{display:block;color:var(--text2);font-size:14px;margin-top:2px}
+.wa .dash{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:24px;align-items:start;margin-top:32px}
+.wa .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.wa .panel-head{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.wa .panel-head h2{font-size:20px;flex:1;margin:0}
+.wa .panel-head a{font-size:14px;font-weight:600;color:var(--accent-hover)}
+.wa .recent a{display:flex;align-items:center;gap:16px;padding:12px 20px;border-bottom:1px solid var(--bg2)}
+.wa .recent a:last-child{border-bottom:0}
+.wa .recent a:hover{background:var(--bg)}
+.wa .recent .t{flex:1;min-width:0}
+.wa .recent .t strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wa .recent .t span{font-size:13px;color:var(--text2)}
+.wa .kind{width:40px;height:40px;flex-shrink:0;border-radius:var(--r);background:var(--bg2);display:grid;place-items:center}
+.wa .figures{background:var(--ink2);color:var(--ink-text);border-radius:var(--r);padding:20px;display:grid;gap:16px}
+.wa .figures h2{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;margin:0}
+.wa .figures dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0}
+.wa .figures dd{margin:0;font-family:var(--serif);font-size:40px;font-weight:600;line-height:1;color:var(--surface)}
+.wa .figures dt{font-size:13px;margin-top:6px;order:2}
+.wa .figures dl>div{display:flex;flex-direction:column}
+.wa .figures .cmyk{height:6px;display:flex}
+.wa .figures .cmyk span{flex:1}
+.wa .side-col{display:grid;gap:24px}
+.wa .langbars{padding:20px;display:grid;gap:12px}
+.wa .langbars h2{font-size:20px;margin:0}
+.wa .langbar{display:flex;align-items:center;gap:12px;font-size:14px}
+.wa .langbar b{width:28px;font-family:var(--mono);font-size:12px;font-weight:500}
+.wa .langbar .bar{flex:1;height:8px;background:var(--bg2);border-radius:4px;overflow:hidden}
+.wa .langbar .bar span{display:block;height:100%;background:var(--accent)}
+.wa .health{padding:16px 20px;display:grid;gap:10px}
+.wa .health h2{font-size:20px;margin:0}
+.wa .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:8px;vertical-align:middle}
+.wa .dot.warn{background:var(--warn)}.wa .dot.bad{background:var(--danger)}
+.wa .health ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:14px}
+
+/* content list */
+.wa .entries{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.wa .entry{display:grid;grid-template-columns:minmax(0,1fr) 130px 130px 120px 170px;align-items:center;gap:16px;padding:12px 20px;border-bottom:1px solid var(--bg2)}
+.wa .entry:last-child{border-bottom:0}
+.wa .entry.head{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text2);border-bottom:1px solid var(--line);padding-top:10px;padding-bottom:10px}
+.wa .entry:not(.head):hover{background:var(--bg)}
+.wa .entry .title{min-width:0}
+.wa .entry .title a{font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wa .entry .title a:hover{color:var(--accent)}
+.wa .entry .title span{font-size:13px;color:var(--text2);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wa .entry .when{font-size:14px;color:var(--text2)}
+.wa .entry .acts{display:flex;gap:6px;justify-content:flex-end}
+.wa .entry .acts .btn{min-height:36px;padding:0 12px;font-size:14px}
+.wa .langs-mini{display:flex;gap:4px}
+.wa .langs-mini span{font-family:var(--mono);font-size:11px;padding:3px 6px;border-radius:var(--r);border:1px solid var(--line);color:var(--text2);background:var(--surface)}
+.wa .langs-mini span.live{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.wa .langs-mini span.draft{border-color:var(--field-border);color:var(--ink)}
+.wa .langs-mini span.none{text-decoration:line-through}
+
+/* settings: tabs, language switch, header preview */
+.wa .tabs{display:flex;gap:4px;padding:0 40px;border-bottom:1px solid var(--line);overflow-x:auto}
+.wa .tabs button{min-height:44px;padding:0 16px;border:0;background:none;font:inherit;color:var(--text2);cursor:pointer;white-space:nowrap}
+.wa .tabs button[aria-selected=true]{color:var(--ink);font-weight:600;box-shadow:inset 0 -3px 0 var(--accent)}
+.wa .tabs button:hover{color:var(--ink)}
+.wa .langswitch{display:inline-flex;align-items:center;gap:10px;font-size:14px;color:var(--text2)}
+.wa .langswitch div{display:inline-flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.wa .langswitch button{min-height:36px;min-width:52px;padding:0 10px;border:0;background:none;font-family:var(--mono);font-size:12px;cursor:pointer;color:var(--ink)}
+.wa .langswitch button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
+.wa .langswitch .missing{color:var(--accent-hover)}
+.wa .langswitch button[aria-pressed=true] .missing{color:var(--surface)}
+.wa .settings-grid{display:grid;grid-template-columns:minmax(0,760px) minmax(0,1fr);gap:32px;align-items:start}
+.wa .preview-head{background:var(--accent);border-radius:var(--r);padding:16px 20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;color:var(--surface)}
+.wa .preview-head img{height:36px;filter:brightness(0) invert(1)}
+.wa .preview-head ul{display:flex;gap:16px;list-style:none;margin:0;padding:0;flex:1;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;flex-wrap:wrap}
+.wa .preview-head .pb{font-size:12px;font-weight:600;border:1px solid var(--surface);border-radius:var(--r);padding:7px 10px}
+.wa .preview-head .pb.primary{background:var(--surface);color:var(--ink)}
+.wa .note{background:var(--ink2);color:var(--ink-text);border-radius:var(--r);padding:16px 20px;font-size:14px;line-height:1.5}
+
+@media (max-width:1100px){
+  .wa .quick{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .wa .dash,.wa .settings-grid{grid-template-columns:minmax(0,1fr)}
+  .wa .entry{grid-template-columns:minmax(0,1fr) auto}
+  .wa .entry .langs-mini,.wa .entry .when,.wa .entry.head{display:none}
+}
+@media (max-width:900px){
+  /* the side menu becomes a compact bar: logo, Crea and the account on one row, the sections in a scrolling row below */
+  .wa .side{position:static;width:auto;height:auto;border-right:0;border-bottom:1px solid var(--line);flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 16px}
+  .wa .create{margin-left:auto}
+  .wa .create>summary{padding:0 16px}
+  .wa .create-menu{left:auto;width:220px}
+  .wa .who{order:2;border:0;padding:0}
+  .wa .who-text strong,.wa .who .avatar{display:none}
+  .wa .nav,.wa .nav-out{order:3;width:100%;flex-direction:row;overflow-x:auto;gap:4px;margin:0}
+  .wa .nav-out{display:flex;order:4}
+  .wa .nav-group{display:flex;gap:4px}
+  .wa .nav-group h2{display:none}
+  .wa .nav a,.wa .nav-out a{white-space:nowrap;min-height:44px}
+  .wa .top,.wa .body,.wa .hello{padding-left:16px;padding-right:16px}
+  .wa .tabs{padding:0 16px}
+  .wa .hello h1{font-size:32px}
+}
+@media (max-width:560px){.wa .card{padding:12px}.wa .nested{padding-left:8px}.wa .row{flex-wrap:wrap}.wa table{display:block;overflow-x:auto}.wa .quick{grid-template-columns:minmax(0,1fr)}.wa .entry{grid-template-columns:minmax(0,1fr)}.wa .entry .acts{justify-content:flex-start}}

@@ -6,7 +6,7 @@ import { db } from "@apex/db";
 import { entries, entryTranslations } from "@apex/db/schema";
 import { isLocale } from "./i18n";
 import { querySettings } from "./content-queries";
-
+import { adminUrl } from "./admin-url";
 
 export type BarEntry = { editUrl: string; dirty: boolean };
 
@@ -37,7 +37,7 @@ export async function entryForPath(pathname: string): Promise<BarEntry | null> {
   const [t] = await db.select({ updatedAt: entryTranslations.updatedAt, live: entryTranslations.live }).from(entryTranslations)
     .where(and(eq(entryTranslations.entryId, entryId), eq(entryTranslations.locale, locale)));
   return {
-    editUrl: `/admin/content/${entryId}?locale=${locale}`,
+    editUrl: `${adminUrl()}/admin/content/${entryId}?locale=${locale}`,
     dirty: !!t?.live && t.updatedAt.toISOString() > t.live.publishedAt, // same rule as the editor's "Canvis sense publicar"
   };
 }

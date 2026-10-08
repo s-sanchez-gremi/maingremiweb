@@ -42,12 +42,12 @@ describe("recordError()", () => {
 
 describe("heartbeat and deep health", () => {
   const get = (q = "") => health(new Request("http://x/api/health" + q));
-  it("shallow check passes; deep check fails until the scheduler has run recently", async () => {
+  it("shallow check passes; deep check fails until the CMS scheduler (heartbeat \"admin\") has run recently", async () => {
     expect((await get()).status).toBe(200);
     expect((await get("?deep=1")).status).toBe(503);
-    await beat();
+    await beat("admin");
     expect((await get("?deep=1")).status).toBe(200);
-    await beat("tick", new Date(Date.now() - 11 * 60_000));
+    await beat("admin", new Date(Date.now() - 11 * 60_000));
     expect((await get("?deep=1")).status).toBe(503);
   });
   it("isFresh()", async () => {

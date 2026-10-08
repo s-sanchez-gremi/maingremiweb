@@ -17,13 +17,19 @@ export const forms = pgTable("forms", {
   title: jsonb().$type<LText>().notNull().default({}),
   active: boolean().notNull().default(true),
   fields: jsonb().$type<FormItem[]>().notNull().default([]),
-  destination: text().$type<"crm_lead" | "project" | "responses_only">().notNull().default("crm_lead"),
+  destination: text().$type<"crm_lead" | "project" | "responses_only" | "records">().notNull().default("crm_lead"),
+  routing: jsonb().$type<{ target: string; map: Record<string, string>; fixed: Record<string, string> } | null>(), // destination "records": what the CRM app creates from each response
   targetProjectId: uuid("target_project_id"), // FK to projects is enforced in SQL (migration 0007); not declared here so the website file does not depend on the CRM file
   targetClientId: uuid("target_client_id"),  // same for clients
   notifications: jsonb().$type<FormNotifications>().notNull().default({}),
   consent: jsonb().$type<LText>().notNull().default({}),
   confirmation: jsonb().$type<LText>().notNull().default({}),
   newsletter: jsonb().$type<{ enabled?: boolean; text?: LText }>().notNull().default({}),
+  closesAt: timestamp("closes_at", { withTimezone: true }),   // no new responses from this moment (null = no end date)
+  maxResponses: integer("max_responses"),                       // no new responses once this many are stored (null = no limit)
+  redirectUrl: text("redirect_url").notNull().default(""),      // where to send the visitor after submitting instead of showing the message ("" = show it)
+  allowDrafts: boolean("allow_drafts").notNull().default(false),    // visitors may save what they typed and resume later from a private link
+  allowEdits: boolean("allow_edits").notNull().default(false),      // the respondent may change their response with a private link
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -33,6 +39,13 @@ export const formStarts = pgTable("form_starts", {
   day: date().notNull(),
   n: integer().notNull().default(0),
 }, (t) => [primaryKey({ columns: [t.formId, t.day] })]);
+
+/** Anonymous drop-off counter: page loads that reached a question (Forms v2, item 9). Totals only. */
+export const formFieldReach = pgTable("form_field_reach", {
+  formId: uuid("form_id").notNull().references(() => forms.id, { onDelete: "cascade" }),
+  fieldId: text("field_id").notNull(),
+  n: integer().notNull().default(0),
+}, (t) => [primaryKey({ columns: [t.formId, t.fieldId] })]);
 
 export const newsletterOptins = pgTable("newsletter_optins", {
   id: uuid().primaryKey().defaultRandom(),
@@ -116,6 +129,47 @@ export const contacts = pgTable("contacts", {
 
 export type Answer = { id: string; type: string; label: string; value: unknown };
 
+// Webhooks (Forms v2, item 5): endpoints a form tells about new and changed responses, and the queue of deliveries to them.
+export const formWebhooks = pgTable("form_webhooks", {
+  id: uuid().primaryKey().defaultRandom(),
+  formId: uuid("form_id").notNull().references(() => forms.id, { onDelete: "cascade" }),
+  url: text().notNull(),
+  secret: text().notNull(),
+  enabled: boolean().notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+export const webhookDeliveries = pgTable("webhook_deliveries", {
+  id: uuid().primaryKey().defaultRandom(),
+  webhookId: uuid("webhook_id").notNull().references(() => formWebhooks.id, { onDelete: "cascade" }),
+  submissionId: uuid("submission_id"), // FK to submissions (on delete cascade) is enforced in SQL (migration 0024); declared after `submissions` would need a forward reference
+  event: text().notNull(),
+  payload: jsonb().$type<Record<string, unknown>>().notNull(),
+  status: text().$type<"pending" | "sent" | "dead">().notNull().default("pending"),
+  attempts: integer().notNull().default(0),
+  runAfter: timestamp("run_after", { withTimezone: true }).notNull().defaultNow(),
+  lastStatus: integer("last_status"),
+  lastError: text("last_error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+});
+
+// A visitor's saved progress on a long form (Forms v2, item 4b). Only the hash of the secret in the resume link is stored.
+export const formDrafts = pgTable("form_drafts", {
+  id: uuid().primaryKey().defaultRandom(),
+  formId: uuid("form_id").notNull().references(() => forms.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  answers: jsonb().$type<Record<string, unknown>>().notNull(),
+  step: integer().notNull().default(0),
+  locale: text().notNull(),
+  sourcePath: text("source_path").notNull().default(""),
+  emailHash: text("email_hash"),
+  ipHash: text("ip_hash"),
+  challengeId: text("challenge_id").unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});
+
 export const submissions = pgTable("submissions", {
   id: uuid().primaryKey().defaultRandom(),
   formId: uuid("form_id").notNull().references(() => forms.id, { onDelete: "cascade" }),
@@ -123,6 +177,7 @@ export const submissions = pgTable("submissions", {
   projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
   clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
   answers: jsonb().$type<Answer[]>().notNull(),
+  durationSeconds: integer("duration_seconds"), // from the first interaction to sending (Forms v2, item 9)
   locale: text().notNull(),
   sourcePath: text("source_path").notNull().default(""),
   sourceEntryId: uuid("source_entry_id"),
@@ -132,6 +187,15 @@ export const submissions = pgTable("submissions", {
   consentAt: timestamp("consent_at", { withTimezone: true }),
   ipHash: text("ip_hash"),
   challengeId: text("challenge_id").unique(),
+  editTokenHash: text("edit_token_hash").unique(),                // forms with edits on: hash of the secret in the respondent's link
+  editedAt: timestamp("edited_at", { withTimezone: true }),
+  editCount: integer("edit_count").notNull().default(0),
+  originalAnswers: jsonb("original_answers").$type<Answer[]>(),   // as first sent, saved the first time the respondent changes them
+  routingStatus: text("routing_status").$type<"pending" | "done" | "failed">(),   // destination "records": waiting for the CRM app, done, or given up (null: not routed)
+  routingAttempts: integer("routing_attempts").notNull().default(0),
+  routedAt: timestamp("routed_at", { withTimezone: true }),
+  routingError: text("routing_error"),
+  routedRecords: jsonb("routed_records").$type<{ entity: string; id: string; label: string; action: "created" | "updated" | "unchanged" }[]>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

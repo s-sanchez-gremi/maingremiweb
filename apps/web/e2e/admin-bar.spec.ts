@@ -1,8 +1,9 @@
 import { expect, test } from "@playwright/test";
 import postgres from "postgres";
-import { E2E_DB } from "@apex/e2e/constants";
+import { ADMIN_URL, E2E_DB } from "@apex/e2e/constants";
 
-// The staff bar on public pages: never for visitors (not even a request), and for staff it opens the editor of the page shown.
+// The staff bar on public pages (drawn by the website; the admin is another app): never for visitors (not even a request),
+// and for staff it opens the editor of the page shown. Signing in happens in the admin app; its session cookie is the one the website reads.
 test("staff bar: hidden from visitors, edits the current page, signs out where you are", async ({ page }) => {
   const sql = postgres(E2E_DB, { max: 1 });
   const slug = `barra-${Date.now()}`;
@@ -19,7 +20,7 @@ test("staff bar: hidden from visitors, edits the current page, signs out where y
   await expect(page.getByRole("navigation", { name: "Barra d'administració" })).toHaveCount(0);
   expect(asked).toEqual([]);
 
-  await page.goto("/admin/login");
+  await page.goto(`${ADMIN_URL}/admin/login`);
   await page.getByLabel("Correu electrònic").fill("editor@e2e.test");
   await page.getByLabel("Contrasenya").fill(process.env.E2E_EDITOR_PASSWORD!);
   await page.getByRole("button", { name: "Entra" }).click();
@@ -27,7 +28,7 @@ test("staff bar: hidden from visitors, edits the current page, signs out where y
 
   await page.goto(path);
   const bar = page.getByRole("navigation", { name: "Barra d'administració" });
-  await expect(bar.getByRole("link", { name: /Edita aquesta pàgina/ })).toHaveAttribute("href", `/admin/content/${id}?locale=ca`);
+  await expect(bar.getByRole("link", { name: /Edita aquesta pàgina/ })).toHaveAttribute("href", `${ADMIN_URL}/admin/content/${id}?locale=ca`);
   await expect(bar.getByText("Canvis sense publicar")).toHaveCount(0);
   await page.goto("/ca/blog");
   await expect(bar.getByRole("link", { name: "Tauler" })).toBeVisible();

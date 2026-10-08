@@ -37,6 +37,9 @@ export function verifySolution(s: Partial<Solution> | null | undefined, formId: 
   return sha256(s.salt + s.number) === s.challenge ? s.challenge : null;
 }
 
+/** Seconds since the challenge was handed out (its expiry is signed, so the start time cannot be forged), for "how long did it take". Call only on a verified solution. */
+export const secondsSinceIssued = (s: { expires: number }, now = Date.now()) => Math.max(0, Math.min(86_400, Math.round((now - (s.expires - TTL_MS)) / 1000)));
+
 /** Solver used by tests and by the browser code's reference implementation. */
 export function solve(c: Challenge): number {
   for (let n = 0; n <= c.max; n++) if (sha256(c.salt + n) === c.challenge) return n;

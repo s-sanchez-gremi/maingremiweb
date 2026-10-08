@@ -1,12 +1,19 @@
 // The lead-capture pipeline. Everything the guide lists happens here, in this order:
 // validate → consent → files → (one transaction: submission, contact upsert, lead, newsletter opt-in, email outbox).
+import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "@apex/db";
-import { forms, leads, newsletterOptins, submissions, type Answer, type Locale } from "@apex/db/schema";
+import { formDrafts, forms, leads, newsletterOptins, submissions, type Answer, type Locale } from "@apex/db/schema";
 import { deletePrivatePrefix, putPrivate } from "@apex/core/storage";
 import { enqueueEmail } from "@apex/core/outbox";
-import { siteUrl } from "@apex/core/site-url";
 import { lt, type Item } from "./fieldTypes";
 import { classifyUpload, safeName, type Upload } from "@apex/core/files";
+import { answerText } from "./answer-text";
+import { availability } from "./availability";
+import { hashToken, newToken } from "./drafts";
+import { parseAddresses } from "./addresses";
+import { editLink, editMailLine } from "./edit";
+import { formsAdminUrl } from "./links";
+import { enqueueWebhooks } from "./webhooks";
 import { upsertContact } from "./contacts";
 import { msgs } from "./messages";
 import { MAX_FILE_BYTES, validateAnswers, type Answers, type Cleaned } from "./validate";
@@ -19,30 +26,26 @@ export type SubmitInput = {
   files: Record<string, Upload>;
   consent: boolean;
   newsletter: boolean;
-  meta: { sourcePath: string; sourceEntryId?: string | null; theme: string; utm: Record<string, string>; ipHash: string | null; challengeId: string | null };
+  meta: { sourcePath: string; sourceEntryId?: string | null; theme: string; utm: Record<string, string>; ipHash: string | null; challengeId: string | null; draftToken?: string | null; durationSeconds?: number | null };
 };
 export type SubmitResult =
-  | { ok: true; id: string }
+  | { ok: true; id: string; editToken?: string } // editToken: forms that allow edits; shown once, only its hash is stored
   | { ok: false; code: "closed" | "invalid" | "replay"; errors: Record<string, string> };
 
-const EMAIL = /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/;
 const uuid = () => crypto.randomUUID();
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 
-export const parseAddresses = (s: string | undefined) => [...new Set((s ?? "").split(/[,;\s]+/).map((x) => x.trim().toLowerCase()).filter((x) => EMAIL.test(x)))];
+export { parseAddresses };
 
-function valueText(a: Cleaned | Answer): string {
-  const v = a.value as unknown;
-  if (a.type === "file" && v && typeof v === "object") return (v as { name?: string }).name ?? "";
-  if (Array.isArray(v)) return v.join(", ");
-  if (typeof v === "boolean") return v ? "Sí" : "No";
-  return v === null || v === undefined ? "" : String(v);
-}
+const valueText = (a: Cleaned | Answer): string => answerText(a);
+
+class FormFull extends Error {}
 
 export async function processSubmission(input: SubmitInput): Promise<SubmitResult> {
   const { form, locale, meta } = input;
   const t = msgs(locale);
-  if (!form.active) return { ok: false, code: "closed", errors: { _form: t.closed } };
+  const closed = { ok: false, code: "closed", errors: { _form: t.closed } } as const;
+  if ((await availability(form)) !== "open") return closed; // switched off, past its end date, or at its limit
   const items = form.fields as Item[];
 
   // 1. Files: identify by bytes and size BEFORE validating, so the validator sees trustworthy metadata.
@@ -79,6 +82,8 @@ export async function processSubmission(input: SubmitInput): Promise<SubmitResul
 
   // 4. Store uploaded files privately, keyed by the submission id (so erasing a submission erases its files).
   const id = uuid();
+  const sentAt = new Date();
+  const editToken = form.allowEdits ? newToken() : null; // the respondent's private link to change this response
   const snapshot: Answer[] = [];
   try {
     for (const v of values) {
@@ -92,12 +97,23 @@ export async function processSubmission(input: SubmitInput): Promise<SubmitResul
 
     // 5. One transaction: everything or nothing.
     await db.transaction(async (tx) => {
+      if (form.maxResponses) {
+        // Several visitors can submit at the same moment: lock the form row so they are counted one after the other and the limit is never exceeded.
+        await tx.execute(sql`select id from forms where id = ${form.id} for update`);
+        const [stored] = await tx.select({ n: count() }).from(submissions).where(eq(submissions.formId, form.id));
+        if (stored.n >= form.maxResponses) throw new FormFull();
+      }
+      // a draft saved for later is no longer needed once the form is sent
+      if (meta.draftToken) await tx.delete(formDrafts).where(and(eq(formDrafts.formId, form.id), eq(formDrafts.tokenHash, hashToken(meta.draftToken))));
       const contactId = wantsCrm ? await upsertContact(tx, { email: mapped.email, name: mapped.name, phone: mapped.phone, company: mapped.company, locale }) : null;
       const attach = form.destination === "project" ? { projectId: form.targetProjectId, clientId: form.targetClientId } : { projectId: null, clientId: null };
       await tx.insert(submissions).values({
         id, formId: form.id, contactId, ...attach, answers: snapshot, locale, sourcePath: meta.sourcePath.slice(0, 300), sourceEntryId: meta.sourceEntryId ?? null,
-        theme: meta.theme.slice(0, 80), utm: meta.utm, consentText, consentAt: consentText ? new Date() : null, ipHash: meta.ipHash, challengeId: meta.challengeId,
+        theme: meta.theme.slice(0, 80), utm: meta.utm, consentText, consentAt: consentText ? new Date() : null, ipHash: meta.ipHash, challengeId: meta.challengeId, durationSeconds: meta.durationSeconds ?? null,
+        editTokenHash: editToken ? hashToken(editToken) : null, createdAt: sentAt,
+        routingStatus: form.destination === "records" ? "pending" : null, // the CRM app turns it into records (packages/forms/src/routing.ts)
       });
+      await enqueueWebhooks(tx, form, "response.created", { id, createdAt: sentAt, locale, sourcePath: meta.sourcePath.slice(0, 300), theme: meta.theme.slice(0, 80), utm: meta.utm, answers: snapshot });
       if (contactId) await tx.insert(leads).values({ contactId, formId: form.id, submissionId: id, sourcePath: meta.sourcePath.slice(0, 300), sourceEntryId: meta.sourceEntryId ?? null, theme: meta.theme.slice(0, 80), locale, utm: meta.utm });
 
       const nl = form.newsletter;
@@ -116,21 +132,22 @@ export async function processSubmission(input: SubmitInput): Promise<SubmitResul
           `Idioma: ${locale}`, `Pàgina: ${meta.sourcePath || "—"}`, meta.theme ? `Tema: ${meta.theme}` : "",
           Object.keys(meta.utm).length ? `Campanya: ${Object.entries(meta.utm).map(([k, v]) => `${k}=${v}`).join(", ")}` : "",
           consentText ? `Consentiment acceptat: «${consentText}»` : "", "",
-          `Veure-la: ${siteUrl()}/admin/forms/${form.id}/submissions`,
+          `Veure-la: ${formsAdminUrl()}/admin/forms/${form.id}/submissions`,
         ].filter((l, i, arr) => l !== "" || arr[i - 1] !== "").join("\n");
         for (const r of recipients) await enqueueEmail(tx, { to: r, subject: `Nova resposta: ${form.name}`, text: body });
       }
       if (n.confirmToSender && respondentEmail) {
         const subject = lt(n.confirmSubject, locale) || `${form.name}: ${t.thanks}`;
-        const text = lt(n.confirmBody, locale) || t.thanks;
+        const text = (lt(n.confirmBody, locale) || t.thanks) + (editToken ? editMailLine(locale, editLink({ sourcePath: meta.sourcePath, locale, slug: form.slug, token: editToken }), sentAt) : "");
         await enqueueEmail(tx, { to: respondentEmail, subject, text });
       }
     });
   } catch (e) {
     await deletePrivatePrefix(`submissions/${id}/`).catch(() => {});
+    if (e instanceof FormFull) return closed;
     const code = (e as { code?: string; cause?: { code?: string } }).cause?.code ?? (e as { code?: string }).code;
     if (code === "23505") return { ok: false, code: "replay", errors: { _form: t.botFail } }; // same bot-check token used twice
     throw e;
   }
-  return { ok: true, id };
+  return { ok: true, id, ...(editToken ? { editToken } : {}) };
 }

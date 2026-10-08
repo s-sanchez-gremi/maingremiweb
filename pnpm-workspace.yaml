@@ -5,3 +5,7 @@ packages:
 onlyBuiltDependencies:
   - sharp
   - unrs-resolver
+
+# Security: source-map-js < 1.2.2 has a denial-of-service advisory (GHSA-68fv-2mgg-jv7q), pulled in by Next's postcss. Remove when Next ships a patched postcss.
+overrides:
+  source-map-js: ">=1.2.2"

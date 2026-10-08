@@ -1,8 +1,8 @@
 // Draft preview for the visual editor. Drafts may be incomplete (a block just added has no text yet), so instead of
 // rejecting the whole page like publish() does, each invalid section or block is swapped for a visible placeholder
 // that keeps its id: the editor can still select it, and the public site never sees placeholders (publish validates).
-import { sectionByName, sectionSchema, type Section } from "@/sections/registry";
-import { blockByName, blockDefs, COLUMN_FIELDS } from "@/sections/blocks";
+import { sectionByName, sectionSchema, type Section } from "@apex/sections/registry";
+import { blockByName, blockDefs, COLUMN_FIELDS } from "@apex/sections/blocks";
 import { blockSchemaFor } from "@apex/core/fields";
 
 type Raw = { id?: unknown; type?: unknown; data?: unknown; style?: unknown };

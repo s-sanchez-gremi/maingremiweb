@@ -3,7 +3,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import postgres from "postgres";
-import { CRON_SECRET, E2E_DB } from "@apex/e2e/constants";
+import { ADMIN_URL, CRON_SECRET, E2E_DB } from "@apex/e2e/constants";
 
 const WIDTHS = [320, 375, 768, 1024, 1440];
 const sec = (type: string, data: Record<string, unknown>) => ({ id: crypto.randomUUID(), type, data });
@@ -196,17 +196,18 @@ test.describe("navigation with dropdowns, header buttons and social links", () =
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
   });
 
+  // The menu is edited in the CMS admin (another app, ADMIN_URL) and shows on the website (this app) after the admin refreshes its cache.
   test("an editor can build the menu in the admin: a section with a submenu and a header button", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1400 });
-    await page.goto("/admin/login");
+    await page.goto(`${ADMIN_URL}/admin/login`);
     await page.getByLabel("Correu electrònic").fill("admin@e2e.test");
     await page.getByLabel("Contrasenya").fill(process.env.E2E_ADMIN_PASSWORD!);
     await page.getByRole("button", { name: "Entra" }).click();
     await expect(page.getByRole("heading", { name: "Tauler" })).toBeVisible();
-    await page.goto("/admin/settings");
+    await page.goto(`${ADMIN_URL}/admin/settings?tab=menu`);
     const form = page.locator("form").filter({ has: page.locator("input[name=data]") });
 
-    const NAV = "Menú principal (cada element pot tenir un submenú)";
+    const NAV = "Menú principal";
     const list = form.locator(".nested", { has: page.getByText(NAV, { exact: true }) }).first();
     const items = list.locator(":scope > .card"); // top-level menu entries only (not their submenu entries)
     const before = await items.count();
@@ -231,7 +232,8 @@ test.describe("navigation with dropdowns, header buttons and social links", () =
     }).toPass({ timeout: 20_000 });
 
     // A top-level item with neither a link nor a submenu is refused.
-    await page.goto("/admin/settings");
+    await page.goto(`${ADMIN_URL}/admin/settings`);
+    await page.getByRole("tab", { name: "Menú principal" }).click(); // the menu has its own tab
     const list2 = page.locator("form").filter({ has: page.locator("input[name=data]") }).locator(".nested", { has: page.getByText(NAV, { exact: true }) }).first();
     const items2 = list2.locator(":scope > .card");
     const n2 = await items2.count();

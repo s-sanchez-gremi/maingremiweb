@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseInline, parseRich, safeHref } from "@apex/ui/richtext";
 import { embedTarget } from "../embed";
-import { mediaSrcSet, mediaUrl } from "../media-url";
+import { mediaSrcSet, mediaUrl } from "@apex/core/media-url";
 
 describe("rich text", () => {
   it("parses paragraphs, bold, italic, links and lists", () => {

@@ -1,0 +1,12 @@
+{
+  "name": "@apex/sign",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Everything about electronic signatures that needs no database and no React: the request state machine, field geometry, request validation and PDF inspection (later: stamping, the audit page and sealing). Used by apps/sign (docs/esign-plan.md).",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  }
+}
