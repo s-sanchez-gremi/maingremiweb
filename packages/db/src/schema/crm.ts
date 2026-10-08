@@ -40,6 +40,13 @@ export const formStarts = pgTable("form_starts", {
   n: integer().notNull().default(0),
 }, (t) => [primaryKey({ columns: [t.formId, t.day] })]);
 
+/** Anonymous drop-off counter: page loads that reached a question (Forms v2, item 9). Totals only. */
+export const formFieldReach = pgTable("form_field_reach", {
+  formId: uuid("form_id").notNull().references(() => forms.id, { onDelete: "cascade" }),
+  fieldId: text("field_id").notNull(),
+  n: integer().notNull().default(0),
+}, (t) => [primaryKey({ columns: [t.formId, t.fieldId] })]);
+
 export const newsletterOptins = pgTable("newsletter_optins", {
   id: uuid().primaryKey().defaultRandom(),
   email: text().notNull().unique(),
@@ -170,6 +177,7 @@ export const submissions = pgTable("submissions", {
   projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
   clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
   answers: jsonb().$type<Answer[]>().notNull(),
+  durationSeconds: integer("duration_seconds"), // from the first interaction to sending (Forms v2, item 9)
   locale: text().notNull(),
   sourcePath: text("source_path").notNull().default(""),
   sourceEntryId: uuid("source_entry_id"),

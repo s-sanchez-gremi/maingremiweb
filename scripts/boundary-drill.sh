@@ -8,14 +8,14 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 NET=$(docker inspect "$(docker compose ps -q db)" --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}')
 DB=apex_boundary
-PWW="Web-Drill-Pw-5521"; PWC="Crm-Drill-Pw-8841"; PWF="Forms-Drill-Pw-3367"; PWA="Admin-Drill-Pw-6173"
+PWW="Web-Drill-Pw-5521"; PWC="Crm-Drill-Pw-8841"; PWF="Forms-Drill-Pw-3367"; PWA="Admin-Drill-Pw-6173"; PWS="Sign-Drill-Pw-4592"
 fail() { echo "FAIL: $*"; exit 1; }
 su() { docker compose exec -T db psql -U apex -d "${2:-postgres}" -v ON_ERROR_STOP=1 -qtAc "$1"; }
 
 echo "== a fresh database, the restricted roles, migrations + permissions applied by the production image"
 su "drop database if exists $DB with (force)" >/dev/null
 su "create database $DB" >/dev/null
-for r in "apex_web:$PWW" "apex_crm:$PWC" "apex_forms:$PWF" "apex_admin:$PWA"; do
+for r in "apex_web:$PWW" "apex_crm:$PWC" "apex_forms:$PWF" "apex_admin:$PWA" "apex_sign:$PWS"; do
   su "do \$\$ begin if not exists (select from pg_roles where rolname = '${r%%:*}') then create role ${r%%:*} login; end if; end \$\$" >/dev/null
   su "alter role ${r%%:*} login password '${r##*:}'" >/dev/null
 done
@@ -63,6 +63,7 @@ deny  $(W) "select count(*) from submissions"
 deny  $(W) "select count(*) from form_drafts"                  # what visitors saved is never readable by the website
 deny  $(W) "select count(*) from form_webhooks"                 # webhook secrets and deliveries (which hold response data) are not the website's
 deny  $(W) "select count(*) from webhook_deliveries"
+deny  $(W) "select count(*) from form_field_reach"
 deny  $(W) "select count(*) from record_notes"
 deny  $(W) "select count(*) from job_seekers"
 deny  $(W) "select count(*) from schema_migrations"
@@ -153,6 +154,7 @@ allow $(F) "update form_drafts set step = step where false"        # saved progr
 allow $(F) "delete from form_drafts where false"
 allow $(F) "update form_webhooks set enabled = enabled where false"       # webhook endpoints and their delivery queue belong to the Forms app
 allow $(F) "update webhook_deliveries set attempts = attempts where false"
+allow $(F) "update form_field_reach set n = n where false"                 # the anonymous drop-off counters
 allow $(F) "select count(*) from projects"                    # destination pickers of the builder
 allow $(F) "select count(*) from clients"
 # the pipeline's hand-over (decision A): upsert a contact, add a lead, upsert a newsletter opt-in
@@ -190,6 +192,34 @@ allow $(C) "delete from contacts where email = 'drill@pipeline.test'"
 n=$((n+1)); [ "$(su "select count(*) from submissions where id = '00000000-0000-4000-8000-0000000000d1'" "$DB")" = 0 ] || fail "erasing a contact in the CRM left its submission behind"
 [ "$(su "select count(*) from leads l join forms f on f.id = l.form_id where f.slug = 'drill-forms-app'" "$DB")" = 0 ] || fail "erasing a contact in the CRM left its lead behind"
 su "delete from forms where slug = 'drill-forms-app'" "$DB" >/dev/null
+echo "== apex_sign (the Signatures app: its own sign_* tables and the shared ones; the audit trail is append-only)"
+S() { echo apex_sign "$PWS"; }
+allow $(S) "select count(*) from users"
+allow $(S) "update users set password_hash = password_hash where false"
+allow $(S) "insert into outbox (kind, payload) values ('email', '{}'::jsonb)"
+allow $(S) "insert into error_log (fingerprint, message) values ('drill-sign', 'x')"
+allow $(S) "delete from outbox"
+allow $(S) "update sign_documents set title = title where false"
+allow $(S) "update sign_requests set status = status where false"
+allow $(S) "update sign_signers set status = status where false"
+allow $(S) "update sign_fields set page = page where false"
+allow $(S) "delete from sign_requests where false"
+allow $(S) "select count(*) from sign_events"
+allow $(S) "insert into sign_events (request_id, kind) select id, 'created' from sign_requests where false"
+allow $(S) "insert into sign_consents (signer_id, locale, text) select id, 'ca', 'x' from sign_signers where false"
+deny  $(S) "update sign_events set kind = kind where false"            # the audit trail is append-only
+deny  $(S) "delete from sign_events where false"
+deny  $(S) "update sign_consents set text = text where false"
+deny  $(S) "delete from sign_consents where false"
+deny  $(S) "update users set role = role where false"
+deny  $(S) "delete from users where false"
+deny  $(S) "select count(*) from entries"
+deny  $(S) "select count(*) from forms"
+deny  $(S) "select count(*) from submissions"
+deny  $(S) "select count(*) from leads"
+deny  $(S) "select count(*) from clients"
+deny  $(S) "select count(*) from schema_migrations"
+deny  $(S) "create table stolen (a int)"
 echo "ok: $n permission checks behave as designed"
 
 echo "== a table nobody classified is caught (the rule for new tables)"
