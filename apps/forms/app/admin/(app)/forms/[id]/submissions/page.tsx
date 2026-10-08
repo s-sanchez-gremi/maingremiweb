@@ -4,6 +4,7 @@ import { desc, eq, count } from "drizzle-orm";
 import { db } from "@apex/db";
 import { requireUser } from "@apex/core/auth";
 import { contacts, forms, submissions } from "@apex/db/schema";
+import { EmptyState } from "@apex/ui/components/Identity";
 import { ConfirmButton } from "@apex/ui/components/ConfirmButton";
 import { answerText } from "@apex/forms/answer-text";
 import type { Item } from "@apex/forms/fieldTypes";
@@ -58,7 +59,7 @@ export default async function Submissions({ params, searchParams }: { params: Pr
               <dt className="hint" style={{ margin: 0 }}>{a.label}</dt>
               <dd style={{ margin: 0, overflowWrap: "anywhere" }}>
                 {a.type === "file" && v && typeof v === "object"
-                  ? <a style={{ color: "var(--accent)", textDecoration: "underline" }} href={`/admin/forms/${id}/file?sub=${s.id}&field=${a.id}`}>{(v as { name: string }).name}</a>
+                  ? <a style={{ color: "var(--ink)", textDecoration: "underline" }} href={`/admin/forms/${id}/file?sub=${s.id}&field=${a.id}`}>{(v as { name: string }).name}</a>
                   : answerText(a)}
               </dd>
             </div>
@@ -107,7 +108,7 @@ export default async function Submissions({ params, searchParams }: { params: Pr
     </article>
   );
 
-  const fileLink = (sub: string, field: string, name: string) => <a style={{ color: "var(--accent)", textDecoration: "underline" }} href={`/admin/forms/${id}/file?sub=${sub}&field=${field}`}>{name}</a>;
+  const fileLink = (sub: string, field: string, name: string) => <a style={{ color: "var(--ink)", textDecoration: "underline" }} href={`/admin/forms/${id}/file?sub=${sub}&field=${field}`}>{name}</a>;
   const table = (
     <div style={{ overflowX: "auto" }}>
       <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 14 }}>
@@ -151,7 +152,7 @@ export default async function Submissions({ params, searchParams }: { params: Pr
       ))}
     </div>
   ) : <p className="hint">Aquest formulari no té cap pregunta d&apos;opcions (desplegable, opció múltiple, Sí / No, casella o valoració) per fer un tauler.</p>;
-  const content = view === "board" && !by ? board : rows.length === 0 ? <p className="hint">{n === 0 ? "Encara no hi ha respostes." : "Cap resposta coincideix amb la cerca."}</p>
+  const content = view === "board" && !by ? board : rows.length === 0 ? n === 0 ? <EmptyState eyebrow="Respostes" title="Encara no hi ha respostes">Quan algú enviï el formulari, la resposta apareixerà aquí.</EmptyState> : <p className="hint">Cap resposta coincideix amb la cerca.</p>
     : view === "table" ? table : view === "board" ? board : <>{pageRows.map(({ s, email }) => card(s, email))}</>;
 
   return (

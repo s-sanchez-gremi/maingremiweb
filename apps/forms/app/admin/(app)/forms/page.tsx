@@ -4,6 +4,7 @@ import { db } from "@apex/db";
 import { forms, submissions } from "@apex/db/schema";
 import { formStats } from "@apex/forms/admin-data";
 import { outboxCounts } from "@apex/core/outbox";
+import { EmptyState } from "@apex/ui/components/Identity";
 import { copyForm, createForm } from "./actions";
 import { formTemplates } from "@/lib/form-templates";
 import { stateOf } from "@apex/forms/availability";
@@ -40,7 +41,7 @@ export default async function FormsPage() {
             ))}
           </div>
         </form>
-        {list.length === 0 ? <p className="hint">Encara no hi ha cap formulari.</p> : (
+        {list.length === 0 ? <EmptyState eyebrow="Formularis" title="Encara no hi ha cap formulari">Tria una plantilla de dalt per començar. Els formularis que creïs apareixeran aquí amb les respostes i la taxa de finalització.</EmptyState> : (
           <table>
             <thead><tr><th>Nom</th><th>Destinació</th><th>Respostes</th><th>Taxa de finalització</th><th>Estat</th><th><span className="sr-only">Accions</span></th></tr></thead>
             <tbody>
