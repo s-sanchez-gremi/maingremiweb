@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EmptyState } from "@apex/ui/components/Identity";
 import { asc, count, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@apex/db";
 import { clients, projects, submissions, tasks } from "@apex/db/schema";
@@ -22,7 +23,7 @@ export default async function Projects({ searchParams }: { searchParams: Promise
         <div className="cols">
           <div className="col-main">
             <ListSearch label="Cerca projectes" placeholder="Nom, client o notes" q={sp.q} />
-            {rows.length === 0 ? <p className="hint">{sp.q ? "Cap projecte coincideix." : "Encara no hi ha cap projecte."}</p> : (
+            {rows.length === 0 ? sp.q ? <p className="hint">Cap projecte coincideix.</p> : <EmptyState eyebrow="Projectes" title="Encara no hi ha cap projecte">Crea el primer amb el formulari d&apos;aquesta pàgina. Hi podràs afegir tasques, documents i les respostes dels formularis.</EmptyState> : (
               <table>
                 <thead><tr><th>Projecte</th><th>Client</th><th>Estat</th><th>Tasques obertes</th><th>Respostes</th></tr></thead>
                 <tbody>{rows.map(({ p, client, n, openTasks }) => (

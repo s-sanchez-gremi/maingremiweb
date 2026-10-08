@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { destroySession, requireUser } from "@apex/core/auth";
 import { can } from "@apex/core/permissions";
+import { AppMark } from "@apex/ui/components/AppMark";
+import { InkBar } from "@apex/ui/components/Identity";
 import { AdminNav } from "@/components/admin/AdminNav";
 
 async function logout() {
@@ -15,7 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="shell">
       <aside className="side">
         <div>
-          <div className="logo">APEX <span style={{ fontSize: 12, letterSpacing: 2 }}>CRM</span></div>
+          <div className="logo"><AppMark app="crm" size={32} /><span>GREMI<small>CRM</small></span></div>
           <form className="side-search" role="search" action="/admin/search" method="get">
             <label className="sr-only" htmlFor="admin-q">Cerca a l&apos;administració</label>
             <input id="admin-q" name="q" type="search" placeholder="Cerca…" maxLength={100} autoComplete="off" />
@@ -27,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <form action={logout}><button className="btn" type="submit">Surt</button></form>
         </div>
       </aside>
-      <div className="main">{children}</div>
+      <div className="main"><InkBar />{children}</div>
     </div>
   );
 }

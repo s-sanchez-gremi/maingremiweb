@@ -1,6 +1,7 @@
 import "@apex/ui/tokens.css";
 import "@apex/ui/identity.css";
 import "@apex/ui/admin.css";
+import "../crm-identity.css";
 
 export const metadata = { title: "Apex — CRM", robots: { index: false, follow: false } };
 

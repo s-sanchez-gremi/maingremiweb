@@ -7,6 +7,7 @@ import { ENTITIES } from "@/lib/records/registry";
 import { WorkspaceNav } from "@/components/workspace/WorkspaceNav";
 import { Shortcuts } from "@/components/workspace/Shortcuts";
 import { SidebarToggle } from "@/components/workspace/SidebarToggle";
+import { AppMark } from "@apex/ui/components/AppMark";
 import { Icon } from "@/components/workspace/icons";
 
 async function logout() {
@@ -23,7 +24,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   return (
     <div className="ws-shell" data-collapsed={collapsed ? "" : undefined}>
       <aside className="ws-side">
-        <div className="ws-brand"><span className="ws-mark" aria-hidden /><span className="ws-brand-name">Espai de treball</span><SidebarToggle /></div>
+        <div className="ws-brand"><AppMark app="crm" size={22} /><span className="ws-brand-name">Espai de treball</span><SidebarToggle /></div>
         <Link href="/workspace/search" className="ws-search-mini" aria-label="Cerca a tot l'espai de treball" title="Cerca"><Icon name="search" size={16} /></Link>
         <form role="search" action="/workspace/search" method="get" className="ws-search">
           <label className="sr-only" htmlFor="ws-q">Cerca a tot l&apos;espai de treball</label>
