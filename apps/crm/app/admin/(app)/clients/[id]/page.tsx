@@ -5,6 +5,8 @@ import { db } from "@apex/db";
 import { ConfirmButton } from "@apex/ui/components/ConfirmButton";
 import { AttachedResponses } from "@/components/admin/AttachedResponses";
 import { clients, forms, projects, submissions } from "@apex/db/schema";
+import { SignaturesCard } from "@/components/admin/SignaturesCard";
+import { signaturesFor } from "@/lib/signatures";
 import { portalUsersOf } from "@/lib/portal";
 import { deletePortalUser, invitePortalUser, removeClient, saveClient, togglePortalUser } from "../actions";
 
@@ -15,6 +17,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
   const [c] = await db.select().from(clients).where(eq(clients.id, id));
   if (!c) notFound();
   const portal = await portalUsersOf(id);
+  const signatures = await signaturesFor({ companyId: id });
   const projs = await db.select().from(projects).where(eq(projects.clientId, id)).orderBy(asc(projects.name));
   const ids = projs.map((p) => p.id);
   const rows = await db.select({ s: submissions, formName: forms.name, projectName: projects.name }).from(submissions)
@@ -39,6 +42,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
             <AttachedResponses rows={rows.map((r) => ({ id: r.s.id, createdAt: r.s.createdAt, formId: r.s.formId, formName: r.formName, answers: r.s.answers, projectName: r.projectName }))} />
           </div>
           <aside className="col-side">
+            <SignaturesCard rows={signatures} />
             <div className="card">
               <h3>Projectes</h3>
               {projs.length === 0 && <p className="hint">Cap projecte.</p>}

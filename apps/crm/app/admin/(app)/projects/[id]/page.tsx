@@ -7,6 +7,8 @@ import { AttachedResponses } from "@/components/admin/AttachedResponses";
 import { clients, forms, projectDocuments, projects, submissions, users } from "@apex/db/schema";
 import { TaskRow } from "@/components/admin/TaskRow";
 import { listTasks } from "@/lib/projects";
+import { SignaturesCard } from "@/components/admin/SignaturesCard";
+import { signaturesFor } from "@/lib/signatures";
 import { createDocument, createTask, removeDocument, removeProject, saveProject, toggleDocumentShared } from "../actions";
 
 export default async function ProjectPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string; error?: string }> }) {
@@ -15,6 +17,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const [p] = await db.select().from(projects).where(eq(projects.id, id));
   if (!p) notFound();
+  const signatures = await signaturesFor({ projectId: id });
   const cl = await db.select({ id: clients.id, name: clients.name }).from(clients).where(isNull(clients.archivedAt)).orderBy(asc(clients.name));
   const rows = await db.select({ s: submissions, formName: forms.name }).from(submissions).leftJoin(forms, eq(forms.id, submissions.formId))
     .where(eq(submissions.projectId, id)).orderBy(desc(submissions.createdAt)).limit(100);
@@ -81,6 +84,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
             <AttachedResponses rows={rows.map((r) => ({ id: r.s.id, createdAt: r.s.createdAt, formId: r.s.formId, formName: r.formName, answers: r.s.answers }))} />
           </div>
           <aside className="col-side">
+            <SignaturesCard rows={signatures} />
             <form action={removeProject} className="card">
               <input type="hidden" name="id" value={id} />
               <ConfirmButton className="btn link" message="Eliminar aquest projecte? Les respostes adjuntades es conservaran als formularis.">Elimina el projecte</ConfirmButton>

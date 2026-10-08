@@ -7,7 +7,7 @@ import { isEditable, STATUS_LABEL } from "@apex/sign/state";
 import { dayInMadrid } from "@apex/sign/time";
 import { PROBLEM_TEXT } from "@apex/sign/validate";
 import { FieldPlacer } from "@/components/FieldPlacer";
-import { checkRequest, getRequest, listEvents } from "@/lib/requests";
+import { checkRequest, getRequest, linkChoices, listEvents } from "@/lib/requests";
 import { cancelRequest, retryRequestSeal, createField, createSigner, deleteField, deleteSigner, removeRequest, saveSettings, shiftSigner, submitRequest } from "../../actions";
 
 const SAVED: Record<string, string> = { created: "Esborrany creat.", settings: "Desat.", signer: "Signants actualitzats.", field: "Camps actualitzats.", sent: "Enviada: els signants ja han rebut el correu.", voided: "Sol·licitud anul·lada: els enllaços ja no funcionen.", sealed: "Document segellat: els signants ja han rebut la còpia.", sealfailed: "No s'ha pogut segellar: el motiu és a la targeta Document signat." };
@@ -29,6 +29,7 @@ export default async function RequestPage({ params, searchParams }: { params: Pr
   const editable = isEditable(request.status);
   const problems = editable ? await checkRequest(id) : [];
   const events = editable ? [] : await listEvents(id);
+  const choices = await linkChoices();
   const signerNo = new Map(signers.map((s, i) => [s.id, i + 1]));
   const signerName = new Map(signers.map((s) => [s.id, s.name]));
   const size = document.size < 1024 * 1024 ? `${Math.max(1, Math.round(document.size / 1024))} KB` : `${(document.size / 1024 / 1024).toFixed(1)} MB`;
@@ -52,6 +53,15 @@ export default async function RequestPage({ params, searchParams }: { params: Pr
               </label>
               <label>Caduca el (fins a final del dia)<input name="expiresOn" type="date" defaultValue={request.expiresAt ? dayInMadrid(request.expiresAt) : ""} required disabled={!editable} /></label>
               <label style={{ display: "flex", gap: 6, alignItems: "center" }}><input type="checkbox" name="ordered" value="1" defaultChecked={request.ordered} disabled={!editable} style={{ width: "auto" }} /> Signen un darrere l&apos;altre, en l&apos;ordre de la llista</label>
+              <p className="hint">Enllaça el document amb el CRM (opcional): hi apareixerà a la fitxa de l&apos;empresa, del projecte o del contacte.</p>
+              {([["companyId", "Empresa", choices.companies, document.companyId], ["projectId", "Projecte", choices.projects, document.projectId], ["contactId", "Contacte", choices.contacts, document.contactId]] as const).map(([name, label, list, current]) => (
+                <label key={name}>{label}
+                  <select name={name} defaultValue={current ?? ""} disabled={!editable}>
+                    <option value="">—</option>
+                    {list.map((o) => <option key={o.id} value={o.id}>{"email" in o ? (o.name || o.email) : o.name}</option>)}
+                  </select>
+                </label>
+              ))}
               <label>Missatge als signants (opcional)<textarea name="message" defaultValue={request.message} maxLength={2000} disabled={!editable} /></label>
               {editable && <div className="row"><button className="btn primary" type="submit">Desa</button></div>}
             </form>

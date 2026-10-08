@@ -7,6 +7,8 @@ import { can } from "@apex/core/permissions";
 import { ConfirmButton } from "@apex/ui/components/ConfirmButton";
 import { clients, contacts, forms, leadNotes, leads, submissions, users } from "@apex/db/schema";
 import { answerText } from "@apex/forms/answer-text";
+import { SignaturesCard } from "@/components/admin/SignaturesCard";
+import { signaturesFor } from "@/lib/signatures";
 import { LEAD_STATUSES, statusLabel } from "@/lib/leads";
 import { addLeadNote, convertLead, eraseContactAction, saveLead } from "../actions";
 
@@ -18,6 +20,7 @@ export default async function LeadPage({ params, searchParams }: { params: Promi
   const [r] = await db.select({ l: leads, c: contacts, s: submissions, formName: forms.name }).from(leads)
     .innerJoin(contacts, eq(contacts.id, leads.contactId)).innerJoin(submissions, eq(submissions.id, leads.submissionId)).leftJoin(forms, eq(forms.id, leads.formId)).where(eq(leads.id, id));
   if (!r) notFound();
+  const signatures = await signaturesFor({ contactId: r.c.id });
   const [notes, staff, [client], others] = await Promise.all([
     db.select({ n: leadNotes, by: users.email }).from(leadNotes).leftJoin(users, eq(users.id, leadNotes.authorId)).where(eq(leadNotes.leadId, id)).orderBy(desc(leadNotes.createdAt)),
     db.select({ id: users.id, email: users.email }).from(users).orderBy(asc(users.email)),
@@ -61,6 +64,7 @@ export default async function LeadPage({ params, searchParams }: { params: Promi
             </div>
           </div>
           <aside className="col-side">
+            <SignaturesCard rows={signatures} />
             <form action={saveLead} className="card">
               <h3>Seguiment</h3>
               <input type="hidden" name="id" value={id} />
