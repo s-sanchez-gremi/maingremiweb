@@ -17,7 +17,8 @@ export const forms = pgTable("forms", {
   title: jsonb().$type<LText>().notNull().default({}),
   active: boolean().notNull().default(true),
   fields: jsonb().$type<FormItem[]>().notNull().default([]),
-  destination: text().$type<"crm_lead" | "project" | "responses_only">().notNull().default("crm_lead"),
+  destination: text().$type<"crm_lead" | "project" | "responses_only" | "records">().notNull().default("crm_lead"),
+  routing: jsonb().$type<{ target: string; map: Record<string, string>; fixed: Record<string, string> } | null>(), // destination "records": what the CRM app creates from each response
   targetProjectId: uuid("target_project_id"), // FK to projects is enforced in SQL (migration 0007); not declared here so the website file does not depend on the CRM file
   targetClientId: uuid("target_client_id"),  // same for clients
   notifications: jsonb().$type<FormNotifications>().notNull().default({}),
@@ -38,6 +39,13 @@ export const formStarts = pgTable("form_starts", {
   day: date().notNull(),
   n: integer().notNull().default(0),
 }, (t) => [primaryKey({ columns: [t.formId, t.day] })]);
+
+/** Anonymous drop-off counter: page loads that reached a question (Forms v2, item 9). Totals only. */
+export const formFieldReach = pgTable("form_field_reach", {
+  formId: uuid("form_id").notNull().references(() => forms.id, { onDelete: "cascade" }),
+  fieldId: text("field_id").notNull(),
+  n: integer().notNull().default(0),
+}, (t) => [primaryKey({ columns: [t.formId, t.fieldId] })]);
 
 export const newsletterOptins = pgTable("newsletter_optins", {
   id: uuid().primaryKey().defaultRandom(),
@@ -169,6 +177,7 @@ export const submissions = pgTable("submissions", {
   projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
   clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
   answers: jsonb().$type<Answer[]>().notNull(),
+  durationSeconds: integer("duration_seconds"), // from the first interaction to sending (Forms v2, item 9)
   locale: text().notNull(),
   sourcePath: text("source_path").notNull().default(""),
   sourceEntryId: uuid("source_entry_id"),
@@ -182,6 +191,11 @@ export const submissions = pgTable("submissions", {
   editedAt: timestamp("edited_at", { withTimezone: true }),
   editCount: integer("edit_count").notNull().default(0),
   originalAnswers: jsonb("original_answers").$type<Answer[]>(),   // as first sent, saved the first time the respondent changes them
+  routingStatus: text("routing_status").$type<"pending" | "done" | "failed">(),   // destination "records": waiting for the CRM app, done, or given up (null: not routed)
+  routingAttempts: integer("routing_attempts").notNull().default(0),
+  routedAt: timestamp("routed_at", { withTimezone: true }),
+  routingError: text("routing_error"),
+  routedRecords: jsonb("routed_records").$type<{ entity: string; id: string; label: string; action: "created" | "updated" | "unchanged" }[]>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

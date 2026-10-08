@@ -12,7 +12,7 @@ step() { printf '\n\033[1m=== %s\033[0m\n' "$*"; }
 
 # Each app reads its configuration from a .env next to it (a link to the root .env); make sure both exist.
 [ -f .env ] || cp .env.example .env
-ln -sf ../../.env apps/web/.env; ln -sf ../../.env apps/crm/.env; ln -sf ../../.env apps/forms/.env; ln -sf ../../.env apps/admin/.env
+ln -sf ../../.env apps/web/.env; ln -sf ../../.env apps/crm/.env; ln -sf ../../.env apps/forms/.env; ln -sf ../../.env apps/admin/.env; ln -sf ../../.env apps/sign/.env; ln -sf ../../.env apps/hub/.env
 
 step "app boundaries (the apps never import each other; packages never import an app)"
 ./scripts/check-boundaries.sh --selftest
@@ -25,14 +25,18 @@ step "lint"
 pnpm --filter web exec eslint .
 pnpm --filter crm exec eslint .
 pnpm --filter forms exec eslint .
+pnpm --filter sign exec eslint .
 pnpm --filter admin exec eslint .
+pnpm --filter hub exec eslint .
 
 step "type check"
-rm -rf apps/web/.next-e2e apps/web/.next/types apps/crm/.next-e2e apps/crm/.next/types apps/forms/.next-e2e apps/forms/.next/types apps/admin/.next-e2e apps/admin/.next/types apps/web/.next/dev/types apps/crm/.next/dev/types apps/forms/.next/dev/types apps/admin/.next/dev/types   # stale route types from earlier builds can disagree with the dev server's current ones (builds below recreate them)
+rm -rf apps/web/.next-e2e apps/web/.next/types apps/crm/.next-e2e apps/crm/.next/types apps/forms/.next-e2e apps/forms/.next/types apps/admin/.next-e2e apps/admin/.next/types apps/sign/.next-e2e apps/sign/.next/types apps/hub/.next-e2e apps/hub/.next/types apps/web/.next/dev/types apps/crm/.next/dev/types apps/forms/.next/dev/types apps/admin/.next/dev/types apps/sign/.next/dev/types apps/hub/.next/dev/types   # stale route types from earlier builds can disagree with the dev server's current ones (builds below recreate them)
 pnpm --filter web exec tsc --noEmit
 pnpm --filter crm exec tsc --noEmit
 pnpm --filter forms exec tsc --noEmit
+pnpm --filter sign exec tsc --noEmit
 pnpm --filter admin exec tsc --noEmit
+pnpm --filter hub exec tsc --noEmit
 
 step "local services (Postgres, S3 mock, Mailpit)"
 docker compose up -d --wait db mail >/dev/null
@@ -43,16 +47,18 @@ step "unit + database tests"
 pnpm --filter web test
 pnpm --filter crm test
 pnpm --filter forms test
+pnpm --filter sign test
 pnpm --filter admin test
+pnpm --filter hub test
 
 step "production build with NO database and NO configuration (a build must never need them)"
-for app in web admin crm forms; do
+for app in web admin crm forms sign hub; do
   ( cd apps/$app && env -i PATH="$PATH" HOME="$HOME" pnpm exec next build >/dev/null ) && echo "$app build ok"
 done
 
 if [ "$FAST" = 0 ]; then
   step "end-to-end tests (real browser, real production builds of every app)"
-  for app in web admin crm forms; do
+  for app in web admin crm forms sign hub; do
     ( cd apps/$app && rm -rf .next-e2e .next/types .next/dev/types && NEXT_DIST_DIR=.next-e2e pnpm exec next build >/dev/null ) && echo "$app e2e build ok"   # one after the other: parallel builds starve small CI machines
   done
   E2E_PREBUILT=1 pnpm --filter @apex/e2e test

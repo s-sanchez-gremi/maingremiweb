@@ -26,7 +26,7 @@ export type SubmitInput = {
   files: Record<string, Upload>;
   consent: boolean;
   newsletter: boolean;
-  meta: { sourcePath: string; sourceEntryId?: string | null; theme: string; utm: Record<string, string>; ipHash: string | null; challengeId: string | null; draftToken?: string | null };
+  meta: { sourcePath: string; sourceEntryId?: string | null; theme: string; utm: Record<string, string>; ipHash: string | null; challengeId: string | null; draftToken?: string | null; durationSeconds?: number | null };
 };
 export type SubmitResult =
   | { ok: true; id: string; editToken?: string } // editToken: forms that allow edits; shown once, only its hash is stored
@@ -109,8 +109,9 @@ export async function processSubmission(input: SubmitInput): Promise<SubmitResul
       const attach = form.destination === "project" ? { projectId: form.targetProjectId, clientId: form.targetClientId } : { projectId: null, clientId: null };
       await tx.insert(submissions).values({
         id, formId: form.id, contactId, ...attach, answers: snapshot, locale, sourcePath: meta.sourcePath.slice(0, 300), sourceEntryId: meta.sourceEntryId ?? null,
-        theme: meta.theme.slice(0, 80), utm: meta.utm, consentText, consentAt: consentText ? new Date() : null, ipHash: meta.ipHash, challengeId: meta.challengeId,
+        theme: meta.theme.slice(0, 80), utm: meta.utm, consentText, consentAt: consentText ? new Date() : null, ipHash: meta.ipHash, challengeId: meta.challengeId, durationSeconds: meta.durationSeconds ?? null,
         editTokenHash: editToken ? hashToken(editToken) : null, createdAt: sentAt,
+        routingStatus: form.destination === "records" ? "pending" : null, // the CRM app turns it into records (packages/forms/src/routing.ts)
       });
       await enqueueWebhooks(tx, form, "response.created", { id, createdAt: sentAt, locale, sourcePath: meta.sourcePath.slice(0, 300), theme: meta.theme.slice(0, 80), utm: meta.utm, answers: snapshot });
       if (contactId) await tx.insert(leads).values({ contactId, formId: form.id, submissionId: id, sourcePath: meta.sourcePath.slice(0, 300), sourceEntryId: meta.sourceEntryId ?? null, theme: meta.theme.slice(0, 80), locale, utm: meta.utm });
