@@ -49,7 +49,8 @@ deny  $(W) "update categories set slug = slug where false"
 deny  $(W) "delete from media where false"
 deny  $(W) "update forms set name = name where false"          # forms are the Forms app's: read-only here
 deny  $(W) "update users set role = role where false"          # accounts are the CMS admin's
-deny  $(W) "insert into sessions (id, user_id, expires_at) values ('x', gen_random_uuid(), now())"   # only the admin apps sign people in
+deny  $(W) "insert into sessions (id, user_id, expires_at) select 'x', id, now() from users where false"   # only the CMS admin signs people in
+deny  $(W) "select count(*) from crm_sessions"                # each app's sessions are its own
 deny  $(W) "insert into outbox (kind, payload) values ('email', '{}'::jsonb)"
 deny  $(W) "insert into heartbeats (name, at) values ('x', now())"
 deny  $(W) "select count(*) from leads"
@@ -81,6 +82,13 @@ allow $(A) "delete from media where false"
 allow $(A) "select count(*) from forms"                      # the page editor offers forms to place in a page
 allow $(A) "update users set role = role where false"         # the CMS admin manages accounts
 allow $(A) "delete from sessions where false"
+allow $(A) "insert into sessions (id, user_id, expires_at) select 'x', id, now() from users where false"
+allow $(A) "delete from crm_sessions where false"            # signs a person out everywhere when their role or password changes
+allow $(A) "delete from forms_sessions where false"
+allow $(A) "delete from sign_sessions where false"
+deny  $(A) "insert into crm_sessions (id, user_id, expires_at) select 'x', id, now() from users where false"   # never creates a session for another app
+deny  $(A) "insert into forms_sessions (id, user_id, expires_at) select 'x', id, now() from users where false"
+deny  $(A) "insert into sign_sessions (id, user_id, expires_at) select 'x', id, now() from users where false"
 allow $(A) "insert into outbox (kind, payload) values ('email', '{}'::jsonb)"        # needs the id sequence
 allow $(A) "insert into error_log (fingerprint, message) values ('drill-admin', 'x')"
 allow $(A) "delete from outbox"
@@ -103,7 +111,13 @@ deny  $(A) "drop table entries"
 echo "== apex_crm (CRM, projects, ERP, portal, records)"
 C() { echo apex_crm "$PWC"; }
 allow $(C) "select count(*) from users"
-allow $(C) "update users set password_hash = password_hash where false"   # a person changes their own password
+allow $(C) "insert into crm_sessions (id, user_id, expires_at) select 'x', id, now() from users where false"          # signs its own people in
+allow $(C) "delete from crm_sessions where false"
+deny  $(C) "insert into sessions (id, user_id, expires_at) select 'x', id, now() from users where false"   # ...and can never create a session the CMS admin accepts
+deny  $(C) "select count(*) from sessions"
+deny  $(C) "select count(*) from forms_sessions"
+deny  $(C) "select count(*) from sign_sessions"
+deny  $(C) "update users set password_hash = password_hash where false"   # passwords are changed in the CMS admin only
 allow $(C) "select count(*) from forms"                      # shows the form of a lead (read-only)
 allow $(C) "select count(*) from submissions"                # shows the answers of a lead (read-only)
 allow $(C) "update submissions set routing_status = routing_status, routing_attempts = routing_attempts, routed_records = routed_records where false"   # the CRM reports what it created from a form response...
@@ -142,7 +156,13 @@ deny  $(C) "drop table clients"
 echo "== apex_forms (the Forms app: forms, responses, and the narrow hand-over of a lead to the CRM)"
 F() { echo apex_forms "$PWF"; }
 allow $(F) "select count(*) from users"
-allow $(F) "update users set password_hash = password_hash where false"
+allow $(F) "insert into forms_sessions (id, user_id, expires_at) select 'x', id, now() from users where false"          # signs its own people in
+allow $(F) "delete from forms_sessions where false"
+deny  $(F) "insert into sessions (id, user_id, expires_at) select 'x', id, now() from users where false"   # ...and can never create a session the CMS admin accepts
+deny  $(F) "select count(*) from sessions"
+deny  $(F) "select count(*) from crm_sessions"
+deny  $(F) "select count(*) from sign_sessions"
+deny  $(F) "update users set password_hash = password_hash where false"   # passwords are changed in the CMS admin only
 allow $(F) "insert into outbox (kind, payload) values ('email', '{}'::jsonb)"
 allow $(F) "insert into error_log (fingerprint, message) values ('drill-forms', 'x')"
 allow $(F) "delete from outbox"
@@ -195,7 +215,13 @@ su "delete from forms where slug = 'drill-forms-app'" "$DB" >/dev/null
 echo "== apex_sign (the Signatures app: its own sign_* tables and the shared ones; the audit trail is append-only)"
 S() { echo apex_sign "$PWS"; }
 allow $(S) "select count(*) from users"
-allow $(S) "update users set password_hash = password_hash where false"
+allow $(S) "insert into sign_sessions (id, user_id, expires_at) select 'x', id, now() from users where false"          # signs its own people in
+allow $(S) "delete from sign_sessions where false"
+deny  $(S) "insert into sessions (id, user_id, expires_at) select 'x', id, now() from users where false"   # ...and can never create a session the CMS admin accepts
+deny  $(S) "select count(*) from sessions"
+deny  $(S) "select count(*) from crm_sessions"
+deny  $(S) "select count(*) from forms_sessions"
+deny  $(S) "update users set password_hash = password_hash where false"   # passwords are changed in the CMS admin only
 allow $(S) "insert into outbox (kind, payload) values ('email', '{}'::jsonb)"
 allow $(S) "insert into error_log (fingerprint, message) values ('drill-sign', 'x')"
 allow $(S) "delete from outbox"

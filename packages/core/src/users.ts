@@ -1,9 +1,14 @@
 // User management rules. Pure DB logic (no Next imports); actions in apps/admin/app/admin/(app)/users call these.
 import { and, count, eq } from "drizzle-orm";
 import { db } from "@apex/db";
-import { sessions, users } from "@apex/db/schema";
+import { sessionTables, users } from "@apex/db/schema";
 import { MIN_PASSWORD, hashPassword, verifyPassword } from "./password";
 import type { Role } from "./permissions";
+
+/** Ends every session of a person in every app (each app has its own sessions table). */
+async function signOutEverywhere(userId: string) {
+  for (const t of sessionTables) await db.delete(t).where(eq(t.userId, userId));
+}
 
 export class UserError extends Error {}
 
@@ -43,7 +48,7 @@ export async function setRole(actorId: string, targetId: string, role: Role) {
     if ((await adminCount()) <= 1) throw new UserError("Ha de quedar almenys un administrador");
   }
   await db.update(users).set({ role }).where(eq(users.id, targetId));
-  await db.delete(sessions).where(eq(sessions.userId, targetId)); // permissions changed: force a fresh login
+  await signOutEverywhere(targetId); // permissions changed: force a fresh login
 }
 
 /** Admin sets a new password for someone else. Signs them out everywhere. */
@@ -51,7 +56,7 @@ export async function resetPassword(targetId: string, password: string) {
   checkPassword(password);
   const [u] = await db.update(users).set({ passwordHash: await hashPassword(password) }).where(eq(users.id, targetId)).returning({ id: users.id });
   if (!u) throw new UserError("Usuari no trobat");
-  await db.delete(sessions).where(eq(sessions.userId, targetId));
+  await signOutEverywhere(targetId);
 }
 
 /** A user changes their own password (needs the current one). Signs them out everywhere. */
@@ -60,7 +65,7 @@ export async function changeOwnPassword(userId: string, current: string, next: s
   if (!u || !(await verifyPassword(u.passwordHash, current))) throw new UserError("La contrasenya actual no és correcta");
   checkPassword(next);
   await db.update(users).set({ passwordHash: await hashPassword(next) }).where(eq(users.id, userId));
-  await db.delete(sessions).where(eq(sessions.userId, userId));
+  await signOutEverywhere(userId);
 }
 
 export async function deleteUser(actorId: string, targetId: string) {

@@ -5,11 +5,14 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@apex/db";
-import { sessions, users } from "@apex/db/schema";
+import { crmSessions, formsSessions, sessions, signSessions, users } from "@apex/db/schema";
 import { can, type Action } from "./permissions";
 
 // Each app sets its own cookie name (SESSION_COOKIE) so a session of one app is never sent to, or accepted by, another.
 const COOKIE = process.env.SESSION_COOKIE ?? "apex_session";
+// ...and its own sessions table (and database role), so one app's database user can never create a session another app accepts.
+const SESSIONS: Record<string, typeof sessions> = { apex_session: sessions, apex_crm_session: crmSessions, apex_forms_session: formsSessions, apex_sign_session: signSessions };
+const table = SESSIONS[COOKIE] ?? sessions;
 // Optional: share the staff session between hosts of one site (the CMS admin on admin.example.org and the website's staff bar and
 // preview on example.org): set SESSION_COOKIE_DOMAIN=example.org on BOTH. Unset = the cookie belongs to one host only (the CRM app).
 const DOMAIN = process.env.SESSION_COOKIE_DOMAIN || undefined;
@@ -22,7 +25,7 @@ export { hashPassword, verifyPassword, checkPassword } from "./password";
 export async function createSession(userId: string) {
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + TTL_MS);
-  await db.insert(sessions).values({ id: sha(token), userId, expiresAt });
+  await db.insert(table).values({ id: sha(token), userId, expiresAt });
   (await cookies()).set(COOKIE, token, {
     httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production",
     path: "/", expires: expiresAt, domain: DOMAIN,
@@ -33,9 +36,9 @@ export async function getUser() {
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token) return null;
   const [row] = await db
-    .select({ user: users, expiresAt: sessions.expiresAt })
-    .from(sessions).innerJoin(users, eq(users.id, sessions.userId))
-    .where(eq(sessions.id, sha(token)));
+    .select({ user: users, expiresAt: table.expiresAt })
+    .from(table).innerJoin(users, eq(users.id, table.userId))
+    .where(eq(table.id, sha(token)));
   if (!row || row.expiresAt < new Date()) return null;
   return row.user;
 }
@@ -43,7 +46,7 @@ export async function getUser() {
 export async function destroySession() {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
-  if (token) await db.delete(sessions).where(eq(sessions.id, sha(token)));
+  if (token) await db.delete(table).where(eq(table.id, sha(token)));
   jar.set(COOKIE, "", { path: "/", maxAge: 0, domain: DOMAIN }); // a cookie with a domain is only removed by naming the same domain
 }
 

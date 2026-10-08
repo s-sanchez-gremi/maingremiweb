@@ -2,6 +2,17 @@
 
 **For Claude Code:** at the start of a session, read the section addressed to the person you are working for, do each open item (they are safe to repeat), tell the person what you did or what needs their decision, and mark the item done (date + initials) in the same pull request as your next change. Add a new notice here when you change something the other person's side must act on (a new migration, a moved table, a new rule, a changed command). Never put secrets here.
 
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (security: one sessions table per app, passwords only in the CMS admin)
+
+A security review found that the CRM, Forms and Signatures database roles could write the shared `sessions` table and `users.password_hash`, i.e. forge a CMS admin session or set an administrator's password. Fixed in the pull request "Per-app sessions and password isolation" (review needed: it touches shared schema, migration, grants and the auth core). The CMS admin's own session handling is unchanged; its account page is now the only place a password is changed. After merging `main`:
+
+1. `pnpm db:migrate` (migration 0030: three new tables `crm_sessions`, `forms_sessions`, `sign_sessions`; additive). **People signed in to the CRM, Forms or Signatures app must sign in again once**; CMS admin sessions are untouched.
+2. `db/grants.sql` changed (sessions split; no `update (password_hash)` for the other apps). On environments with restricted users, release the CRM, Forms and Signatures apps **together with** the grants (an old CRM would try to write `sessions` and be refused). `scripts/boundary-drill.sh` covers the new rules.
+3. Code: `@apex/core/auth` chooses the table by cookie name; `@apex/core/users` signs a person out of every app (`signOutEverywhere`); `@apex/core/session-purge` is called by the CMS scheduler. A test that inserts into `sessions` still works for the CMS admin.
+4. The CRM and Forms "El meu compte" pages now link to the CMS admin's account page (`WEB_ADMIN_URL` must be set in those apps; it already is in `.env.example`).
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when read)
+
 ## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-08 from Sam (signatures app, step S4: sealing)
 
 Nothing in `apps/web`, `apps/admin` or `packages/sections` changed. Do once, after merging `main`:
