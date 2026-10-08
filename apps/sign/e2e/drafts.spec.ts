@@ -56,7 +56,7 @@ test("staff prepare a draft: upload, signer, field placed by clicking on the pag
   await expect(page.getByText(/pàgina 1 · 3[45]([.][0-9]+)?%, 8[56]([.][0-9]+)?% · 30×8%/)).toBeVisible();
 
   // now everything is in place
-  await expect(page.getByText("Tot a punt.")).toBeVisible();
+  await expect(page.getByText("Tot a punt per enviar.")).toBeVisible();
 
   // a field that sticks out of the page cannot be added
   await page.locator('input[name="x"]').fill("90");

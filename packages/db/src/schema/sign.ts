@@ -1,4 +1,4 @@
-// Signatures app (Sam, docs/esign-plan.md, migration 0026): documents to sign, requests, signers, fields, audit log, consents.
+// Signatures app (Sam, docs/esign-plan.md, migration 0027): documents to sign, requests, signers, fields, audit log, consents.
 import { pgTable, uuid, text, timestamp, integer, boolean, numeric, jsonb, bigserial } from "drizzle-orm/pg-core";
 import { users } from "./core";
 import { clients, contacts, projects } from "./crm";

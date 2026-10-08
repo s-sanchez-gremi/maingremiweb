@@ -7,10 +7,16 @@ import { isEditable, STATUS_LABEL } from "@apex/sign/state";
 import { dayInMadrid } from "@apex/sign/time";
 import { PROBLEM_TEXT } from "@apex/sign/validate";
 import { FieldPlacer } from "@/components/FieldPlacer";
-import { checkRequest, getRequest } from "@/lib/requests";
-import { createField, createSigner, deleteField, deleteSigner, removeRequest, saveSettings, shiftSigner } from "../../actions";
+import { checkRequest, getRequest, listEvents } from "@/lib/requests";
+import { cancelRequest, createField, createSigner, deleteField, deleteSigner, removeRequest, saveSettings, shiftSigner, submitRequest } from "../../actions";
 
-const SAVED: Record<string, string> = { created: "Esborrany creat.", settings: "Desat.", signer: "Signants actualitzats.", field: "Camps actualitzats." };
+const SAVED: Record<string, string> = { created: "Esborrany creat.", settings: "Desat.", signer: "Signants actualitzats.", field: "Camps actualitzats.", sent: "Enviada: els signants ja han rebut el correu.", voided: "Sol·licitud anul·lada: els enllaços ja no funcionen." };
+const SIGNER_STATUS: Record<string, string> = { pending: "Pendent", opened: "L'ha oberta", signed: "Ha signat", declined: "Ha rebutjat" };
+const EVENT_LABEL: Record<string, string> = {
+  created: "Esborrany creat", sent: "Enviada", opened: "Ha obert l'enllaç", consented: "Ha acceptat signar electrònicament", signed: "Ha signat", declined: "Ha rebutjat signar",
+  reminded: "Recordatori enviat", voided: "Anul·lada", expired: "Caducada", sealed: "Document segellat", downloaded: "Descarregat",
+};
+const when = (d: Date | null) => (d ? d.toLocaleString("ca-ES", { timeZone: "Europe/Madrid", dateStyle: "short", timeStyle: "short" }) : "");
 
 export default async function RequestPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string; error?: string; page?: string }> }) {
   await requireUser("sign:write");
@@ -22,6 +28,7 @@ export default async function RequestPage({ params, searchParams }: { params: Pr
   const { request, document, signers, fields } = r;
   const editable = isEditable(request.status);
   const problems = editable ? await checkRequest(id) : [];
+  const events = editable ? [] : await listEvents(id);
   const signerNo = new Map(signers.map((s, i) => [s.id, i + 1]));
   const signerName = new Map(signers.map((s) => [s.id, s.name]));
   const size = document.size < 1024 * 1024 ? `${Math.max(1, Math.round(document.size / 1024))} KB` : `${(document.size / 1024 / 1024).toFixed(1)} MB`;
@@ -94,16 +101,43 @@ export default async function RequestPage({ params, searchParams }: { params: Pr
           </div>
 
           <div className="col-side">
+            {!editable && (
+              <>
+                <div className="card">
+                  <h3>Seguiment</h3>
+                  <p className="hint">Caduca el {request.expiresAt ? dayInMadrid(request.expiresAt) : "—"}{request.ordered ? " · signen en ordre" : ""}</p>
+                  {signers.map((s, i) => (
+                    <div key={s.id} className="row"><span><strong>{i + 1}. {s.name}</strong><br /><span className="hint">{s.email}{s.signedAt ? ` · ${when(s.signedAt)}` : ""}</span></span><span className="chip">{SIGNER_STATUS[s.status]}</span></div>
+                  ))}
+                </div>
+                {request.status === "sent" && (
+                  <form action={cancelRequest} className="card">
+                    <input type="hidden" name="id" value={id} />
+                    <ConfirmButton className="btn danger" message="Anul·lar la sol·licitud? Els enllaços dels signants deixaran de funcionar.">Anul·la la sol·licitud</ConfirmButton>
+                  </form>
+                )}
+                <div className="card">
+                  <h3>Registre</h3>
+                  {events.map((e) => <p key={e.id} className="hint" style={{ margin: 0 }}>{when(e.at)} · {EVENT_LABEL[e.kind] ?? e.kind}{e.signer ? ` · ${e.signer}` : ""}</p>)}
+                </div>
+              </>
+            )}
             {editable && (
               <>
                 <div className="card" id="check">
                   <h3>Comprovació</h3>
                   {problems.length === 0
-                    ? <p className="msg ok" role="status">Tot a punt. L&apos;enviament als signants arriba en el pas següent (S3).</p>
+                    ? <p className="msg ok" role="status">Tot a punt per enviar.</p>
                     : <ul role="status" style={{ margin: 0, paddingLeft: 18 }}>{problems.map((p, i) => (
                         <li key={i}>{PROBLEM_TEXT[p.code]}{p.signerId && signerName.get(p.signerId) ? ` (${signerName.get(p.signerId)})` : ""}</li>
                       ))}</ul>}
                 </div>
+                {problems.length === 0 && (
+                  <form action={submitRequest} className="card">
+                    <input type="hidden" name="id" value={id} />
+                    <ConfirmButton className="btn primary" message={request.ordered ? "Enviar la sol·licitud? El primer signant rebrà el correu ara i la resta quan li toqui. Després ja no es podrà modificar." : "Enviar la sol·licitud a tots els signants? Després ja no es podrà modificar."}>Envia als signants</ConfirmButton>
+                  </form>
+                )}
                 <form action={removeRequest} className="card">
                   <input type="hidden" name="id" value={id} />
                   <ConfirmButton className="btn danger" message="Eliminar aquest esborrany, el document i tot el que s'hi ha preparat?">Elimina l&apos;esborrany</ConfirmButton>
