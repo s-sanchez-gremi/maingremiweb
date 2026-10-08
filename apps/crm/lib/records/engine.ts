@@ -166,7 +166,8 @@ async function logHistory(e: Entity, id: string, action: "create" | "update" | "
 
 export async function setArchived(e: Entity, id: string, archived: boolean, actor?: Actor) {
   if (!e.archivable) throw new Error("Not archivable");
-  await db.update(e.table).set({ archivedAt: archived ? new Date() : null } as never).where(eq(cols(e).id, id));
+  const done = await db.update(e.table).set({ archivedAt: archived ? new Date() : null } as never).where(eq(cols(e).id, id)).returning({ id: cols(e).id });
+  if (!done.length) throw new RecordError("El registre ja no existeix");
   await logHistory(e, id, archived ? "archive" : "restore", [], actor);
 }
 
