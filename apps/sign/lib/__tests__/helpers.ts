@@ -61,3 +61,20 @@ export async function readyDraft(userId: string, signers: { name: string; email:
   }
   return id;
 }
+
+/** A request that everyone has signed (typed signatures), not yet sealed. Returns the id and each signer's signing token. */
+export async function completedRequest(userId: string, signers: { name: string; email: string; extra?: { kind: string; required: boolean }[] }[], opts: { locale?: "ca" | "es" | "en"; drawn?: boolean } = {}) {
+  const { updateSettings } = await import("@/lib/requests");
+  const { sendRequest } = await import("@/lib/lifecycle");
+  const { submitSignature } = await import("@/lib/signing");
+  const id = await readyDraft(userId, signers);
+  await updateSettings(id, { locale: opts.locale ?? "ca", message: "", expiresOn: inDays(30), ordered: false });
+  await sendRequest(userId, id);
+  const ctx = { ipHash: "ab".repeat(32), userAgent: "Vitest/1.0" };
+  for (const s of signers) {
+    const token = (await tokenFor(s.email))!;
+    const r = await submitSignature(token, { consent: true, sigMode: opts.drawn ? "drawn" : "typed", sigTyped: s.name, sigDrawn: opts.drawn ? dataUrl(pngBytes(80, 40)) : "", initials: "XX", texts: {} }, ctx);
+    if (!r.ok) throw new Error("signing failed in the test setup: " + JSON.stringify(r));
+  }
+  return { id };
+}

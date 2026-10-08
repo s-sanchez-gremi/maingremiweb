@@ -2,6 +2,16 @@
 
 **For Claude Code:** at the start of a session, read the section addressed to the person you are working for, do each open item (they are safe to repeat), tell the person what you did or what needs their decision, and mark the item done (date + initials) in the same pull request as your next change. Add a new notice here when you change something the other person's side must act on (a new migration, a moved table, a new rule, a changed command). Never put secrets here.
 
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-08 from Sam (signatures app, step S4: sealing)
+
+Nothing in `apps/web`, `apps/admin` or `packages/sections` changed. Do once, after merging `main`:
+
+1. `pnpm install` (new libraries used only by `packages/sign`: `@signpdf/*`, `node-forge`) and `pnpm db:migrate` (migration 0028: new columns on `sign_requests` and `sign_signers`, all additive and idempotent).
+2. `.env`: add `SIGN_SEAL_P12=` and `SIGN_SEAL_PASSPHRASE=` from `.env.example`, **empty**: in development the Signatures app makes a throwaway certificate by itself. Only a staging or production server needs real values (made with `pnpm --filter sign seal:generate`); nothing to do until the Signatures app is deployed (step S6).
+3. **Shared files that changed:** `db/migrations/0028_sign_sealing.sql`, `packages/db/src/schema/sign.ts`, `.env.example`, `pnpm-lock.yaml`. No change to `db/grants.sql` (the same tables and the same database user).
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
 ## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (signatures app, step S3: sending and the signer page)
 
 Nothing in `apps/web`, `apps/admin` or `packages/sections` changed in behaviour. Do once, after merging `main`:
