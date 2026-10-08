@@ -89,3 +89,20 @@ describe("what a client can see", () => {
     void hidden; void others;
   });
 });
+
+describe("purgePortalExpired()", () => {
+  it("drops expired sessions and used or expired links, keeps live ones", async () => {
+    const { purgePortalExpired } = await import("../portal");
+    const [pu] = await db.insert(portalUsers).values({ clientId: a, email: "purge@a.test", name: "P" }).returning();
+    const past = new Date(Date.now() - 1000), future = new Date(Date.now() + 3_600_000);
+    await db.insert(portalSessions).values([{ id: "s-old", portalUserId: pu.id, expiresAt: past }, { id: "s-new", portalUserId: pu.id, expiresAt: future }]);
+    await db.insert(portalTokens).values([
+      { tokenHash: "t-expired", portalUserId: pu.id, kind: "reset", expiresAt: past },
+      { tokenHash: "t-used", portalUserId: pu.id, kind: "reset", expiresAt: future, usedAt: new Date() },
+      { tokenHash: "t-live", portalUserId: pu.id, kind: "reset", expiresAt: future },
+    ]);
+    await purgePortalExpired();
+    expect((await db.select().from(portalSessions)).map((s) => s.id)).toEqual(["s-new"]);
+    expect((await db.select().from(portalTokens)).map((t) => t.tokenHash)).toEqual(["t-live"]);
+  });
+});

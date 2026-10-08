@@ -5,6 +5,7 @@ import { purgeOldErrors } from "@apex/core/errors";
 import { beat } from "@apex/core/heartbeat";
 import { processOutbox } from "@apex/core/outbox";
 import { processFormRouting } from "@/lib/form-routing";
+import { purgePortalExpired } from "@/lib/portal";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,7 @@ async function handle(req: Request) {
   const mail = await processOutbox();
   const routed = await processFormRouting(); // responses of forms that create CRM records (a person, an event registration, a case...)
   await purgeOldErrors();
+  await purgePortalExpired();
   await beat("crm");
   return Response.json({ emails: mail, routed });
 }

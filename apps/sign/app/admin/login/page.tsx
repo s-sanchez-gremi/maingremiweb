@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@apex/db";
 import { users } from "@apex/db/schema";
-import { createSession, loginBlocked, loginFailed, loginSucceeded, verifyPassword } from "@apex/core/auth";
+import { createSession, loginBlocked, loginFailed, loginSucceeded, checkPassword } from "@apex/core/auth";
 
 async function login(formData: FormData) {
   "use server";
@@ -11,7 +11,7 @@ async function login(formData: FormData) {
   if (loginBlocked(email)) redirect("/admin/login?error=blocked");
   const [user] = await db.select().from(users).where(eq(users.email, email));
   // Same response and same work whether the email exists or not.
-  const ok = user ? await verifyPassword(user.passwordHash, password) : false;
+  const ok = await checkPassword(user?.passwordHash, password);
   if (!user || !ok) { loginFailed(email); redirect("/admin/login?error=invalid"); }
   loginSucceeded(email);
   await createSession(user.id);

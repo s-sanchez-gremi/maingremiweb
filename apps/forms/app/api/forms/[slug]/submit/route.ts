@@ -1,7 +1,7 @@
 // The ONLY way a submission enters the system: the browser posts here, never to the database.
 import { after } from "next/server";
 import { isRateLimited } from "@apex/forms/limits";
-import { clientHash, cleanLocale, cleanPath, cleanUtm, loadForm } from "@apex/forms/http";
+import { TooLarge, boundedFormData, clientHash, cleanLocale, cleanPath, cleanUtm, loadForm } from "@apex/forms/http";
 import { secondsSinceIssued, verifySolution } from "@apex/forms/pow";
 import { processSubmission } from "@apex/forms/submit";
 import { editDeadline, editLink } from "@apex/forms/edit";
@@ -22,9 +22,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
 
   let data: FormData, payload: Record<string, unknown>;
   try {
-    data = await req.formData();
+    data = await boundedFormData(req, MAX_REQUEST);
     payload = JSON.parse(String(data.get("payload") ?? "{}"));
-  } catch { return json({ error: "bad_request" }, 400); }
+  } catch (e) { return e instanceof TooLarge ? json({ error: "too_large" }, 413) : json({ error: "bad_request" }, 400); }
   const locale = cleanLocale(payload.locale);
   const t = msgs(locale);
 

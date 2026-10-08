@@ -1,7 +1,7 @@
 // Client portal rules. Plain DB logic (no Next imports) so it is testable. Portal accounts are separate from staff users.
 // Nothing here ever returns data of another client: every read starts from the logged-in portal user's client_id.
 import { createHash, randomBytes } from "node:crypto";
-import { and, asc, desc, eq, gt, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNotNull, isNull, lt, or } from "drizzle-orm";
 import { db } from "@apex/db";
 import { clients, portalSessions, portalTokens, portalUsers, projectDocuments, projects } from "@apex/db/schema";
 import { enqueueEmail } from "@apex/core/outbox";
@@ -97,3 +97,9 @@ export const sharedDocuments = (clientId: string) =>
   db.select({ d: projectDocuments, projectId: projects.id }).from(projectDocuments)
     .innerJoin(projects, eq(projects.id, projectDocuments.projectId))
     .where(and(eq(projects.clientId, clientId), eq(projectDocuments.shared, true))).orderBy(desc(projectDocuments.createdAt));
+
+/** Removes expired portal sessions and invite/reset links that are used or expired, so the tables do not grow forever. */
+export async function purgePortalExpired(now = new Date()) {
+  await db.delete(portalSessions).where(lt(portalSessions.expiresAt, now));
+  await db.delete(portalTokens).where(or(lt(portalTokens.expiresAt, now), isNotNull(portalTokens.usedAt)));
+}
