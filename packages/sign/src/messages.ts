@@ -201,3 +201,21 @@ export function declinedEmail(o: { signerName: string; signerEmail: string; titl
   lines.push(o.reason.trim() ? `Motiu: ${o.reason.trim()}` : "No ha indicat cap motiu.", "", "La sol·licitud s'ha tancat i els enllaços dels altres signants ja no funcionen.", "", `Veure-la: ${o.link}`);
   return { subject: `Signatura rebutjada: ${o.title}`, text: lines.join("\n") };
 }
+
+/** A reminder carries a FRESH link (the earlier one is not stored, so it cannot be repeated); the old link stops working. */
+export function reminderEmail(o: { locale: Locale; name: string; title: string; link: string; expiresOn: string }): Email {
+  const t = {
+    ca: { subject: `Recordatori: cal la teva signatura a «${o.title}»`, hello: `Hola ${o.name},`, body: `Encara està pendent la teva signatura del document «${o.title}».`, open: "Per llegir-lo i signar-lo, obre aquest enllaç nou (és personal, no el comparteixis; l'enllaç anterior ja no funciona):", exp: `L'enllaç caduca el ${o.expiresOn}.` },
+    es: { subject: `Recordatorio: se necesita tu firma en «${o.title}»`, hello: `Hola ${o.name},`, body: `Tu firma del documento «${o.title}» sigue pendiente.`, open: "Para leerlo y firmarlo, abre este enlace nuevo (es personal, no lo compartas; el enlace anterior ya no funciona):", exp: `El enlace caduca el ${o.expiresOn}.` },
+    en: { subject: `Reminder: your signature is needed on “${o.title}”`, hello: `Hello ${o.name},`, body: `Your signature on the document “${o.title}” is still pending.`, open: "To read and sign it, open this new link (it is personal, please do not share it; the earlier link no longer works):", exp: `The link expires on ${o.expiresOn}.` },
+  }[o.locale];
+  return { subject: t.subject, text: [t.hello, "", t.body, "", t.open, o.link, "", t.exp].join("\n") };
+}
+
+/** To the staff member who created the request (staff work in Catalan). */
+export function expiredEmail(o: { title: string; pending: string[]; link: string }): Email {
+  const lines = [`La sol·licitud de signatura «${o.title}» ha caducat sense completar-se.`, ""];
+  if (o.pending.length) lines.push(`Encara no havien signat: ${o.pending.join(", ")}.`, "");
+  lines.push("Els enllaços dels signants ja no funcionen. Si cal, crea una sol·licitud nova.", "", `Veure-la: ${o.link}`);
+  return { subject: `Signatura caducada: ${o.title}`, text: lines.join("\n") };
+}
