@@ -5,7 +5,7 @@ export const metadata = { title: "Apex — Formularis", robots: { index: false, 
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ca">
+    <html lang="ca" data-app="forms">
       <body style={{ margin: 0 }}>
         <div className="admin">{children}</div>
       </body>

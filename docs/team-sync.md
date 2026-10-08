@@ -2,6 +2,17 @@
 
 **For Claude Code:** at the start of a session, read the section addressed to the person you are working for, do each open item (they are safe to repeat), tell the person what you did or what needs their decision, and mark the item done (date + initials) in the same pull request as your next change. Add a new notice here when you change something the other person's side must act on (a new migration, a moved table, a new rule, a changed command). Never put secrets here.
 
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (visual identity, foundations)
+
+Direction A of `docs/identity-plan.md` is approved; this is its step 2. **No visible change in any app yet, no migration, no grants change.** What changed:
+
+1. `packages/ui/src/tokens.css` has new tokens `--spot-web|admin|crm|forms|hub|sign`, `--on-spot-*` and a `[data-app="…"]` block that sets `--spot` / `--on-spot` for an app. Nothing reads `--spot` yet except the new app marks; each app switches `--accent` to it in its own rollout PR (yours: the CMS admin and the website, the latter only after client sign-off).
+2. `<html data-app="admin">` was added to `apps/admin/app/admin/layout.tsx` (and the CRM and Forms roots). Keep it when you edit that file.
+3. New `@apex/ui/appmark` (colours, halftone, `appIconSvg`) and `@apex/ui/components/AppMark`. Favicons `apps/{admin,crm,forms}/app/icon.svg` are generated from it; a test (`apps/web/lib/__tests__/identity.test.ts`) fails if a file is edited by hand. The website keeps its `icon.png`.
+4. Do once after merging `main`: nothing to install or migrate.
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when read)
+
 ## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (signatures app, step S3: sending and the signer page)
 
 Nothing in `apps/web`, `apps/admin` or `packages/sections` changed in behaviour. Do once, after merging `main`:

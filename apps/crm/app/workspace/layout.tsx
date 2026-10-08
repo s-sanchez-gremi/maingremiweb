@@ -6,7 +6,7 @@ export const metadata = { title: "Apex — Espai de treball", robots: { index: f
 
 export default function WorkspaceRootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ca">
+    <html lang="ca" data-app="crm">
       <body style={{ margin: 0 }}>
         <div className="admin ws">{children}</div>
       </body>

@@ -5,7 +5,7 @@ export const metadata = { title: "Apex — CRM", robots: { index: false, follow:
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ca">
+    <html lang="ca" data-app="crm">
       <body style={{ margin: 0 }}>
         <div className="admin">{children}</div>
       </body>
