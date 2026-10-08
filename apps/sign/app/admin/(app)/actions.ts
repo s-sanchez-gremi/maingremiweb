@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireUser } from "@apex/core/auth";
 import { parseBox } from "@apex/sign/geometry";
 import {
-  SignError, addField, addSigner, createDraft, deleteDraft, moveSigner, removeField, removeSigner, renameDocument, updateSettings,
+  SignError, addField, addSigner, createDraft, deleteDraft, moveSigner, removeField, removeSigner, renameDocument, setLinks, updateSettings,
 } from "@/lib/requests";
 import { sendRequest, voidRequest } from "@/lib/lifecycle";
 import { retrySeal } from "@/lib/sealing";
@@ -36,6 +36,7 @@ export async function saveSettings(fd: FormData) {
   try {
     await renameDocument(id, s(fd, "title"));
     await updateSettings(id, { locale: s(fd, "locale"), message: s(fd, "message"), expiresOn: s(fd, "expiresOn"), ordered: fd.get("ordered") === "1" });
+    await setLinks(id, { companyId: s(fd, "companyId"), projectId: s(fd, "projectId"), contactId: s(fd, "contactId") });
   } catch (e) { fail(to, e); }
   redirect(`${to}?saved=settings`);
 }

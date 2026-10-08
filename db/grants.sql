@@ -56,9 +56,14 @@ grant select, insert, update, delete on sign_documents, sign_requests, sign_sign
 -- (rows only go with their request, by foreign-key cascade, which runs with the table owner's rights)
 grant select, insert on sign_events, sign_consents to apex_sign;
 grant usage, select on sequence sign_events_id_seq to apex_sign;
+-- a request can be linked to a company, a project or a contact: the Signatures app may only READ what the picker needs (names, never notes or phones)
+grant select (id, name, archived_at) on clients to apex_sign;
+grant select (id, name) on projects to apex_sign;
+grant select (id, name, email) on contacts to apex_sign;
 
 -- ---- apex_crm: everything else ----
-grant select on forms, submissions to apex_crm;   -- leads and attached responses show them; the Forms app owns and changes them
+grant select on forms, submissions to apex_crm;   -- (see also the next line for signatures)
+grant select on sign_documents, sign_requests, sign_signers to apex_crm;   -- the CRM shows where a document stands (read-only; no fields, events or consents)   -- leads and attached responses show them; the Forms app owns and changes them
 -- The CRM app turns responses of "records" forms into CRM records through its own records engine, and reports back in these columns ONLY
 -- (it still cannot change the answers). The Forms app never writes the CRM's tables for these destinations.
 grant update (routing_status, routing_attempts, routed_at, routing_error, routed_records) on submissions to apex_crm;

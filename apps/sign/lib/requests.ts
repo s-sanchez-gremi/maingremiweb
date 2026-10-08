@@ -2,9 +2,9 @@
 // imports) so it is testable. Every write locks the request row and refuses anything but a draft: once a request is sent, what the
 // signers were shown must not change (sending, signing and sealing arrive in steps S3 and S4).
 import { randomUUID } from "node:crypto";
-import { asc, desc, eq, sql } from "drizzle-orm";
+import { asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@apex/db";
-import { signDocuments, signEvents, signFields, signRequests, signSigners } from "@apex/db/schema";
+import { clients, contacts, projects, signDocuments, signEvents, signFields, signRequests, signSigners } from "@apex/db/schema";
 import { safeName } from "@apex/core/files";
 import { deletePrivatePrefix, putPrivate } from "@apex/core/storage";
 import { FIELD_KINDS, inBounds, type Box, type FieldKind } from "@apex/sign/geometry";
@@ -183,4 +183,29 @@ export async function deleteDraft(id: string) {
     return r.documentId;
   });
   await deletePrivatePrefix(`sign/${docId}/`);
+}
+
+/** What the "linked to" pickers offer: companies (not archived), projects and contacts, by name. */
+export async function linkChoices() {
+  const [companies, projs, people] = await Promise.all([
+    db.select({ id: clients.id, name: clients.name }).from(clients).where(isNull(clients.archivedAt)).orderBy(asc(clients.name)).limit(1000),
+    db.select({ id: projects.id, name: projects.name }).from(projects).orderBy(asc(projects.name)).limit(1000),
+    db.select({ id: contacts.id, name: contacts.name, email: contacts.email }).from(contacts).orderBy(asc(contacts.name), asc(contacts.email)).limit(1000),
+  ]);
+  return { companies, projects: projs, contacts: people };
+}
+
+/** Links the document to a company, a project and/or a contact (blank = none) so the CRM can show it. Draft only. */
+export async function setLinks(id: string, v: { companyId: string; projectId: string; contactId: string }) {
+  const pick = async (table: typeof clients | typeof projects | typeof contacts, value: string) => {
+    if (!value) return null;
+    const [row] = await db.select({ id: table.id }).from(table).where(eq(table.id, value));
+    if (!row) throw new SignError("L'element triat per enllaçar ja no existeix.");
+    return row.id;
+  };
+  const companyId = await pick(clients, v.companyId), projectId = await pick(projects, v.projectId), contactId = await pick(contacts, v.contactId);
+  await db.transaction(async (tx) => {
+    const r = await lockDraft(tx, id);
+    await tx.update(signDocuments).set({ companyId, projectId, contactId }).where(eq(signDocuments.id, r.documentId));
+  });
 }

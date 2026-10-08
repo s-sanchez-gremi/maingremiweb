@@ -192,6 +192,15 @@ allow $(C) "delete from contacts where email = 'drill@pipeline.test'"
 n=$((n+1)); [ "$(su "select count(*) from submissions where id = '00000000-0000-4000-8000-0000000000d1'" "$DB")" = 0 ] || fail "erasing a contact in the CRM left its submission behind"
 [ "$(su "select count(*) from leads l join forms f on f.id = l.form_id where f.slug = 'drill-forms-app'" "$DB")" = 0 ] || fail "erasing a contact in the CRM left its lead behind"
 su "delete from forms where slug = 'drill-forms-app'" "$DB" >/dev/null
+echo "== the CRM reads signature requests but cannot change them"
+allow $(C) "select count(*) from sign_requests"
+allow $(C) "select count(*) from sign_signers"
+allow $(C) "select count(*) from sign_documents"
+deny  $(C) "select count(*) from sign_events"
+deny  $(C) "select count(*) from sign_consents"
+deny  $(C) "select count(*) from sign_fields"
+deny  $(C) "update sign_requests set status = status where false"
+deny  $(C) "delete from sign_documents where false"
 echo "== apex_sign (the Signatures app: its own sign_* tables and the shared ones; the audit trail is append-only)"
 S() { echo apex_sign "$PWS"; }
 allow $(S) "select count(*) from users"
@@ -211,6 +220,12 @@ deny  $(S) "update sign_events set kind = kind where false"            # the aud
 deny  $(S) "delete from sign_events where false"
 deny  $(S) "update sign_consents set text = text where false"
 deny  $(S) "delete from sign_consents where false"
+allow $(S) "select id, name, archived_at from clients"              # the "linked to" pickers
+allow $(S) "select id, name from projects"
+allow $(S) "select id, name, email from contacts"
+deny  $(S) "select notes from clients"                                # only the columns the picker needs
+deny  $(S) "select phone from contacts"
+deny  $(S) "update clients set name = name where false"
 deny  $(S) "update users set role = role where false"
 deny  $(S) "delete from users where false"
 deny  $(S) "select count(*) from entries"

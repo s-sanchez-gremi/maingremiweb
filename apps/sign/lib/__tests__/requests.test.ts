@@ -5,6 +5,7 @@ import { db } from "@apex/db";
 import { signDocuments, signEvents, signFields, signRequests, signSigners, users } from "@apex/db/schema";
 import { getPrivateBytes } from "@apex/core/storage";
 import { MAX_FIELDS, MAX_SIGNERS } from "@apex/sign/validate";
+import { inDays, readyDraft } from "./helpers";
 import {
   SignError, addField, addSigner, checkRequest, createDraft, deleteDraft, getRequest, listRequests, moveSigner, removeField, removeSigner,
   renameDocument, updateSettings,
@@ -221,5 +222,28 @@ describe("deleting a draft", () => {
     expect(await db.select().from(signFields).where(eq(signFields.requestId, id))).toHaveLength(0);
     expect(await db.select().from(signEvents).where(eq(signEvents.requestId, id))).toHaveLength(0);
     await expect(getPrivateBytes(key)).rejects.toThrow();
+  });
+});
+
+describe("linking a document to the CRM", () => {
+  it("links to a company, project and contact, clears them, refuses missing ones, and only while a draft", async () => {
+    const { clients, contacts, projects, signDocuments } = await import("@apex/db/schema");
+    const { setLinks, linkChoices } = await import("@/lib/requests");
+    const { sendRequest } = await import("@/lib/lifecycle");
+    const [co] = await db.insert(clients).values({ name: `Empresa ${Date.now()}` }).returning({ id: clients.id });
+    const [pr] = await db.insert(projects).values({ name: `Projecte ${Date.now()}`, clientId: co.id }).returning({ id: projects.id });
+    const [ct] = await db.insert(contacts).values({ email: `ct-${Date.now()}@exemple.test`, name: "Persona" }).returning({ id: contacts.id });
+    const choices = await linkChoices();
+    expect(choices.companies.map((c) => c.id)).toContain(co.id);
+    const id = await readyDraft(userId, [{ name: "Anna", email: `a-${Date.now()}@exemple.test` }]);
+    await setLinks(id, { companyId: co.id, projectId: pr.id, contactId: ct.id });
+    const doc = async () => (await db.select().from(signDocuments).where(eq(signDocuments.id, (await getRequest(id))!.document.id)))[0];
+    expect(await doc()).toMatchObject({ companyId: co.id, projectId: pr.id, contactId: ct.id });
+    await setLinks(id, { companyId: "", projectId: "", contactId: "" });
+    expect(await doc()).toMatchObject({ companyId: null, projectId: null, contactId: null });
+    await expect(setLinks(id, { companyId: crypto.randomUUID(), projectId: "", contactId: "" })).rejects.toBeInstanceOf(SignError);
+    await updateSettings(id, { locale: "ca", message: "", expiresOn: inDays(30), ordered: false });
+    await sendRequest(userId, id);
+    await expect(setLinks(id, { companyId: co.id, projectId: "", contactId: "" })).rejects.toBeInstanceOf(SignError);
   });
 });
