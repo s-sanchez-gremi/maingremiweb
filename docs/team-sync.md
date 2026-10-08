@@ -203,6 +203,15 @@ A sixth app, `apps/hub`, is a start page linking to every portal (CMS admin, CRM
 
 Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-08 from Sam (security: Next.js 16.3.7 -> 16.3.8)
+
+A high-severity advisory (GHSA-cjq9-62q9-8jv4, SSRF in Next.js image optimization, fixed in 16.3.8) made the CI audit job fail on every branch. `next` and `eslint-config-next` are now pinned to `16.3.8` in every app and in `packages/core`, and `pnpm-lock.yaml` was regenerated. Nothing in the code changed. Do once, after merging `main`:
+
+1. `pnpm install` (take `main`'s `pnpm-lock.yaml` if your branch conflicts on it). If your branch adds an app or a `next` pin, use `16.3.8`.
+2. Dependabot's grouped PR (#70) edits the same lines; it will need to be rebased by Dependabot (`@dependabot rebase`) or closed in favour of a fresh one.
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
 ## For Sam (apps/crm) and his Claude
 
 Notice of 2026-10-02 from Joan Marc (website admin redesign):
