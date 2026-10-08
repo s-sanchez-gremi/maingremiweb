@@ -10,13 +10,13 @@ Apex already has its own form builder (phase 5 in `CLAUDE.md`): 11 field types, 
 
 ## Wave 2: automation (instead of Zapier)
 5. **Webhooks per form.** **Done (migration 0024):** up to 5 endpoints per form; `response.created` and `response.updated` (with what changed) are POSTed as signed JSON, retried with backoff for about two days, and logged on the form's *Integracions* page with a test button and manual retry. Built on the outbox pattern; SSRF-hardened (see `CLAUDE.md`).
-6. **More destinations.** Create an event attendance row, a company or person record, or a case (labour, training), reusing the records engine.
-7. **Calculated fields** (hidden score or total). Already listed as "later" in `CLAUDE.md`.
-8. **Prefill from the URL** (`?name=…&company=…`), whitelisted per field.
+6. **More destinations.** **Done (migration 0025):** destination *Crear registres al CRM*: a person, an event registration, a labour case, a training request or a job-board candidate. Built as the **queue** option of the forms-app plan (decision B), not as more write permissions for the Forms app: the Forms app stores the response with `routing_status = pending`, the CRM app's scheduler creates the records through its own records engine.
+7. **Calculated fields** (hidden score or total). **Done (no migration):** field type `calculated`: sum / average / smallest / largest of earlier questions with optional weights, a fixed number and decimals; options of drop-downs and multiple choices can carry points. Deliberately not a formula language.
+8. **Prefill from the URL** (`?name=…&company=…`), whitelisted per field. **Done (no migration):** a field gets an optional link name (`prefill`); the browser fills it from the address (`packages/forms/src/prefill.ts`).
 
 ## Wave 3: insight
-9. **Response analytics:** drop-off per field, time to complete, charts per choice field (reuse the workspace chart view).
-10. **Response views:** a form's answers as a workspace table, board or chart.
+9. **Done (migration 0026): response analytics** (*Estadístiques* page): completion, time to complete, drop-off per question, charts per choice question. Original wording: **Response analytics:** drop-off per field, time to complete, charts per choice field (reuse the workspace chart view).
+10. **Response views.** **Done (no migration):** the responses page has *Targetes* (as before), *Taula* (a column per question), *Tauler* (a lane per option of a choice question) plus search and a filter; built inside the Forms app because apps never import each other (the charts are on the *Estadístiques* page). Original wording: a form's answers as a workspace table, board or chart.
 11. **XLSX export**, only if CSV proves insufficient for staff.
 
 ## Wave 4: only on a concrete need

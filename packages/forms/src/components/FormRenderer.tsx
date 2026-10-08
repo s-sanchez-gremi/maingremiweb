@@ -6,6 +6,7 @@ import { CheckboxField } from "@apex/ui/components/Field";
 import { InlineText } from "@apex/ui/richtext";
 import { lt, type Item } from "@apex/forms/fieldTypes";
 import { fmt, msgs } from "@apex/forms/messages";
+import { prefillAnswers } from "@apex/forms/prefill";
 import { isVisible, shownSteps, toSteps, validateAnswers, type Answers } from "@apex/forms/validate";
 import type { PublicForm } from "../public-form";
 import type { Locale } from "@apex/db/schema";
@@ -40,6 +41,7 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
   const [doneMessage, setDoneMessage] = useState("");
   const [closedNow, setClosedNow] = useState(false); // the form closed after this page was loaded (or cached)
   const started = useRef(false);
+  const reached = useRef(new Set<string>()); // questions already counted on this page load (anonymous drop-off statistics)
   const pow = useRef<Promise<Solution> | null>(null);
   const head = useRef<HTMLHeadingElement>(null);
   const done = useRef<HTMLDivElement>(null);
@@ -58,6 +60,15 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
     fetch(`/api/forms/${form.slug}/start`, { method: "POST", keepalive: true }).catch(() => {});
     pow.current = fetchSolution(form.slug);
     pow.current.catch((e) => { if (e instanceof FormClosedError) setClosedNow(true); });
+  };
+
+  // Drop-off statistics: the first time someone reaches a question on this page load, count it (a total per question; no cookie, nothing about the person).
+  const reach = (target: EventTarget | null) => {
+    if (edit || !(target instanceof Element)) return;
+    const id = target.closest("[data-field-id]")?.getAttribute("data-field-id");
+    if (!id || reached.current.has(id)) return;
+    reached.current.add(id);
+    fetch(`/api/forms/${form.slug}/reach`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ field: id }), keepalive: true }).catch(() => {});
   };
 
   const answers = (): Answers => {
@@ -167,6 +178,15 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
       .catch(() => {});
   }, [form.checkOpen, form.slug]);
 
+  // A link made for this person (?empresa=…) fills in the fields staff allowed it to (see prefill.ts). Not when a saved draft or a sent response is being opened.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("resume") || params.has("edit")) return;
+    const filled = prefillAnswers(items, params);
+    if (Object.keys(filled).length) setValues((p) => ({ ...filled, ...p }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the page opens
+  }, []);
+
   // Opened from a "continue later" link: bring back what was saved (cleaned again by the server against the form as it is now).
   useEffect(() => {
     const token = form.allowDraft ? new URLSearchParams(window.location.search).get("resume") : null;
@@ -213,11 +233,13 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
 
   const current = steps[step];
   const shown = current.items.filter((it) => isVisible(items, it, values));
+  // results the visitor is allowed to see are worked out live by the very same function the server uses
+  const results = shown.some((it) => it.type === "calculated" && it.data.show === "yes") ? validateAnswers(items, answers(), locale).values : [];
   const errorCount = Object.keys(errors).length;
   const position = Math.max(0, going.indexOf(step));
 
   return (
-    <form ref={root} className="apex-form" noValidate onSubmit={submit} onFocusCapture={begin} onPointerDown={begin} aria-label={lt(form.title, locale) || form.name}>
+    <form ref={root} className="apex-form" noValidate onSubmit={submit} onFocusCapture={(e) => { begin(); reach(e.target); }} onPointerDown={begin} aria-label={lt(form.title, locale) || form.name}>
       {going.length > 1 && (
         <div>
           <progress max={going.length} value={position + 1} aria-label={fmt(t.stepOf, { a: position + 1, b: going.length })} style={{ width: "100%", height: 8, accentColor: "var(--accent)" }} />
@@ -234,7 +256,7 @@ export function FormRenderer({ form, locale, source, campaign }: { form: PublicF
         if (edit && it.type === "file") return sent ? <div key={it.id} className="field"><strong>{lt(it.data.label, locale)}</strong><span className="hint">{fmt(t.fileKept, { name: sent.name })}</span></div> : null;
         const field = (
           <FieldInput
-            key={it.id} item={it} locale={locale} value={values[it.id] as never} error={errors[it.id]}
+            key={it.id} item={it} locale={locale} value={(it.type === "calculated" ? String(results.find((r) => r.id === it.id)?.value ?? "") : values[it.id]) as never} error={errors[it.id]}
             onChange={(v) => { setValues((p) => ({ ...p, [it.id]: v })); if (errors[it.id]) setErrors((p) => { const n = { ...p }; delete n[it.id]; return n; }); }}
             onFile={(f) => setFiles((p) => ({ ...p, [it.id]: f }))}
           />

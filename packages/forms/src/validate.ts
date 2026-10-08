@@ -1,6 +1,7 @@
 // Pure validation shared by the browser (instant feedback) and the server (the only one that counts).
 import type { Locale } from "@apex/db/schema";
 import { fmt, msgs } from "./messages";
+import { calculate, termsOf } from "./calculate";
 import { conditionsOf, formTypeByName, isRequired, lt, optionValues, ratingMax, type Condition, type Item } from "./fieldTypes";
 
 export type Answers = Record<string, unknown>;
@@ -101,6 +102,11 @@ export function validateAnswers(items: Item[], answers: Answers, locale: Locale)
   const values: Cleaned[] = [];
   const shownNow = visibility(items, answers);
   for (const item of items) {
+    if (item.type === "calculated") { // worked out here from the answers above, never read from what the browser sent
+      if (!shownNow(item) || !termsOf(item).length) continue; // nothing to count yet (the builder refuses to save it like that)
+      values.push({ id: item.id, type: item.type, label: lt(item.data.label, locale), value: calculate(item, items, values) });
+      continue;
+    }
     if (!formTypeByName[item.type]?.input) continue; // page breaks, titles and paragraphs carry no answer
     if (!shownNow(item)) continue;
     const label = lt(item.data.label, locale);

@@ -22,6 +22,8 @@ async function login(page: Page) {
 }
 
 async function seedForm(slug: string, fields: unknown[], over: Record<string, unknown> = {}) {
+  // The spam rate limit counts 20 submissions an hour per address across ALL forms, and this suite sends more than that from one address: forget the old ones (each rate-limit test counts its own, after seeding).
+  await sql`update submissions set ip_hash = null where ip_hash is not null`;
   const [f] = await sql`insert into forms (name, slug, fields, destination, active, notifications, consent, newsletter, confirmation)
     values (${"Form " + slug}, ${slug}, ${sql.json(fields as never)}, ${(over.destination as string) ?? "responses_only"}, ${(over.active as boolean | undefined) ?? true},
             ${sql.json((over.notifications ?? {}) as never)}, ${sql.json((over.consent ?? {}) as never)}, ${sql.json((over.newsletter ?? {}) as never)}, ${sql.json({} as never)})
@@ -948,4 +950,290 @@ test("webhooks: add an endpoint, a response reaches it signed, failures are retr
   } finally {
     await new Promise((r) => server.close(r));
   }
+});
+
+test("records destination: a registration form signs people up to an event in the CRM, failures are visible, and retrying works", async ({ page, request }) => {
+  const nom = F("text", { label: L("Nom"), required: "yes" });
+  const em = F("email", { label: L("Correu"), required: "yes" });
+  const empresa = F("text", { label: L("Empresa") });
+  const id = await seedForm("inscripcio-gala", [nom, em, empresa], { consent: L("Accepto") });
+  const [ev] = await sql`insert into events (name, starts_on) values ('Gala e2e', '2026-11-20') returning id`;
+  await login(page);
+
+  const open = async () => {
+    await page.goto(`/admin/forms/${id}`);
+    await page.getByLabel("Crear registres al CRM (inscripció a un esdeveniment, persona, cas…)").check();
+    await page.getByLabel("Què es crea al CRM amb cada resposta").selectOption({ label: "Inscripció a un esdeveniment" });
+    return page.locator("fieldset", { hasText: "Destinació de les respostes" });
+  };
+
+  // an incomplete setup is refused, naming what is missing
+  await open();
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("«Esdeveniment»: cal triar-ne un");
+  await expect(page.getByRole("status")).toContainText("«Nom»: tria quin camp");
+  await expect(page.getByRole("status")).toContainText("«Correu»: tria quin camp");
+
+  // a complete one is saved
+  const panel = await open();
+  await panel.getByLabel(/^Esdeveniment \*/).selectOption({ label: "Gala e2e · 2026-11-20" });
+  await panel.getByLabel(/^Nom \*/).selectOption({ label: "Nom" });
+  await panel.getByLabel(/^Correu \*/).selectOption({ label: "Correu" });
+  await panel.getByLabel(/^Empresa \(pel nom/).selectOption({ label: "Empresa" });
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Desat");
+  const [saved] = await sql`select destination, routing from forms where id = ${id}`;
+  expect(saved.destination).toBe("records");
+  expect(saved.routing).toEqual({ target: "attendance", map: { name: nom.id, email: em.id, company: empresa.id }, fixed: { eventId: ev.id } });
+
+  const register = async (who: string, address: string) => {
+    await page.goto(WEB + "/ca/form/inscripcio-gala");
+    await page.waitForLoadState("networkidle");
+    await page.getByLabel(/^Nom/).fill(who);
+    await page.getByLabel(/^Correu/).fill(address);
+    await page.getByLabel(/^Empresa/).fill("Gràfiques e2e");
+    await page.getByLabel("Accepto").check();
+    await page.getByRole("button", { name: "Envia" }).click();
+    await expect(page.getByRole("status")).toContainText("Gràcies");
+  };
+  const tick = async () => {
+    const r = await request.post(CRM + "/api/cron/tick", { headers: { authorization: "Bearer e2e-cron-secret-value" } });
+    expect(r.status()).toBe(200);
+    return (await r.json()).routed as { done: number; failed: number };
+  };
+
+  // the response waits for the CRM, which then creates the person and the registration through its own records engine
+  await register("Marta Ros", "marta.gala@e2e.test");
+  await page.goto(`/admin/forms/${id}/submissions`);
+  await expect(page.getByText("El CRM encara no n'ha creat els registres")).toBeVisible();
+  expect(await count("people", sql`where email = 'marta.gala@e2e.test'`)).toBe(0); // the Forms app never writes CRM tables itself
+  expect((await tick()).done).toBeGreaterThanOrEqual(1);
+  await page.reload();
+  await expect(page.getByText("Passat al CRM")).toBeVisible();
+  await expect(page.getByText("Persona: Marta Ros (creat)")).toBeVisible();
+  await expect(page.getByText("Inscripció: Gala e2e (creat)")).toBeVisible();
+  const [person] = await sql`select id, name, source from people where email = 'marta.gala@e2e.test'`;
+  expect(person).toMatchObject({ name: "Marta Ros" });
+  expect(person.source).toContain("Formulari:");
+  expect(await count("event_attendance", sql`where event_id = ${ev.id} and person_id = ${person.id} and status = 'confirmed'`)).toBe(1);
+  const [hist] = await sql`select action, user_name from record_history where entity = 'people' and record_id = ${person.id}`;
+  expect(hist.action).toBe("create");
+  expect(hist.user_name).toContain("Formulari");
+
+  // the same person registering again changes nothing
+  await register("Marta Ros", "marta.gala@e2e.test");
+  await tick();
+  expect(await count("event_attendance", sql`where event_id = ${ev.id}`)).toBe(1);
+
+  // the event disappears: the response fails with a reason, the list warns, and staff can retry once it is fixed
+  await sql`delete from events where id = ${ev.id}`;
+  await register("Pere Soler", "pere.gala@e2e.test");
+  expect((await tick()).failed).toBeGreaterThanOrEqual(1);
+  await page.goto(`/admin/forms/${id}/submissions`);
+  await expect(page.getByRole("alert").filter({ hasText: "No s'ha pogut passar al CRM" })).toContainText("esdeveniment triat ja no existeix");
+  await page.goto("/admin/forms");
+  await expect(page.getByRole("alert").filter({ hasText: "no s'han pogut passar al CRM" })).toBeVisible();
+  const [ev2] = await sql`insert into events (name, starts_on) values ('Gala e2e 2', '2026-12-05') returning id`;
+  await sql`update forms set routing = jsonb_set(routing, '{fixed,eventId}', to_jsonb(${ev2.id}::text)) where id = ${id}`;
+  await page.goto(`/admin/forms/${id}/submissions`);
+  await page.getByRole("button", { name: "Torna-ho a provar" }).click();
+  await expect(page.getByRole("status")).toContainText("Es tornarà a provar al CRM");
+  expect((await tick()).done).toBeGreaterThanOrEqual(1);
+  await page.goto(`/admin/forms/${id}/submissions`);
+  await expect(page.getByText("Inscripció: Gala e2e 2 (creat)")).toBeVisible();
+  expect(await count("event_attendance", sql`where event_id = ${ev2.id}`)).toBe(1);
+});
+
+test("prefill from the link: only the fields staff named are filled, bad values are ignored, the visitor can change them, the editor checks the names", async ({ page }) => {
+  const nom = F("text", { label: L("Nom"), required: "yes", prefill: "nom" });
+  const em = F("email", { label: L("Correu"), required: "yes", prefill: "correu" });
+  const lvl = F("dropdown", { label: L("Nivell"), prefill: "nivell", options: [{ label: L("Bàsic") }, { label: L("Premium") }] });
+  const free = F("text", { label: L("Comentari") }); // no link name: never filled
+  const id = await seedForm("prefill-e2e", [nom, em, lvl, free], { consent: L("Accepto") });
+
+  await page.goto(WEB + "/ca/form/prefill-e2e?nom=Anna%20Puig&correu=anna@e2e.test&nivell=Inexistent&comentari=intr%C3%BAs&utm_source=correu");
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByLabel(/^Nom/)).toHaveValue("Anna Puig");
+  await expect(page.getByLabel(/^Correu/)).toHaveValue("anna@e2e.test");
+  await expect(page.getByLabel(/^Nivell/)).toHaveValue(""); // not an option: ignored
+  await expect(page.getByLabel(/^Comentari/)).toHaveValue(""); // not whitelisted: ignored
+
+  // it is only a starting point: the visitor changes it and the server checks what is sent
+  await page.getByLabel(/^Nom/).fill("Anna Puig Soler");
+  await page.getByLabel(/^Nivell/).selectOption("Premium");
+  await page.getByLabel("Accepto").check();
+  await page.getByRole("button", { name: "Envia" }).click();
+  await expect(page.getByRole("status")).toContainText("Gràcies");
+  const [sub] = await sql`select answers, utm from submissions where form_id = ${id}`;
+  const by = Object.fromEntries(sub.answers.map((a: { label: string; value: unknown }) => [a.label, a.value]));
+  expect(by).toMatchObject({ Nom: "Anna Puig Soler", Correu: "anna@e2e.test", Nivell: "Premium" });
+  expect(sub.utm).toMatchObject({ utm_source: "correu" }); // the campaign tags still work next to it
+
+  // the editor: the setting is on the field, and a clashing or reserved name is refused
+  await login(page);
+  await page.goto(`/admin/forms/${id}`);
+  const field = page.locator(".col-main > .card").nth(1); // the first field (card 0 is the name/slug card)
+  const key = field.getByLabel(/^Nom a l'enllaç per omplir-lo/);
+  await expect(key).toHaveValue("nom");
+  await key.fill("utm_source");
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("està reservat");
+  await key.fill("correu"); // already used by the second field
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("ja l'usa");
+  await key.fill("nom-complet");
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Desat");
+  const [row] = await sql`select fields from forms where id = ${id}`;
+  expect(row.fields[0].data.prefill).toBe("nom-complet");
+});
+
+test("calculated fields: build one in the editor, the visitor sees the total live, the server stores its own result, staff read it", async ({ page }) => {
+  const qty = F("number", { label: L("Entrades"), required: "yes" });
+  const level = F("dropdown", { label: L("Nivell"), options: [{ label: L("Bàsic"), points: "1" }, { label: L("Premium"), points: "4" }] });
+  const id = await seedForm("calcul-e2e", [qty, level], { consent: L("Accepto") });
+  await login(page);
+  await page.goto(`/admin/forms/${id}`);
+  const card = (n: number) => page.locator(".col-main > .card").nth(n + 1);
+
+  // the builder: a total of both questions, the second counting double, shown to the visitor
+  await page.locator(".add button", { hasText: "Resultat calculat" }).first().click();
+  const c = card(2);
+  await c.getByLabel("CA").first().fill("Total de punts");
+  await c.getByLabel("Qui ho veu").selectOption("yes");
+  await c.getByRole("button", { name: "+ Afegeix" }).click();
+  await c.locator(".nested .card").nth(0).getByLabel("Pregunta anterior").selectOption({ label: "Entrades" });
+  await c.getByRole("button", { name: "+ Afegeix" }).click();
+  const second = c.locator(".nested .card").nth(1);
+  await second.getByLabel("Pregunta anterior").selectOption({ label: "Nivell" });
+  await second.getByLabel(/^Pes/).fill("2");
+  await c.getByLabel(/^Sumar-hi un número fix/).fill("1");
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Desat");
+  const [row] = await sql`select fields from forms where id = ${id}`;
+  expect(row.fields[2].data).toMatchObject({ op: "sum", show: "yes", offset: "1", terms: [{ field: qty.id, weight: "" }, { field: level.id, weight: "2" }] });
+
+  // an unfinished one is refused, saying why
+  await page.locator(".add button", { hasText: "Resultat calculat" }).first().click();
+  await card(3).getByLabel("CA").first().fill("Buit");
+  await page.getByRole("button", { name: "Desa", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("tria almenys una pregunta que compti");
+  await page.goto(`/admin/forms/${id}`); // leave the unsaved one behind
+
+  // the visitor: the total follows the answers
+  await page.goto(WEB + "/ca/form/calcul-e2e");
+  await page.waitForLoadState("networkidle");
+  const out = page.locator("output");
+  await expect(out).toHaveText("1"); // nothing answered: the sum starts from the fixed number
+  await page.getByLabel(/^Entrades/).fill("3");
+  await page.getByLabel(/^Nivell/).selectOption("Premium");
+  await expect(out).toHaveText("12"); // 3 + 4*2 + 1
+  await page.getByLabel(/^Nivell/).selectOption("Bàsic");
+  await expect(out).toHaveText("6");
+  await page.getByLabel("Accepto").check();
+  await page.getByRole("button", { name: "Envia" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Gràcies" })).toBeVisible(); // the live total is an <output>, which is also a status
+
+  const [sub] = await sql`select answers from submissions where form_id = ${id}`;
+  expect(sub.answers.find((a: { type: string }) => a.type === "calculated")).toMatchObject({ label: "Total de punts", value: 6 });
+  await page.goto(`/admin/forms/${id}/submissions`);
+  await expect(page.getByText("Total de punts")).toBeVisible();
+  const csv = await (await page.request.get(`/admin/forms/${id}/export`)).text();
+  expect(csv).toContain("Total de punts");
+});
+
+test("response views: a table with a column per question, a board by a choice question, search and filter", async ({ page }) => {
+  const nom = F("text", { label: L("Nom"), required: "yes" });
+  const lvl = F("dropdown", { label: L("Nivell"), options: [{ label: L("Bàsic") }, { label: L("Premium") }] });
+  const id = await seedForm("vistes-e2e", [nom, lvl]);
+  const add = (who: string, level: string | null) => sql`insert into submissions (form_id, answers, locale) values (${id}, ${sql.json([
+    { id: nom.id, type: "text", label: "Nom", value: who }, ...(level ? [{ id: lvl.id, type: "dropdown", label: "Nivell", value: level }] : []),
+  ] as never)}, 'ca')`;
+  await add("Anna Vilà", "Premium"); await add("Pau Sàbat", "Bàsic"); await add("Eva Roca", null);
+  await login(page);
+  const base = `/admin/forms/${id}/submissions`;
+
+  // cards stay the default and still page in the database
+  await page.goto(base);
+  await expect(page.getByRole("link", { name: "Targetes" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByText("Anna Vilà")).toBeVisible();
+
+  // the table: one column per question
+  await page.getByRole("link", { name: "Taula" }).click();
+  await expect(page.getByRole("columnheader", { name: "Nivell" })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Anna Vilà.*Premium/ })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Eva Roca/ })).toBeVisible();
+
+  // search ignores accents; the filter keeps only the chosen value
+  await page.getByLabel("Cerca").fill("vila");
+  await page.getByRole("button", { name: "Filtra" }).click();
+  await expect(page.getByRole("row", { name: /Anna Vilà/ })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Pau Sàbat/ })).toHaveCount(0);
+  await page.getByRole("link", { name: "Treu la cerca" }).click();
+  await page.getByLabel("Pregunta").selectOption({ label: "Nivell" });
+  await page.getByLabel("Valor").fill("Bàsic");
+  await page.getByRole("button", { name: "Filtra" }).click();
+  await expect(page.getByRole("row", { name: /Pau Sàbat/ })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Anna Vilà/ })).toHaveCount(0);
+
+  // the board: a lane per option, plus those that did not answer; a card opens the response
+  await page.goto(base + "?view=board");
+  await expect(page.getByRole("region", { name: "Premium: 1" })).toContainText("Anna Vilà");
+  await expect(page.getByRole("region", { name: "Bàsic: 1" })).toContainText("Pau Sàbat");
+  await expect(page.getByRole("region", { name: "Sense resposta: 1" })).toContainText("Eva Roca");
+  await page.getByRole("region", { name: "Premium: 1" }).getByRole("link").click();
+  await expect(page.getByRole("heading", { name: /Respostes/ })).toBeVisible();
+  await expect(page.getByText("Anna Vilà")).toBeVisible();
+  await expect(page.getByText("Pau Sàbat")).toHaveCount(0);
+
+  // a form with no choice question explains why there is no board
+  const plain = await seedForm("vistes-sense-opcions", [F("text", { label: L("Nom") })]);
+  await page.goto(`/admin/forms/${plain}/submissions?view=board`);
+  await expect(page.getByText("no té cap pregunta d'opcions")).toBeVisible();
+});
+
+test("analytics: drop-off per question, time to complete and a chart per choice question, all anonymous", async ({ page }) => {
+  const nom = F("text", { label: L("Nom"), required: "yes" });
+  const lvl = F("dropdown", { label: L("Nivell"), options: [{ label: L("Bàsic") }, { label: L("Premium") }] });
+  const web = F("text", { label: L("Comentari") });
+  const id = await seedForm("estadistiques-e2e", [nom, lvl, web], { consent: L("Accepto") });
+
+  // visitor 1 gives up after the first question; visitor 2 goes all the way
+  await page.goto(WEB + "/ca/form/estadistiques-e2e");
+  await page.waitForLoadState("networkidle");
+  await page.getByLabel(/^Nom/).fill("Abandona");
+  await page.goto(WEB + "/ca/form/estadistiques-e2e");
+  await page.waitForLoadState("networkidle");
+  await page.getByLabel(/^Nom/).fill("Anna");
+  await page.getByLabel(/^Nivell/).focus(); // a person's hand reaches the question first (selectOption alone does not focus it)
+  await page.getByLabel(/^Nivell/).selectOption("Premium");
+  await page.getByLabel(/^Comentari/).fill("Hola");
+  await page.getByLabel("Accepto").check();
+  await page.getByRole("button", { name: "Envia" }).click();
+  await expect(page.getByRole("status")).toContainText("Gràcies");
+
+  // only totals per question are kept: no row says who, when or from where
+  await expect.poll(async () => JSON.stringify((await sql`select n from form_field_reach where form_id = ${id} order by n desc`).map((r) => r.n))).toBe("[2,1,1]");
+  const reach = Object.fromEntries((await sql`select field_id, n from form_field_reach where form_id = ${id}`).map((r) => [r.field_id as string, r.n as number]));
+  expect(reach[nom.id]).toBe(2);
+  expect(reach[lvl.id]).toBe(1);
+  const [sub] = await sql`select duration_seconds from submissions where form_id = ${id}`;
+  expect(sub.duration_seconds).toBeGreaterThanOrEqual(0);
+  expect(sub.duration_seconds).toBeLessThan(120);
+
+  // a request for a question that does not exist, or for a form that does not exist, stores nothing
+  const bad = await page.request.post(WEB + "/api/forms/estadistiques-e2e/reach", { data: { field: "no-existeix" } });
+  expect(bad.status()).toBe(204);
+  expect((await sql`select 1 from form_field_reach where form_id = ${id}`).length).toBe(3);
+
+  await login(page);
+  await page.goto(`/admin/forms/${id}/analytics`);
+  await expect(page.getByRole("heading", { name: "Estadístiques" })).toBeVisible();
+  await expect(page.getByText("han començat a omplir-lo")).toBeVisible();
+  await expect(page.getByText(/hi arriben · .* dels inicis · −50 % respecte l'anterior/)).toBeVisible(); // 2 reached Nom, 1 reached Nivell
+  await expect(page.getByRole("heading", { name: "Nivell" })).toBeVisible();
+  await expect(page.locator(".card", { hasText: "Premium" }).getByText("1 · 100 %")).toBeVisible();
+  await page.goto(`/admin/forms/${id}`);
+  await page.getByRole("link", { name: "Estadístiques" }).click();
+  await expect(page).toHaveURL(/\/analytics$/);
 });

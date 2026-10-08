@@ -13,6 +13,10 @@ export function FieldInput({ item, locale, value, error, onChange, onFile }: {
   item: Item; locale: Locale; value: Value; error?: string; onChange: (v: Value) => void; onFile: (f: File | null) => void;
 }) {
   const label = lt(item.data.label, locale);
+  if (item.type === "calculated") {
+    if (item.data.show !== "yes") return null; // a result only staff see
+    return <div data-field-id={item.id} className="field"><strong>{label}</strong> <output aria-live="polite">{typeof value === "string" ? value : ""}</output></div>;
+  }
   const hint = lt(item.data.help, locale) || undefined;
   const required = item.data.required === "yes";
   const common = { label, hint, error, required };
