@@ -36,7 +36,7 @@ jobs:
     outputs:
       tag: ${{ steps.meta.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha }}   # exactly the commit CI just tested
       - id: meta
@@ -65,7 +65,7 @@ jobs:
     environment: staging
     concurrency: deploy-staging
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
       - uses: ./.github/actions/deploy
@@ -86,7 +86,7 @@ jobs:
     environment: production          # add required reviewers to this environment in GitHub
     concurrency: deploy-production
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/deploy
         with:
           tag: ${{ inputs.tag }}
