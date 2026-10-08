@@ -8,13 +8,14 @@ const items = [
   { href: "/admin/account", label: "El meu compte", match: (p: string) => p.startsWith("/admin/account") },
 ];
 
-export function FormsNav({ crmUrl, webAdminUrl }: { crmUrl?: string; webAdminUrl?: string }) {
+export function FormsNav({ crmUrl, webAdminUrl, hubUrl }: { crmUrl?: string; webAdminUrl?: string; hubUrl?: string }) {
   const path = usePathname();
   return (
     <nav className="nav" aria-label="Principal">
       {items.map((i) => <Link key={i.href} href={i.href} aria-current={i.match(path) ? "page" : undefined}>{i.label}</Link>)}
       {crmUrl && <a href={`${crmUrl}/admin`}>CRM i eines internes →</a>}
       {webAdminUrl && <a href={`${webAdminUrl}/admin`}>Web i continguts →</a>}
+      {hubUrl && <a href={hubUrl}>Totes les eines →</a>}
     </nav>
   );
 }
