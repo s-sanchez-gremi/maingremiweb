@@ -1,9 +1,10 @@
-// Checks the digital signature of a sealed PDF WITHOUT the signing library: reads the byte range and the CMS blob by hand and verifies
+// Checks the digital signature of a sealed PDF WITHOUT the signing library: reads the byte range and the CMS blob by hand (pkijs) and verifies
 // the signature with node-forge. Used by the tests (so signing and checking can never share a mistake) and for "is this file still
 // exactly what was sealed?". It reports whether the signature is mathematically valid and whether it covers the WHOLE file; it does not
 // decide whether the certificate is trusted (a self-signed one never is).
-import { createHash, createPublicKey, createVerify } from "node:crypto";
-import forge from "node-forge";
+import { X509Certificate, createHash, createVerify } from "node:crypto";
+import * as asn1js from "asn1js";
+import * as pkijs from "pkijs";
 
 export type SealCheck = { signed: boolean; valid: boolean; coversWholeFile: boolean; signerName: string | null; reason?: string };
 
@@ -22,27 +23,28 @@ export function verifySeal(pdf: Buffer): SealCheck {
   if (!hex) return fail("the signature contents are not where the byte range says", { coversWholeFile });
   try {
     const der = Buffer.from(hex, "hex");
-    const asn1 = forge.asn1.fromDer(forge.util.createBuffer(der.toString("binary")), { parseAllBytes: false } as unknown as boolean); // the options object is supported at run time but missing from the type definitions: the reserved space after the signature is padding
-    const p7 = forge.pkcs7.messageFromAsn1(asn1) as forge.pkcs7.PkcsSignedData & { rawCapture: Record<string, unknown> };
-    const cert = (p7.certificates ?? [])[0] as forge.pki.Certificate | undefined;
+    const parsed = asn1js.fromBER(new Uint8Array(der).buffer as ArrayBuffer); // the reserved space after the signature is zero padding: only the first element counts
+    if (parsed.offset === -1) return fail("the signature could not be read", { coversWholeFile });
+    const sd = new pkijs.SignedData({ schema: new pkijs.ContentInfo({ schema: parsed.result }).content });
+    const cert = sd.certificates?.[0] as pkijs.Certificate | undefined;
+    const si = sd.signerInfos[0];
     if (!cert) return fail("no certificate in the signature", { coversWholeFile });
-    const raw = p7.rawCapture as { authenticatedAttributes?: forge.asn1.Asn1[]; signature?: string; digestAlgorithm?: string };
-    if (!raw.authenticatedAttributes || !raw.signature) return fail("the signature has no signed attributes", { coversWholeFile });
+    const signerName = (cert.subject.typesAndValues.find((t) => t.type === "2.5.4.3")?.value.valueBlock as { value?: string } | undefined)?.value ?? null;
+    if (!si?.signedAttrs || !si.signature) return fail("the signature has no signed attributes", { coversWholeFile });
 
     // 1. the message digest inside the signature must be the SHA-256 of exactly the bytes the byte range covers
     const signedBytes = Buffer.concat([pdf.subarray(a, a + b), pdf.subarray(c, c + d)]);
     const digest = createHash("sha256").update(signedBytes).digest();
-    const attr = raw.authenticatedAttributes.find((x) => forge.asn1.derToOid((x.value as forge.asn1.Asn1[])[0].value as string) === forge.pki.oids.messageDigest);
-    const stored = attr ? ((((attr.value as forge.asn1.Asn1[])[1].value as forge.asn1.Asn1[])[0].value as string) ?? "") : "";
-    if (Buffer.from(stored, "binary").compare(digest) !== 0) return fail("the document was changed after it was sealed", { coversWholeFile, signerName: cert.subject.getField("CN")?.value ?? null });
+    const attr = si.signedAttrs.attributes.find((x) => x.type === "1.2.840.113549.1.9.4");
+    const stored = attr ? Buffer.from((attr.values[0] as asn1js.OctetString).valueBlock.valueHexView) : Buffer.alloc(0);
+    if (stored.compare(digest) !== 0) return fail("the document was changed after it was sealed", { coversWholeFile, signerName });
 
-    // 2. the signature over the signed attributes must verify with the certificate's public key
-    const set = forge.asn1.create(forge.asn1.Class.UNIVERSAL, forge.asn1.Type.SET, true, raw.authenticatedAttributes);
-    // Node's own (OpenSSL) strict RSA check, NOT node-forge's: forge's PKCS#1 v1.5 verification has a published leniency flaw
-    // (GHSA-86w9-cpqp-85rv, no patched version). forge is only used here to read the file's structure.
-    const key = createPublicKey(forge.pki.publicKeyToPem(cert.publicKey as forge.pki.rsa.PublicKey));
-    const ok = createVerify("sha256").update(Buffer.from(forge.asn1.toDer(set).getBytes(), "binary")).verify(key, Buffer.from(raw.signature, "binary"));
-    return { signed: true, valid: ok, coversWholeFile, signerName: cert.subject.getField("CN")?.value ?? null, reason: ok ? undefined : "the signature does not match the certificate" };
+    // 2. the signature over the signed attributes (re-tagged from [0] to SET, as the standard says) must verify with the certificate's public key
+    const attrs = Buffer.from(si.signedAttrs.encodedValue);
+    attrs[0] = 0x31;
+    const key = new X509Certificate(Buffer.from(cert.toSchema(true).toBER(false))).publicKey;
+    const ok = createVerify("sha256").update(attrs).verify(key, Buffer.from(si.signature.valueBlock.valueHexView));
+    return { signed: true, valid: ok, coversWholeFile, signerName, reason: ok ? undefined : "the signature does not match the certificate" };
   } catch (e) {
     return fail(`the signature could not be read (${String((e as Error)?.message ?? e).slice(0, 100)})`, { coversWholeFile });
   }

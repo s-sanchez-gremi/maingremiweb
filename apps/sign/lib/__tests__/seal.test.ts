@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PDFDocument, StandardFonts, degrees } from "pdf-lib";
 import { auditBlocks, auditLabels, formatInstant, type AuditData } from "@apex/sign/audit";
-import { describeP12, generateSelfSigned } from "@apex/sign/cert";
+import { describeSeal, generateSelfSigned } from "@apex/sign/cert";
 import { applyMatrix, boxToDisplay, displayMatrix, displaySize, normalizeRotation } from "@apex/sign/placement";
 import { fitSize, safeText, sealDocument, wrapLines, type StampField } from "@apex/sign/stamp";
 import { verifySeal } from "@apex/sign/verify";
@@ -34,11 +34,11 @@ describe("the seal certificate", () => {
     expect(CERT.selfSigned).toBe(true);
     expect(CERT.fingerprint).toMatch(/^[0-9a-f]{64}$/);
     expect(CERT.notAfter.getTime() - Date.now()).toBeGreaterThan(2.9 * 365 * 86_400_000);
-    expect(describeP12(CERT.p12, "test-pass-phrase")).toMatchObject({ commonName: "Apex test seal", fingerprint: CERT.fingerprint, selfSigned: true });
+    expect(describeSeal(CERT.certPem, CERT.keyPem, "test-pass-phrase")).toMatchObject({ commonName: "Apex test seal", fingerprint: CERT.fingerprint, selfSigned: true });
   });
   it("is refused with a plain message when the passphrase is wrong or the file is not a certificate", () => {
-    expect(() => describeP12(CERT.p12, "wrong")).toThrow(/cannot be opened/);
-    expect(() => describeP12(Buffer.from("not a p12 file at all"), "x")).toThrow(/cannot be opened/);
+    expect(() => describeSeal(CERT.certPem, CERT.keyPem, "wrong")).toThrow(/cannot be opened/);
+    expect(() => describeSeal("not a cert", "not a key", "x")).toThrow(/cannot be opened/);
   });
 });
 
@@ -135,7 +135,7 @@ describe("sealing a document", () => {
 
   it("draws the values, appends the audit page and signs the whole file", async () => {
     const original = await sourcePdf();
-    const sealed = await sealDocument({ original, fields, audit: audit({ signers: [{ ...audit().signers[0], name: "Anna Puig Łukasz" }] }), p12: CERT.p12, passphrase: CERT.passphrase });
+    const sealed = await sealDocument({ original, fields, audit: audit({ signers: [{ ...audit().signers[0], name: "Anna Puig Łukasz" }] }), certPem: CERT.certPem, keyPem: CERT.keyPem, passphrase: CERT.passphrase });
     expect(sealed.subarray(0, 5).toString()).toBe("%PDF-");
     expect(sealed.length).toBeGreaterThan(original.length);
     const doc = await PDFDocument.load(sealed);
@@ -148,7 +148,7 @@ describe("sealing a document", () => {
   });
 
   it("is refused by the independent check the moment one byte of the document changes", async () => {
-    const sealed = await sealDocument({ original: await sourcePdf(), fields, audit: audit(), p12: CERT.p12, passphrase: CERT.passphrase });
+    const sealed = await sealDocument({ original: await sourcePdf(), fields, audit: audit(), certPem: CERT.certPem, keyPem: CERT.keyPem, passphrase: CERT.passphrase });
     expect(verifySeal(sealed).valid).toBe(true);
     // the signature covers everything except its own reserved space (/Contents): pick bytes from the two covered ranges
     const [, , b, c] = /\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]/.exec(sealed.toString("latin1"))!.map(Number);
@@ -161,7 +161,7 @@ describe("sealing a document", () => {
   });
 
   it("shows that something was added after the seal, even though the signature itself is intact", async () => {
-    const sealed = await sealDocument({ original: await sourcePdf(), fields, audit: audit(), p12: CERT.p12, passphrase: CERT.passphrase });
+    const sealed = await sealDocument({ original: await sourcePdf(), fields, audit: audit(), certPem: CERT.certPem, keyPem: CERT.keyPem, passphrase: CERT.passphrase });
     const extended = Buffer.concat([sealed, Buffer.from("\n%% a later edit\n")]);
     expect(verifySeal(extended)).toMatchObject({ valid: true, coversWholeFile: false });
   });
@@ -172,13 +172,13 @@ describe("sealing a document", () => {
 
   it("fails clearly, and does not produce a file, when the certificate cannot be opened or an image is broken", async () => {
     const original = await sourcePdf();
-    await expect(sealDocument({ original, fields: [], audit: audit(), p12: CERT.p12, passphrase: "wrong" })).rejects.toThrow();
-    await expect(sealDocument({ original, fields: [{ page: 1, x: 10, y: 10, w: 20, h: 8, kind: "signature", text: null, png: Buffer.from("not a png") }], audit: audit(), p12: CERT.p12, passphrase: CERT.passphrase })).rejects.toThrow();
+    await expect(sealDocument({ original, fields: [], audit: audit(), certPem: CERT.certPem, keyPem: CERT.keyPem, passphrase: "wrong" })).rejects.toThrow();
+    await expect(sealDocument({ original, fields: [{ page: 1, x: 10, y: 10, w: 20, h: 8, kind: "signature", text: null, png: Buffer.from("not a png") }], audit: audit(), certPem: CERT.certPem, keyPem: CERT.keyPem, passphrase: CERT.passphrase })).rejects.toThrow();
   });
 
   it("spills a long record onto more audit pages instead of cutting it", async () => {
     const many = Array.from({ length: 60 }, (_, i) => ({ at: new Date(Date.UTC(2026, 9, 21, 10, 0, i)), kind: "opened", signer: `Signant ${i}` }));
-    const sealed = await sealDocument({ original: await sourcePdf(), fields: [], audit: audit({ events: many }), p12: CERT.p12, passphrase: CERT.passphrase });
+    const sealed = await sealDocument({ original: await sourcePdf(), fields: [], audit: audit({ events: many }), certPem: CERT.certPem, keyPem: CERT.keyPem, passphrase: CERT.passphrase });
     expect((await PDFDocument.load(sealed)).getPageCount()).toBeGreaterThanOrEqual(4);
     expect(verifySeal(sealed).valid).toBe(true);
   });

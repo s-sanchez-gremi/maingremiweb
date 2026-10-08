@@ -1,9 +1,9 @@
 // Makes the certificate that seals finished documents, for the day this app runs on a real server.
 //
-//   pnpm --filter sign seal:generate [--name "Gremi de Editors"] [--org "Gremi"] [--years 3] [--out seal.p12]
+//   pnpm --filter sign seal:generate [--name "Gremi de Editors"] [--org "Gremi"] [--years 3] [--out seal]
 //
-// Prints the two lines to put in the server's environment (SIGN_SEAL_P12, SIGN_SEAL_PASSPHRASE). Nothing is stored anywhere unless
-// --out is given (then the .p12 is written there too: keep it out of git and out of the repository folder).
+// Prints the three lines to put in the server's environment (SIGN_SEAL_CERT, SIGN_SEAL_KEY, SIGN_SEAL_PASSPHRASE). Nothing is stored anywhere unless
+// --out is given (then seal.crt.pem and seal.key.pem are written there too: keep it out of git and out of the repository folder).
 //
 // This is a SELF-SIGNED certificate: it proves a sealed document has not changed since it was sealed (any edit breaks the signature),
 // not who sealed it, so Acrobat will say "validity unknown". A certificate bought from a recognised authority (an organisation
@@ -22,7 +22,8 @@ const c = generateSelfSigned({ commonName: arg("name", "Apex Signatures"), organ
 
 console.log(`Seal certificate made: "${c.commonName}", valid until ${c.notAfter.toISOString().slice(0, 10)}, SHA-256 ${c.fingerprint}\n`);
 console.log("Put these two lines in the server's environment (and nowhere else; the passphrase is shown only now):\n");
-console.log(`SIGN_SEAL_P12=${c.p12.toString("base64")}`);
+console.log(`SIGN_SEAL_CERT=${Buffer.from(c.certPem).toString("base64")}`);
+console.log(`SIGN_SEAL_KEY=${Buffer.from(c.keyPem).toString("base64")}`);
 console.log(`SIGN_SEAL_PASSPHRASE=${passphrase}\n`);
 const out = arg("out", "");
-if (out) { writeFileSync(out, c.p12, { mode: 0o600 }); console.log(`The .p12 file was also written to ${out}. Keep it out of git.`); }
+if (out) { writeFileSync(`${out}.crt.pem`, c.certPem); writeFileSync(`${out}.key.pem`, c.keyPem, { mode: 0o600 }); console.log(`The files were also written to ${out}.crt.pem and ${out}.key.pem. Keep them out of git.`); }

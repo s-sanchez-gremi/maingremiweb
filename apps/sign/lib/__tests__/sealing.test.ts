@@ -140,7 +140,8 @@ describe("when sealing goes wrong", () => {
 
   it("retries a failure that may pass, with a growing delay, and gives up visibly after the last try", async () => {
     const { id } = await completedRequest(userId, [{ name: "Anna", email: `a-${uniq()}@exemple.test` }]);
-    vi.stubEnv("SIGN_SEAL_P12", Buffer.from("this is not a certificate").toString("base64"));
+    vi.stubEnv("SIGN_SEAL_CERT", Buffer.from("this is not a certificate").toString("base64"));
+    vi.stubEnv("SIGN_SEAL_KEY", Buffer.from("this is not a key").toString("base64"));
     vi.stubEnv("SIGN_SEAL_PASSPHRASE", "whatever");
     const t0 = new Date();
     const delays: number[] = [];
@@ -173,7 +174,8 @@ describe("when sealing goes wrong", () => {
 
   it("uses the organisation's certificate when one is configured, and refuses the development one in a real environment", async () => {
     const real = generateSelfSigned({ commonName: "Gremi test seal", passphrase: "organisation-passphrase" });
-    vi.stubEnv("SIGN_SEAL_P12", real.p12.toString("base64"));
+    vi.stubEnv("SIGN_SEAL_CERT", Buffer.from(real.certPem).toString("base64"));
+    vi.stubEnv("SIGN_SEAL_KEY", Buffer.from(real.keyPem).toString("base64"));
     vi.stubEnv("SIGN_SEAL_PASSPHRASE", "organisation-passphrase");
     const { id } = await completedRequest(userId, [{ name: "Anna", email: `a-${uniq()}@exemple.test` }]);
     await sealRequest(id);
@@ -184,7 +186,7 @@ describe("when sealing goes wrong", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("APP_ENV", "production");
     const { loadSealCredentials } = await import("@/lib/seal-config");
-    expect(() => loadSealCredentials()).toThrow(/SIGN_SEAL_P12 is not set/);
+    expect(() => loadSealCredentials()).toThrow(/SIGN_SEAL_CERT \/ SIGN_SEAL_KEY is not set/);
   });
 });
 

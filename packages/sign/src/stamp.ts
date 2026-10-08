@@ -3,14 +3,14 @@
 // Standard PDF fonts only (no font files to ship): text that they cannot show is replaced by "?" rather than failing the sealing.
 import { PDFDocument, StandardFonts, concatTransformationMatrix, popGraphicsState, pushGraphicsState, rgb, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
 import { pdflibAddPlaceholder } from "@signpdf/placeholder-pdf-lib";
-import { P12Signer } from "@signpdf/signer-p12";
+import { PemSigner } from "./cms-signer";
 import signpdf from "@signpdf/signpdf";
 import { auditBlocks, auditLabels, type AuditData } from "./audit";
 import type { FieldKind } from "./geometry";
 import { boxToDisplay, displayMatrix, displaySize, normalizeRotation } from "./placement";
 
 export type StampField = { page: number; x: number; y: number; w: number; h: number; kind: FieldKind; text: string | null; png: Buffer | null };
-export type SealInput = { original: Buffer; fields: StampField[]; audit: AuditData; p12: Buffer; passphrase: string; signingTime?: Date };
+export type SealInput = { original: Buffer; fields: StampField[]; audit: AuditData; certPem: string; keyPem: string; passphrase: string; signingTime?: Date };
 
 const INK = rgb(0.102, 0.09, 0.082), GREY = rgb(0.3, 0.28, 0.255);
 const A4 = { w: 595.28, h: 841.89 }, MARGIN = 50;
@@ -136,5 +136,5 @@ export async function sealDocument(i: SealInput): Promise<Buffer> {
   const signingTime = i.signingTime ?? new Date();
   pdflibAddPlaceholder({ pdfDoc: doc, reason: "Apex electronic signature record", contactInfo: "", name: "Apex", location: "", signingTime, signatureLength: 16384, appName: "Apex Signatures" });
   const unsigned = Buffer.from(await doc.save({ useObjectStreams: false })); // the signature library needs the classic file layout
-  return signpdf.sign(unsigned, new P12Signer(i.p12, { passphrase: i.passphrase }), signingTime);
+  return signpdf.sign(unsigned, new PemSigner(i.certPem, i.keyPem, i.passphrase), signingTime);
 }

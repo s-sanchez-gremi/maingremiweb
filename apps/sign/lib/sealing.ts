@@ -72,7 +72,7 @@ export async function sealRequest(id: string, opts: { now?: Date; credentials?: 
     events: [...events.map((e) => ({ at: e.at, kind: e.kind, signer: e.signerId ? nameOf.get(e.signerId) ?? null : null })), { at: now, kind: "sealed", signer: null }],
   };
 
-  const sealed = await sealDocument({ original, fields: stamp, audit, p12: creds.p12, passphrase: creds.passphrase, signingTime: now });
+  const sealed = await sealDocument({ original, fields: stamp, audit, certPem: creds.certPem, keyPem: creds.keyPem, passphrase: creds.passphrase, signingTime: now });
   const check = verifySeal(sealed); // never store a seal nobody has checked
   if (!check.valid || !check.coversWholeFile) throw new Error(`El segell generat no es pot verificar (${check.reason ?? "no cobreix tot el fitxer"})`);
 
