@@ -145,6 +145,62 @@ describe("an event registration", () => {
     expect((await db.select().from(eventAttendance).where(eq(eventAttendance.eventId, ev.id)))[0].status).toBe("invited");
   });
 
+  describe("capacity", () => {
+    const withCapacity = async (n: number | null) => (await db.insert(events).values({ name: "Aforament " + crypto.randomUUID().slice(0, 4), startsOn: "2026-11-20", capacity: n }).returning())[0];
+    const seats = async (eventId: string) => (await db.select().from(eventAttendance).where(eq(eventAttendance.eventId, eventId))).filter((r) => ["confirmed", "attended"].includes(r.status)).length;
+
+    it("stops at the capacity: the next registration fails with a reason and leaves no stray person behind", async () => {
+      const ev = await withCapacity(2), form = await make(routing(ev.id));
+      await routeSubmission(form, await respond(form, { name: "Una", email: mail() }));
+      await routeSubmission(form, await respond(form, { name: "Dues", email: mail() }));
+      const late = mail();
+      await expect(routeSubmission(form, await respond(form, { name: "Tercera", email: late }))).rejects.toThrow(/ja és ple \(2 places\)/);
+      expect(await personByMail(late)).toBeUndefined();
+      expect(await seats(ev.id)).toBe(2);
+      await db.update(events).set({ capacity: 3 }).where(eq(events.id, ev.id)); // staff raise it and retry
+      await routeSubmission(form, await respond(form, { name: "Tercera", email: late }));
+      expect(await seats(ev.id)).toBe(3);
+    });
+    it("a person who is already registered is not refused when the event is full, and nothing changes for them", async () => {
+      const ev = await withCapacity(1), form = await make(routing(ev.id)), address = mail();
+      await routeSubmission(form, await respond(form, { name: "Primera", email: address }));
+      const again = await routeSubmission(form, await respond(form, { name: "Primera", email: address.toUpperCase() }));
+      expect(again.map((x) => x.action)).toEqual(["unchanged", "unchanged"]);
+      expect(await seats(ev.id)).toBe(1);
+    });
+    it("an invitation does not take a seat, but confirming one does", async () => {
+      const ev = await withCapacity(1), invite = await make(routing(ev.id, "invited")), confirm = await make(routing(ev.id));
+      for (let i = 0; i < 3; i++) await routeSubmission(invite, await respond(invite, { name: "Interès " + i, email: mail() })); // no seats used
+      expect(await seats(ev.id)).toBe(0);
+      const address = mail();
+      await routeSubmission(invite, await respond(invite, { name: "Convidada", email: address }));
+      await routeSubmission(confirm, await respond(confirm, { name: "Ocupa", email: mail() }));
+      await expect(routeSubmission(confirm, await respond(confirm, { name: "Convidada", email: address }))).rejects.toThrow(/ja és ple/); // the upgrade needs a seat
+      expect((await db.select().from(eventAttendance).where(eq(eventAttendance.personId, (await personByMail(address)).id)))[0].status).toBe("invited");
+    });
+    it("without a capacity there is no limit", async () => {
+      const ev = await withCapacity(null), form = await make(routing(ev.id));
+      for (let i = 0; i < 4; i++) await routeSubmission(form, await respond(form, { name: "Lliure " + i, email: mail() }));
+      expect(await seats(ev.id)).toBe(4);
+    });
+    it("registrations processed at the same moment never go over the capacity", async () => {
+      const ev = await withCapacity(2), form = await make(routing(ev.id));
+      const subs = await Promise.all(Array.from({ length: 6 }, (_, i) => respond(form, { name: "Alhora " + i, email: mail() })));
+      const results = await Promise.allSettled(subs.map((s) => routeSubmission(form, s)));
+      expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(2);
+      expect(results.filter((r) => r.status === "rejected").every((r) => /ja és ple/.test(String((r as PromiseRejectedResult).reason?.message)))).toBe(true);
+      expect(await seats(ev.id)).toBe(2);
+    });
+    it("through the scheduler a full event fails the response at once with the reason, and a retry works after raising it", async () => {
+      const ev = await withCapacity(1), form = await make(routing(ev.id));
+      const a = await respond(form, { name: "Dins", email: mail() }, { routingStatus: "pending" }), b = await respond(form, { name: "Fora", email: mail() }, { routingStatus: "pending" });
+      await processFormRouting();
+      const [ra] = await db.select().from(submissions).where(eq(submissions.id, a.id)), [rb] = await db.select().from(submissions).where(eq(submissions.id, b.id));
+      expect([ra.routingStatus, rb.routingStatus]).toEqual(["done", "failed"]);
+      expect(rb.routingError).toContain("ja és ple");
+    });
+  });
+
   it("an event that no longer exists is a clear problem for staff, not a silent loss", async () => {
     const ev = await event();
     const form = await make(routing(ev.id));

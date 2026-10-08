@@ -5,7 +5,7 @@
 //   - an existing person (found by email) is only COMPLETED (blanks filled), never overwritten: the CRM is the source of truth;
 //   - a record is created once per response (its external_ref is "form:<response id>"), so a retry after a crash never duplicates it;
 //   - a mapping or data problem fails at once with a message staff can read; an unexpected error is retried up to 3 times.
-import { and, eq, isNull, notInArray, sql } from "drizzle-orm";
+import { and, count, eq, inArray, isNull, notInArray, sql } from "drizzle-orm";
 import { db } from "@apex/db";
 import { clients, eventAttendance, events, forms, jobSeekers, labourCases, people, submissions, trainingCourses } from "@apex/db/schema";
 import { answerText } from "@apex/forms/answer-text";
@@ -57,23 +57,53 @@ async function upsertPerson(v: PersonValues, form: FormRow, actor: Actor): Promi
   return { entity: "people", id, label: v.name, action: "created" };
 }
 
+// A seat is taken by a confirmed or attended person (an invitation is not a promise of a seat). The event's capacity is checked under a lock per event, so
+// registrations processed at the same moment can never go over it; a full event fails the response at once, with a reason, and staff can retry after raising the capacity.
+const TAKES_A_SEAT = ["confirmed", "attended"] as const;
+const full = (name: string, capacity: number) => new RoutingError(`L'esdeveniment «${name}» ja és ple (${capacity} places). Amplia l'aforament a l'esdeveniment i torna-ho a provar`);
+async function seatsTaken(eventId: string): Promise<number> {
+  const [r] = await db.select({ n: count() }).from(eventAttendance).where(and(eq(eventAttendance.eventId, eventId), inArray(eventAttendance.status, [...TAKES_A_SEAT])));
+  return r.n;
+}
+/** Runs `work` once a seat is guaranteed. Nothing is checked for an invitation or an event without a capacity. */
+async function withSeat<T>(ev: { id: string; name: string; capacity: number | null }, status: string, work: () => Promise<T>): Promise<T> {
+  if (status === "invited" || !ev.capacity) return work();
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${"event-seats:" + ev.id}))`); // held until this block ends, so the next registration counts the seat taken here
+    if ((await seatsTaken(ev.id)) >= ev.capacity!) throw full(ev.name, ev.capacity!);
+    return work(); // saveRecord commits on its own connection before the lock is released
+  });
+}
+/** Before the person is created: a full event refuses a new registration without leaving a stray person behind. A person already registered is not a new seat. */
+async function ensureRoom(eventId: string, email: string, status: string): Promise<void> {
+  const [ev] = await db.select({ name: events.name, capacity: events.capacity }).from(events).where(eq(events.id, eventId)).limit(1);
+  if (!ev || !ev.capacity || status === "invited") return; // a missing event is reported by ensureAttendance
+  const address = email.trim().toLowerCase();
+  const [known] = address ? await db.select({ id: eventAttendance.id }).from(eventAttendance).innerJoin(people, eq(people.id, eventAttendance.personId))
+    .where(and(eq(eventAttendance.eventId, eventId), sql`lower(btrim(${people.email})) = ${address}`)).limit(1) : [];
+  if (!known && (await seatsTaken(eventId)) >= ev.capacity) throw full(ev.name, ev.capacity);
+}
+
 /** Signs the person up to the event: once per person and event (a repeat changes nothing, except an invitation becoming a confirmation). */
 async function ensureAttendance(eventId: string, person: Routed, companyName: string, status: string, subId: string, form: FormRow, actor: Actor): Promise<Routed> {
-  const [ev] = await db.select({ id: events.id, name: events.name }).from(events).where(eq(events.id, eventId)).limit(1);
+  const [ev] = await db.select({ id: events.id, name: events.name, capacity: events.capacity }).from(events).where(eq(events.id, eventId)).limit(1);
   if (!ev) throw new RoutingError("L'esdeveniment triat ja no existeix: tria'n un altre al formulari i torna-ho a provar");
   const e = entity("attendance");
   const [existing] = await db.select().from(eventAttendance).where(and(eq(eventAttendance.eventId, eventId), eq(eventAttendance.personId, person.id))).limit(1);
   if (existing) {
     if (existing.status === "invited" && status !== "invited") {
-      await saveRecord(e, existing.id, (n) => (n === "status" ? status : undefined), actor);
+      await withSeat(ev, status, () => saveRecord(e, existing.id, (n) => (n === "status" ? status : undefined), actor));
       return { entity: "attendance", id: existing.id, label: ev.name, action: "updated" };
     }
     return { entity: "attendance", id: existing.id, label: ev.name, action: "unchanged" };
   }
   const companyId = await companyIdByName(companyName);
   const values: Record<string, string> = { eventId, personId: person.id, companyId: companyId ?? "", status, notes: `Inscripció pel formulari «${form.name}»` };
-  const id = await saveRecord(e, null, (n) => values[n], actor);
-  await db.update(eventAttendance).set({ externalRef: `form:${subId}` }).where(eq(eventAttendance.id, id));
+  const id = await withSeat(ev, status, async () => {
+    const created = await saveRecord(e, null, (n) => values[n], actor);
+    await db.update(eventAttendance).set({ externalRef: `form:${subId}` }).where(eq(eventAttendance.id, created));
+    return created;
+  });
   return { entity: "attendance", id, label: ev.name, action: "created" };
 }
 
@@ -105,6 +135,7 @@ export async function routeSubmission(form: FormRow, sub: Sub): Promise<Routed[]
     case "person":
       return [await upsertPerson(person(), form, actor)];
     case "attendance": {
+      await ensureRoom(fixedValue(routing, "eventId"), text("email"), fixedValue(routing, "status") || "confirmed");
       const p = await upsertPerson(person(), form, actor);
       return [p, await ensureAttendance(fixedValue(routing, "eventId"), p, text("company"), fixedValue(routing, "status") || "confirmed", sub.id, form, actor)];
     }
