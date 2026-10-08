@@ -16,6 +16,10 @@ const nextConfig: NextConfig = {
   ...(process.env.NEXT_STANDALONE ? { output: "standalone" as const, outputFileTracingRoot: resolve(process.cwd(), "../..") } : {}),
   // The e2e run builds into its own folder so its cache can never mix with dev or production data.
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  // The bare address has no page of its own: send staff to the CRM.
+  async redirects() {
+    return [{ source: "/", destination: "/admin", permanent: false }];
+  },
   async headers() {
     return [{
       source: "/:path*",

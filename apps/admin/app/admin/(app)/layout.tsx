@@ -29,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <img src="/brand/gremi-logo.png" alt="GREMI" />
           <span>Web</span>
         </Link>
-        <AdminNav isAdmin={isAdmin} otherAppUrl={process.env.CRM_URL} openErrors={openErrors} />
+        <AdminNav isAdmin={isAdmin} otherAppUrl={process.env.CRM_URL} siteUrl={process.env.SITE_URL} openErrors={openErrors} />
         <div className="who">
           <span className="avatar" aria-hidden="true">{initials(user)}</span>
           <span className="who-text">
