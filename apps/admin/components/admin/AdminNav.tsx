@@ -22,7 +22,7 @@ const groups: { title: string; items: Item[] }[] = [
   ] },
 ];
 
-export function AdminNav({ isAdmin, otherAppUrl, siteUrl, openErrors }: { isAdmin: boolean; otherAppUrl?: string; siteUrl?: string; openErrors: number }) {
+export function AdminNav({ isAdmin, otherAppUrl, siteUrl, hubUrl, openErrors }: { isAdmin: boolean; otherAppUrl?: string; siteUrl?: string; hubUrl?: string; openErrors: number }) {
   const path = usePathname();
   const q = useSearchParams();
   return (
@@ -55,6 +55,7 @@ export function AdminNav({ isAdmin, otherAppUrl, siteUrl, openErrors }: { isAdmi
       </nav>
       <div className="nav-out">
         <a href={`${(siteUrl ?? "").replace(/\/$/, "")}/ca`}><Icon name="external" />Veure la web</a>
+        {hubUrl && <a href={hubUrl}><Icon name="apps" />Portal (Hub)</a>}
         {otherAppUrl && <a href={`${otherAppUrl}/admin`}><Icon name="apps" />CRM i eines internes</a>}
       </div>
     </>

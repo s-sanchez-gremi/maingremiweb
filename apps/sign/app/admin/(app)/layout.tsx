@@ -12,12 +12,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const crmUrl = process.env.CRM_URL;
   const formsUrl = process.env.FORMS_URL;
   const webAdminUrl = process.env.WEB_ADMIN_URL;
+  const hubUrl = process.env.HUB_URL;
   return (
     <div className="shell">
       <aside className="side">
         <div>
           <div className="logo">APEX <span style={{ fontSize: 12, letterSpacing: 2 }}>SIGNATURES</span></div>
           <nav className="nav" aria-label="Menú principal">
+            {hubUrl && <a href={hubUrl}>← Portal (Hub)</a>}
             <a href="/admin">Tauler</a>
             {crmUrl && <a href={`${crmUrl}/admin`}>CRM ↗</a>}
             {formsUrl && <a href={`${formsUrl}/admin`}>Formularis ↗</a>}
