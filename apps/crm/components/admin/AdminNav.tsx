@@ -12,7 +12,7 @@ const items = [
   { href: "/admin/account", label: "El meu compte", match: (p: string) => p.startsWith("/admin/account") },
 ];
 
-export function AdminNav({ isAdmin, otherAppUrl, formsUrl }: { isAdmin: boolean; otherAppUrl?: string; formsUrl?: string }) {
+export function AdminNav({ isAdmin, otherAppUrl, formsUrl, hubUrl }: { isAdmin: boolean; otherAppUrl?: string; formsUrl?: string; hubUrl?: string }) {
   const path = usePathname();
   return (
     <nav className="nav" aria-label="Principal">
@@ -21,6 +21,7 @@ export function AdminNav({ isAdmin, otherAppUrl, formsUrl }: { isAdmin: boolean;
       ))}
       {formsUrl && <a href={`${formsUrl}/admin/forms`}>Formularis ↗</a>}
       {otherAppUrl && <a href={`${otherAppUrl}/admin`}>Web i continguts →</a>}
+      {hubUrl && <a href={hubUrl}>Totes les eines →</a>}
     </nav>
   );
 }

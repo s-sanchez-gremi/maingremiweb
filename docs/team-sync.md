@@ -181,6 +181,15 @@ A sixth app, `apps/hub`, is a start page linking to every portal (CMS admin, CRM
 
 Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 
+## For Joan Marc (apps/admin) and his Claude — notice of 2026-10-08 from Sam (menus link back to the Hub)
+
+The menus of the CMS admin, CRM and Forms apps get a "Totes les eines" link to the Hub start page. In your area it is **one line** in `apps/admin/components/admin/AdminNav.tsx` plus the `hubUrl` prop in `apps/admin/app/admin/(app)/layout.tsx`. Do once, after merging `main`:
+
+1. Add `HUB_URL=http://localhost:3005` to your `.env` (it is in `.env.example`). Empty means no link, so nothing breaks without it.
+2. Deployed environments: `HUB_URL=https://hub.<domain>` in `.env` (see `deploy/ionos/*.env.example`), then a normal release of the three apps; no migration, no grants change.
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
 ## For Sam (apps/crm) and his Claude
 
 Notice of 2026-10-02 from Joan Marc (website admin redesign):
