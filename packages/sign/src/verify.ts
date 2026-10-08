@@ -2,7 +2,7 @@
 // the signature with node-forge. Used by the tests (so signing and checking can never share a mistake) and for "is this file still
 // exactly what was sealed?". It reports whether the signature is mathematically valid and whether it covers the WHOLE file; it does not
 // decide whether the certificate is trusted (a self-signed one never is).
-import { createHash } from "node:crypto";
+import { createHash, createPublicKey, createVerify } from "node:crypto";
 import forge from "node-forge";
 
 export type SealCheck = { signed: boolean; valid: boolean; coversWholeFile: boolean; signerName: string | null; reason?: string };
@@ -38,9 +38,10 @@ export function verifySeal(pdf: Buffer): SealCheck {
 
     // 2. the signature over the signed attributes must verify with the certificate's public key
     const set = forge.asn1.create(forge.asn1.Class.UNIVERSAL, forge.asn1.Type.SET, true, raw.authenticatedAttributes);
-    const md = forge.md.sha256.create();
-    md.update(forge.asn1.toDer(set).getBytes());
-    const ok = (cert.publicKey as forge.pki.rsa.PublicKey).verify(md.digest().getBytes(), raw.signature);
+    // Node's own (OpenSSL) strict RSA check, NOT node-forge's: forge's PKCS#1 v1.5 verification has a published leniency flaw
+    // (GHSA-86w9-cpqp-85rv, no patched version). forge is only used here to read the file's structure.
+    const key = createPublicKey(forge.pki.publicKeyToPem(cert.publicKey as forge.pki.rsa.PublicKey));
+    const ok = createVerify("sha256").update(Buffer.from(forge.asn1.toDer(set).getBytes(), "binary")).verify(key, Buffer.from(raw.signature, "binary"));
     return { signed: true, valid: ok, coversWholeFile, signerName: cert.subject.getField("CN")?.value ?? null, reason: ok ? undefined : "the signature does not match the certificate" };
   } catch (e) {
     return fail(`the signature could not be read (${String((e as Error)?.message ?? e).slice(0, 100)})`, { coversWholeFile });
