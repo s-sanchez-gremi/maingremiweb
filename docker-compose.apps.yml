@@ -1,0 +1,59 @@
+# Every app in Docker for local use, built from this checkout (the same image as production).
+#   cp .env.example .env
+#   docker compose -f docker-compose.yml -f docker-compose.apps.yml up -d --build
+# Then: website :3000, CRM + workspace + portal :3001, forms :3002, CMS admin :3003, signatures :3004, hub :3005,
+# mail :8025. Browser-facing addresses come from .env (localhost, or your Tailscale name); the addresses the
+# containers use between themselves are set below. Create the first admin by adding INITIAL_ADMIN_EMAIL /
+# INITIAL_ADMIN_PASSWORD (min 12 chars) to .env before the first start. Do not run `pnpm dev` at the same time (same ports).
+x-app: &app
+  image: apex-local
+  env_file: .env
+  restart: unless-stopped
+  depends_on:
+    migrate: { condition: service_completed_successfully }
+  environment: &appenv
+    APP_ENV: local
+    DATABASE_URL: postgres://apex:apex@db:5432/apex
+    S3_ENDPOINT: http://s3:9090
+    SMTP_URL: smtp://mail:1025
+    FORMS_INTERNAL_URL: http://forms:3002
+    WEB_INTERNAL_URL: http://web:3000
+services:
+  migrate:
+    build: .
+    image: apex-local
+    command: ["migrate"]
+    env_file: .env
+    environment: *appenv
+    depends_on:
+      db: { condition: service_healthy }
+  web:
+    <<: *app
+    command: ["start-web"]
+    environment: { <<: *appenv, PORT: "3000" }
+    ports: ["3000:3000"]
+  crm:
+    <<: *app
+    command: ["start-crm"]
+    environment: { <<: *appenv, PORT: "3001" }
+    ports: ["3001:3001"]
+  forms:
+    <<: *app
+    command: ["start-forms"]
+    environment: { <<: *appenv, PORT: "3002" }
+    ports: ["3002:3002"]
+  admin:
+    <<: *app
+    command: ["start-admin"]
+    environment: { <<: *appenv, PORT: "3003" }
+    ports: ["3003:3003"]
+  sign:
+    <<: *app
+    command: ["start-sign"]
+    environment: { <<: *appenv, PORT: "3004" }
+    ports: ["3004:3004"]
+  hub:
+    <<: *app
+    command: ["start-hub"]
+    environment: { <<: *appenv, PORT: "3005" }
+    ports: ["3005:3005"]
