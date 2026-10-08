@@ -17,7 +17,7 @@ Apex already has its own form builder (phase 5 in `CLAUDE.md`): 11 field types, 
 ## Wave 3: insight
 9. **Done (migration 0026): response analytics** (*Estadístiques* page): completion, time to complete, drop-off per question, charts per choice question. Original wording: **Response analytics:** drop-off per field, time to complete, charts per choice field (reuse the workspace chart view).
 10. **Response views.** **Done (no migration):** the responses page has *Targetes* (as before), *Taula* (a column per question), *Tauler* (a lane per option of a choice question) plus search and a filter; built inside the Forms app because apps never import each other (the charts are on the *Estadístiques* page). Original wording: a form's answers as a workspace table, board or chart.
-11. **XLSX export**, only if CSV proves insufficient for staff.
+11. **XLSX export.** **Done (no migration, no dependency):** a hand-written .xlsx writer next to the CSV export.
 
 ## Wave 4: only on a concrete need
 Payments (test mode first), signed document flow, per-form theming limited to brand tokens, team comments on responses.

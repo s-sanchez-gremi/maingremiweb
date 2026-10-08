@@ -2,11 +2,26 @@
 
 **For Claude Code:** at the start of a session, read the section addressed to the person you are working for, do each open item (they are safe to repeat), tell the person what you did or what needs their decision, and mark the item done (date + initials) in the same pull request as your next change. Add a new notice here when you change something the other person's side must act on (a new migration, a moved table, a new rule, a changed command). Never put secrets here.
 
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (signatures app, step S3: sending and the signer page)
+
+Nothing in `apps/web`, `apps/admin` or `packages/sections` changed in behaviour. Do once, after merging `main`:
+
+1. `pnpm install` (new dependency `pdfjs-dist`, used only by `apps/sign`). No migration in this step.
+2. Add `SIGN_SECRET=change-me` to your `.env` (it is in `.env.example`); only the Signatures app reads it, and only the Signatures app in staging/production needs a real value.
+3. **Shared files that changed:** `packages/core/src/client-ip.ts` is new: `clientIp()` (the visitor's address behind a proxy) moved there from `packages/forms/src/http.ts`, which now re-exports it, so `@apex/forms/http` and the website's test of it are unchanged. `e2e/playwright.config.ts` gives the sign server two variables. `.env.example` has `SIGN_SECRET`.
+4. The signer pages are public (`/sign/<token>` on the Signatures host); in production Caddy must leave `/sign/*` and `/_next/*` open while locking the staff screens (step S6 does this; nothing to do now).
+
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (migration renumbered: 0026_signatures is now 0027_signatures)
+
+Two migrations were merged as `0026` (forms analytics, #79, and signatures, #89). The signatures one is now **`0027_signatures.sql`** (same SQL). Nothing in your apps changes. Only if your **local** database already applied `0026_signatures` (the migrator records files by name, so it would try to create the `sign_*` tables again and fail): recreate the dev database, or run once `drop table sign_consents, sign_events, sign_fields, sign_signers, sign_requests, sign_documents cascade; delete from schema_migrations where name = '0026_signatures.sql';` and then `pnpm db:migrate`. No deployed or staging database has applied it (nothing has been deployed yet).
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
 ## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (signatures app, step S2: tables, drafts)
 
 Nothing in `apps/web`, `apps/admin` or `packages/sections` changed. Do once, after merging `main`:
 
-1. `pnpm install` (new package `@apex/sign`, which brings `pdf-lib`) and `pnpm db:migrate` (migration 0026: six new `sign_*` tables, all additive; compatible with the previous version of every app, so apps can be released in any order). No data is touched.
+1. `pnpm install` (new package `@apex/sign`, which brings `pdf-lib`) and `pnpm db:migrate` (migration 0027: six new `sign_*` tables, all additive; compatible with the previous version of every app, so apps can be released in any order). No data is touched.
 2. **Shared files that changed (please look at them in the PR):** `db/grants.sql` (the new `sign_*` tables belong to `apex_sign`; its audit trail and consent tables are insert/select only), `packages/core/src/permissions.ts` (a new action `sign:write`: admin and editor, like `forms:write`; nothing else about `can()` changed), `packages/db/src/schema/index.ts` (exports the new `sign.ts`), `scripts/boundary-drill.sh`, `Dockerfile` (a `COPY` line for the new package) and `.github/CODEOWNERS`.
 3. The deployed environments need nothing new beyond the role `apex_sign` of the S1 notice below.
 
@@ -154,6 +169,26 @@ Open question for you both (not urgent): the old CRM screens `/admin/clients` an
 
 Done: (none yet; Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 Partial, 2026-10-02 JM (Claude, cloud session): step 5 checks are green on a branch from current `main` (boundaries, lint, types, unit tests except the media test that needs the Docker S3 mock). Steps 1 and 2 still have to be run once on Joan Marc's own computer.
+
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (new app: the Hub start page)
+
+A sixth app, `apps/hub`, is a start page linking to every portal (CMS admin, CRM, Forms, e-signature). It has no database and no login; nothing in `apps/web` or `apps/admin` changes. Do once, after merging `main`:
+
+1. `pnpm install` and link its env: `ln -sf ../../.env apps/hub/.env` (`pnpm dev` now also starts it on :3005; `./scripts/ci.sh` links it itself). Add `SIGN_URL=` (empty) to your `.env` (see `.env.example`).
+2. **Deployed environments:** a new host `HUB_DOMAIN` (default `hub.<SITE_DOMAIN>`) needs its own DNS A record; new compose service `hub`, release tag `APEX_TAG_HUB`, `deploy.sh <tag> [all|web|admin|crm|forms|hub]`. The first release containing it is `deploy.sh <tag> all`. Details: `DEPLOY.md`, `deploy/ionos/*.env.example`.
+3. No migration, no grants change. E-signature is not built: its tile reads "coming soon" until `SIGN_URL` is set.
+4. Review note: `apps/hub` is reviewed by both of you (CODEOWNERS).
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-08 from Sam (security: Next.js 16.3.7 -> 16.3.8)
+
+A high-severity advisory (GHSA-cjq9-62q9-8jv4, SSRF in Next.js image optimization, fixed in 16.3.8) made the CI audit job fail on every branch. `next` and `eslint-config-next` are now pinned to `16.3.8` in every app and in `packages/core`, and `pnpm-lock.yaml` was regenerated. Nothing in the code changed. Do once, after merging `main`:
+
+1. `pnpm install` (take `main`'s `pnpm-lock.yaml` if your branch conflicts on it). If your branch adds an app or a `next` pin, use `16.3.8`.
+2. Dependabot's grouped PR (#70) edits the same lines; it will need to be rebased by Dependabot (`@dependabot rebase`) or closed in favour of a fresh one.
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 
 ## For Sam (apps/crm) and his Claude
 
