@@ -1,4 +1,5 @@
 import "@apex/ui/tokens.css";
+import "@apex/ui/identity.css";
 import "@apex/ui/admin.css";
 
 export const metadata = { title: "Apex — Formularis", robots: { index: false, follow: false } };

@@ -7,6 +7,7 @@ import { Button } from "@apex/ui/components/Button";
 import { Card } from "@apex/ui/components/Card";
 import { CheckboxField, RadioGroup, SelectField, TextAreaField, TextField } from "@apex/ui/components/Field";
 import { APPS, type AppKey } from "@apex/ui/appmark";
+import { EmptyState, InkBar } from "@apex/ui/components/Identity";
 import { AppMark } from "@apex/ui/components/AppMark";
 import { contrast, readColorTokens } from "@/lib/contrast";
 import { SectionRenderer } from "@/sections/render";
@@ -62,6 +63,20 @@ export default function Styleguide() {
                 <AppMark app={k} size={32} />
                 <AppMark app={k} size={16} />
                 <small>{APPS[k].label} {APPS[k].spot}</small>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="block" aria-labelledby="sg-shell">
+          <div className="sec-head"><h2 id="sg-shell">Peces comunes de les aplicacions</h2></div>
+          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+            {(["admin", "crm", "forms", "sign"] as AppKey[]).map((k) => (
+              <div key={k} data-app={k} style={{ display: "grid", gap: 12 }}>
+                <InkBar />
+                <EmptyState as="h3" eyebrow={APPS[k].label} title="Encara no hi ha res aquí" action={<Button variant="primary">Afegeix el primer</Button>}>
+                  Aquí apareixeran els elements quan en creïs algun.
+                </EmptyState>
               </div>
             ))}
           </div>
