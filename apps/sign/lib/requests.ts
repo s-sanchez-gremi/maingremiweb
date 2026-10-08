@@ -17,9 +17,9 @@ import { DEFAULT_EXPIRY_DAYS, MAX_FIELDS, MAX_SIGNERS, isEmail, normalizeEmail, 
 export class SignError extends Error {}
 
 const DAY = 86_400_000;
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-async function lockDraft(tx: Tx, requestId: string) {
+export async function lockDraft(tx: Tx, requestId: string) {
   const [r] = await tx.select().from(signRequests).where(eq(signRequests.id, requestId)).for("update");
   if (!r) throw new SignError("La sol·licitud no existeix.");
   if (!isEditable(r.status)) throw new SignError("Només es pot modificar un esborrany.");
@@ -60,6 +60,12 @@ export async function listRequests() {
     signers: sql<number>`(select count(*)::int from ${signSigners} where ${signSigners.requestId} = ${signRequests.id})`,
     signed: sql<number>`(select count(*)::int from ${signSigners} where ${signSigners.requestId} = ${signRequests.id} and ${signSigners.status} = 'signed')`,
   }).from(signRequests).innerJoin(signDocuments, eq(signDocuments.id, signRequests.documentId)).orderBy(desc(signRequests.createdAt)).limit(100);
+}
+
+/** The audit trail of a request, oldest first, with the signer's name. */
+export async function listEvents(requestId: string) {
+  return db.select({ id: signEvents.id, kind: signEvents.kind, at: signEvents.at, detail: signEvents.detail, signer: signSigners.name }).from(signEvents)
+    .leftJoin(signSigners, eq(signSigners.id, signEvents.signerId)).where(eq(signEvents.requestId, requestId)).orderBy(asc(signEvents.at), asc(signEvents.id));
 }
 
 export async function getRequest(id: string) {

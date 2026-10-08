@@ -29,6 +29,7 @@
 /apps/admin/                        @jmarcadell4-maker                    # the CMS admin app
 /packages/sections/                 @jmarcadell4-maker                    # the page model: website and CMS admin both depend on it
 /apps/forms/                        @s-sanchez-gremi
+/apps/hub/                          @s-sanchez-gremi @jmarcadell4-maker   # the start page linking every portal: both review
 /apps/sign/                         @s-sanchez-gremi
 /docs/esign-plan.md                 @s-sanchez-gremi
 /docs/forms-app-plan.md             @s-sanchez-gremi

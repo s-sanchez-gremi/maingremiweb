@@ -7,11 +7,13 @@ export const CRM_PORT = 3101 + OFFSET;
 export const FORMS_PORT = 3102 + OFFSET;
 export const ADMIN_PORT = 3103 + OFFSET;
 export const SIGN_PORT = 3104 + OFFSET;
+export const HUB_PORT = 3105 + OFFSET;
 export const WEB_URL = `http://localhost:${WEB_PORT}`;
 export const CRM_URL = `http://localhost:${CRM_PORT}`;
 export const FORMS_URL = `http://localhost:${FORMS_PORT}`;
 export const ADMIN_URL = `http://localhost:${ADMIN_PORT}`;
 export const SIGN_URL = `http://localhost:${SIGN_PORT}`;
+export const HUB_URL = `http://localhost:${HUB_PORT}`;
 // E2E_DB_NAME lets two people (or two Claude sessions) on one machine run the suite at the same time without recreating each other's database.
 export const E2E_DB_NAME = process.env.E2E_DB_NAME ?? "apex_e2e";
 export const E2E_DB = `postgres://apex:apex@localhost:5432/${E2E_DB_NAME}`;   // the OWNER: migrations and test setup only
