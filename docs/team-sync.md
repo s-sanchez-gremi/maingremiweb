@@ -6,12 +6,31 @@
 
 A security review found that the CRM, Forms and Signatures database roles could write the shared `sessions` table and `users.password_hash`, i.e. forge a CMS admin session or set an administrator's password. Fixed in the pull request "Per-app sessions and password isolation" (review needed: it touches shared schema, migration, grants and the auth core). The CMS admin's own session handling is unchanged; its account page is now the only place a password is changed. After merging `main`:
 
-1. `pnpm db:migrate` (migration 0028: three new tables `crm_sessions`, `forms_sessions`, `sign_sessions`; additive). **People signed in to the CRM, Forms or Signatures app must sign in again once**; CMS admin sessions are untouched.
+1. `pnpm db:migrate` (migration 0030: three new tables `crm_sessions`, `forms_sessions`, `sign_sessions`; additive). **People signed in to the CRM, Forms or Signatures app must sign in again once**; CMS admin sessions are untouched.
 2. `db/grants.sql` changed (sessions split; no `update (password_hash)` for the other apps). On environments with restricted users, release the CRM, Forms and Signatures apps **together with** the grants (an old CRM would try to write `sessions` and be refused). `scripts/boundary-drill.sh` covers the new rules.
 3. Code: `@apex/core/auth` chooses the table by cookie name; `@apex/core/users` signs a person out of every app (`signOutEverywhere`); `@apex/core/session-purge` is called by the CMS scheduler. A test that inserts into `sessions` still works for the CMS admin.
 4. The CRM and Forms "El meu compte" pages now link to the CMS admin's account page (`WEB_ADMIN_URL` must be set in those apps; it already is in `.env.example`).
 
 Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when read)
+
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-08 from Sam (signatures app, step S4: sealing)
+
+Nothing in `apps/web`, `apps/admin` or `packages/sections` changed. Do once, after merging `main`:
+
+1. `pnpm install` (new libraries used only by `packages/sign`: `@signpdf/*`, `pkijs`, `asn1js`) and `pnpm db:migrate` (migration 0028: new columns on `sign_requests` and `sign_signers`, all additive and idempotent).
+2. `.env`: add `SIGN_SEAL_CERT=`, `SIGN_SEAL_KEY=` and `SIGN_SEAL_PASSPHRASE=` from `.env.example`, **empty**: in development the Signatures app makes a throwaway certificate by itself. Only a staging or production server needs real values (made with `pnpm --filter sign seal:generate`); nothing to do until the Signatures app is deployed (step S6).
+3. **Shared files that changed:** `db/migrations/0028_sign_sealing.sql`, `packages/db/src/schema/sign.ts`, `.env.example`, `pnpm-lock.yaml`. No change to `db/grants.sql` (the same tables and the same database user).
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (signatures app, step S3: sending and the signer page)
+
+Nothing in `apps/web`, `apps/admin` or `packages/sections` changed in behaviour. Do once, after merging `main`:
+
+1. `pnpm install` (new dependency `pdfjs-dist`, used only by `apps/sign`). No migration in this step.
+2. Add `SIGN_SECRET=change-me` to your `.env` (it is in `.env.example`); only the Signatures app reads it, and only the Signatures app in staging/production needs a real value.
+3. **Shared files that changed:** `packages/core/src/client-ip.ts` is new: `clientIp()` (the visitor's address behind a proxy) moved there from `packages/forms/src/http.ts`, which now re-exports it, so `@apex/forms/http` and the website's test of it are unchanged. `e2e/playwright.config.ts` gives the sign server two variables. `.env.example` has `SIGN_SECRET`.
+4. The signer pages are public (`/sign/<token>` on the Signatures host); in production Caddy must leave `/sign/*` and `/_next/*` open while locking the staff screens (step S6 does this; nothing to do now).
 
 ## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (migration renumbered: 0026_signatures is now 0027_signatures)
 
@@ -45,7 +64,7 @@ Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 Heads-up only, **nothing to do now and nothing in your apps changes.** We decided to build electronic signatures in-house as a separate app, `apps/sign` (plan: `docs/esign-plan.md`, merged in #74; the new section "Signatures app" in `CLAUDE.md` summarises it). It is Sam's area. What matters to you:
 
 1. **You will be asked to review only the shared files** when the steps land: a migration + `db/grants.sql` (S2), the Dockerfile, compose, `deploy.sh`, Caddy and `scripts/*-drill.sh` (S6), `check-boundaries.sh`, CI and `CLAUDE.md`. Nothing in `apps/web`, `apps/admin` or `packages/sections`.
-2. **Rules that will apply to everyone:** `apps/sign` never imports another app and no app imports it; a new database role `apex_sign` (like `apex_forms`: create the role before `APPLY_GRANTS=1` on any environment that uses restricted users; we will add a notice when S1 and S6 land); new env vars `SIGN_DOMAIN`, `SIGN_URL` and a seal certificate (`SIGN_SEAL_P12` + passphrase) in S6.
+2. **Rules that will apply to everyone:** `apps/sign` never imports another app and no app imports it; a new database role `apex_sign` (like `apex_forms`: create the role before `APPLY_GRANTS=1` on any environment that uses restricted users; we will add a notice when S1 and S6 land); new env vars `SIGN_DOMAIN`, `SIGN_URL` and a seal certificate (`SIGN_SEAL_CERT` + `SIGN_SEAL_KEY` + passphrase) in S6.
 3. **Open for your opinion (section 9 of the plan):** a fourth separate staff login is accepted for the forms app; same trade-off here. Say so if you would rather share a login.
 4. **Legal:** the consent wording, retention of sealed PDFs and the list of allowed documents need the client's legal adviser, the same as the privacy policy text on your side. If you already talk to them, it saves a round.
 
@@ -171,6 +190,35 @@ Open question for you both (not urgent): the old CRM screens `/admin/clients` an
 
 Done: (none yet; Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 Partial, 2026-10-02 JM (Claude, cloud session): step 5 checks are green on a branch from current `main` (boundaries, lint, types, unit tests except the media test that needs the Docker S3 mock). Steps 1 and 2 still have to be run once on Joan Marc's own computer.
+
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (new app: the Hub start page)
+
+A sixth app, `apps/hub`, is a start page linking to every portal (CMS admin, CRM, Forms, e-signature). It has no database and no login; nothing in `apps/web` or `apps/admin` changes. Do once, after merging `main`:
+
+1. `pnpm install` and link its env: `ln -sf ../../.env apps/hub/.env` (`pnpm dev` now also starts it on :3005; `./scripts/ci.sh` links it itself). Add `SIGN_URL=` (empty) to your `.env` (see `.env.example`).
+2. **Deployed environments:** a new host `HUB_DOMAIN` (default `hub.<SITE_DOMAIN>`) needs its own DNS A record; new compose service `hub`, release tag `APEX_TAG_HUB`, `deploy.sh <tag> [all|web|admin|crm|forms|hub]`. The first release containing it is `deploy.sh <tag> all`. Details: `DEPLOY.md`, `deploy/ionos/*.env.example`.
+3. No migration, no grants change. E-signature is not built: its tile reads "coming soon" until `SIGN_URL` is set.
+4. Review note: `apps/hub` is reviewed by both of you (CODEOWNERS).
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
+## For Joan Marc (apps/admin) and his Claude — notice of 2026-10-08 from Sam (menus link back to the Hub)
+
+The menus of the CMS admin, CRM and Forms apps get a "Totes les eines" link to the Hub start page. In your area it is **one line** in `apps/admin/components/admin/AdminNav.tsx` plus the `hubUrl` prop in `apps/admin/app/admin/(app)/layout.tsx`. Do once, after merging `main`:
+
+1. Add `HUB_URL=http://localhost:3005` to your `.env` (it is in `.env.example`). Empty means no link, so nothing breaks without it.
+2. Deployed environments: `HUB_URL=https://hub.<domain>` in `.env` (see `deploy/ionos/*.env.example`), then a normal release of the three apps; no migration, no grants change.
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-08 from Sam (security: Next.js 16.3.7 -> 16.3.8)
+
+A high-severity advisory (GHSA-cjq9-62q9-8jv4, SSRF in Next.js image optimization, fixed in 16.3.8) made the CI audit job fail on every branch. `next` and `eslint-config-next` are now pinned to `16.3.8` in every app and in `packages/core`, and `pnpm-lock.yaml` was regenerated. Nothing in the code changed. Do once, after merging `main`:
+
+1. `pnpm install` (take `main`'s `pnpm-lock.yaml` if your branch conflicts on it). If your branch adds an app or a `next` pin, use `16.3.8`.
+2. Dependabot's grouped PR (#70) edits the same lines; it will need to be rebased by Dependabot (`@dependabot rebase`) or closed in favour of a fresh one.
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 
 ## For Sam (apps/crm) and his Claude
 

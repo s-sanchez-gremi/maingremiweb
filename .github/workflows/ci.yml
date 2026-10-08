@@ -26,9 +26,9 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - name: Local configuration for the test services
-        run: cp .env.example .env && ln -sf ../../.env apps/web/.env && ln -sf ../../.env apps/crm/.env && ln -sf ../../.env apps/forms/.env && ln -sf ../../.env apps/admin/.env && ln -sf ../../.env apps/sign/.env
+        run: cp .env.example .env && ln -sf ../../.env apps/web/.env && ln -sf ../../.env apps/crm/.env && ln -sf ../../.env apps/forms/.env && ln -sf ../../.env apps/admin/.env && ln -sf ../../.env apps/sign/.env && ln -sf ../../.env apps/hub/.env
       - name: Cache Playwright browsers
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}

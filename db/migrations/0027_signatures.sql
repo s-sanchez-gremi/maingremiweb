@@ -1,8 +1,10 @@
 -- Signatures app (docs/esign-plan.md, step S2): documents to sign, requests, signers, fields, an append-only audit log and consents.
 -- Additive: nothing else reads these tables yet, so every app version works with or without them.
+-- Written to be run twice without harm: it was first merged as 0026_signatures.sql (and renumbered when it collided with 0026_form_analytics.sql).
+-- Migrations are tracked by file name, so a database that already ran the old name runs this file again: every statement is IF NOT EXISTS.
 
 -- The PDF to be signed. The original is kept untouched in the private bucket; its SHA-256 is checked again before sealing (S4).
-create table sign_documents (
+create table if not exists sign_documents (
   id uuid primary key default gen_random_uuid(),
   title text not null check (length(title) between 1 and 200),
   file_key text not null,                          -- private bucket: sign/<id>/original.pdf
@@ -19,7 +21,7 @@ create table sign_documents (
   created_at timestamptz not null default now()
 );
 
-create table sign_requests (
+create table if not exists sign_requests (
   id uuid primary key default gen_random_uuid(),
   document_id uuid not null references sign_documents(id) on delete cascade,
   status text not null default 'draft' check (status in ('draft', 'sent', 'completed', 'declined', 'expired', 'voided')),
@@ -34,10 +36,10 @@ create table sign_requests (
   created_by uuid references users(id) on delete set null,
   created_at timestamptz not null default now()
 );
-create index sign_requests_document_idx on sign_requests (document_id);
-create index sign_requests_status_idx on sign_requests (status, expires_at);
+create index if not exists sign_requests_document_idx on sign_requests (document_id);
+create index if not exists sign_requests_status_idx on sign_requests (status, expires_at);
 
-create table sign_signers (
+create table if not exists sign_signers (
   id uuid primary key default gen_random_uuid(),
   request_id uuid not null references sign_requests(id) on delete cascade,
   name text not null check (length(name) between 1 and 200),
@@ -49,11 +51,11 @@ create table sign_signers (
   reminded_at timestamptz,
   created_at timestamptz not null default now()
 );
-create unique index sign_signers_email_idx on sign_signers (request_id, lower(email));
-create index sign_signers_request_idx on sign_signers (request_id, position);
+create unique index if not exists sign_signers_email_idx on sign_signers (request_id, lower(email));
+create index if not exists sign_signers_request_idx on sign_signers (request_id, position);
 
 -- A place on a page, in percent of the page (0 to 100), so it does not depend on the page size.
-create table sign_fields (
+create table if not exists sign_fields (
   id uuid primary key default gen_random_uuid(),
   request_id uuid not null references sign_requests(id) on delete cascade,
   signer_id uuid not null references sign_signers(id) on delete cascade,
@@ -69,12 +71,12 @@ create table sign_fields (
   created_at timestamptz not null default now(),
   check (x + w <= 100.0001 and y + h <= 100.0001)
 );
-create index sign_fields_request_idx on sign_fields (request_id);
-create index sign_fields_signer_idx on sign_fields (signer_id);
+create index if not exists sign_fields_request_idx on sign_fields (request_id);
+create index if not exists sign_fields_signer_idx on sign_fields (signer_id);
 
 -- The audit trail. Append-only: the Signatures app's database user may INSERT and SELECT, never UPDATE or DELETE (db/grants.sql);
 -- rows only disappear with their request (cascade) or when a contact is erased.
-create table sign_events (
+create table if not exists sign_events (
   id bigserial primary key,
   request_id uuid not null references sign_requests(id) on delete cascade,
   signer_id uuid references sign_signers(id) on delete set null,
@@ -84,14 +86,14 @@ create table sign_events (
   user_agent text check (user_agent is null or length(user_agent) <= 300),
   detail jsonb not null default '{}'::jsonb
 );
-create index sign_events_request_idx on sign_events (request_id, at);
+create index if not exists sign_events_request_idx on sign_events (request_id, at);
 
 -- The exact consent wording shown to a signer and when they accepted it (S3).
-create table sign_consents (
+create table if not exists sign_consents (
   id uuid primary key default gen_random_uuid(),
   signer_id uuid not null references sign_signers(id) on delete cascade,
   locale text not null check (locale in ('ca', 'es', 'en')),
   text text not null,
   at timestamptz not null default now()
 );
-create index sign_consents_signer_idx on sign_consents (signer_id);
+create index if not exists sign_consents_signer_idx on sign_consents (signer_id);

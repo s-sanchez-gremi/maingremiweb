@@ -6,6 +6,8 @@ import { parseBox } from "@apex/sign/geometry";
 import {
   SignError, addField, addSigner, createDraft, deleteDraft, moveSigner, removeField, removeSigner, renameDocument, updateSettings,
 } from "@/lib/requests";
+import { sendRequest, voidRequest } from "@/lib/lifecycle";
+import { retrySeal } from "@/lib/sealing";
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const uuid = (fd: FormData, k = "id") => z.string().uuid().parse(fd.get(k));
@@ -82,4 +84,26 @@ export async function removeRequest(fd: FormData) {
   const id = uuid(fd);
   try { await deleteDraft(id); } catch (e) { fail(page(id), e); }
   redirect("/admin?deleted=1");
+}
+
+export async function submitRequest(fd: FormData) {
+  const user = await requireUser("sign:write");
+  const id = uuid(fd), to = page(id);
+  try { await sendRequest(user.id, id); } catch (e) { fail(to, e); }
+  redirect(`${to}?saved=sent`);
+}
+
+export async function cancelRequest(fd: FormData) {
+  const user = await requireUser("sign:write");
+  const id = uuid(fd), to = page(id);
+  try { await voidRequest(user.id, id); } catch (e) { fail(to, e); }
+  redirect(`${to}?saved=voided`);
+}
+
+export async function retryRequestSeal(fd: FormData) {
+  await requireUser("sign:write");
+  const id = uuid(fd), to = page(id);
+  let result: "sealed" | "already" | "failed";
+  try { result = await retrySeal(id); } catch (e) { return fail(to, e); }
+  redirect(`${to}?saved=${result === "failed" ? "sealfailed" : "sealed"}`);
 }

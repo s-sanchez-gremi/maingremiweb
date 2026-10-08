@@ -7,6 +7,11 @@
     "./*": "./src/*.ts"
   },
   "dependencies": {
-    "pdf-lib": "^1.17.1"
+    "@signpdf/placeholder-pdf-lib": "^3.3.0",
+    "@signpdf/signpdf": "^3.3.0",
+    "@signpdf/utils": "^3.3.0",
+    "asn1js": "3.0.10",
+    "pdf-lib": "^1.17.1",
+    "pkijs": "3.4.1"
   }
 }

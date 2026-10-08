@@ -77,7 +77,7 @@ grant select, insert, update, delete on
   portal_users, portal_sessions, portal_tokens,
   cost_centers, erp_categories, suppliers, fee_tiers, members, subscriptions, erp_entries,
   record_notes, record_files, record_history,
-  events, event_attendance, sponsors, visits, labour_cases, training_courses, job_seekers
+  events, event_attendance, sponsors, visits, labour_cases, training_courses, job_seekers, mailing_contacts
 to apex_crm;
 
 -- ---- nobody but the owner: schema_migrations, app_meta ----

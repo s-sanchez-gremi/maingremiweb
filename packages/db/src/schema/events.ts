@@ -114,3 +114,18 @@ export const jobSeekers = pgTable("job_seekers", {
   externalRef: text("external_ref"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const mailingContacts = pgTable("mailing_contacts", {
+  id: uuid().primaryKey().defaultRandom(),
+  list: text().notNull(),
+  email: text().notNull(),
+  name: text().notNull().default(""),
+  origin: text().notNull().default(""),
+  tags: text().array().notNull().default([]),
+  status: text().notNull().default("active"),
+  consentOn: date("consent_on"),
+  notes: text().notNull().default(""),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  externalRef: text("external_ref"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
