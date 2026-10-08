@@ -27,7 +27,7 @@ export const routingTargets: RoutingTarget[] = [
   },
   {
     key: "attendance", label: "Inscripció a un esdeveniment", entity: "attendance",
-    description: "Apunta la persona (la crea si cal, pel correu) a l'esdeveniment triat. Si ja hi consta, no es duplica.",
+    description: "Apunta la persona (la crea si cal, pel correu) a l'esdeveniment triat. Si ja hi consta, no es duplica. Si l'esdeveniment té aforament i ja és ple, la resposta no es processa (hi veuràs el motiu i podràs tornar-ho a provar després d'ampliar-lo).",
     map: [name, email(), phone, company],
     fixed: [
       { name: "eventId", label: "Esdeveniment", kind: "event", required: true },
