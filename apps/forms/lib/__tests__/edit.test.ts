@@ -273,7 +273,6 @@ describe("a form that creates CRM records", () => {
     const f = await records();
     const s = await send(f);
     await db.update(submissions).set({ routingStatus: "done", routedAt: new Date() }).where(eq(submissions.id, s.id));
-    const before = await row(s.id);
     const same = { [name.id]: "Núria Soler", [email.id]: s.address, [phone.id]: "600111222", [company.id]: "Gràfiques Vila", [notes.id]: "Primera versió", [guests.id]: "2", [rating.id]: "4", [yn.id]: "yes", [why.id]: "Seat" };
     expect(await applyEdit(f, s.editToken, { locale: "ca", answers: same })).toEqual({ ok: true, changed: false });
     expect((await row(s.id)).routingStatus).toBe("done");
