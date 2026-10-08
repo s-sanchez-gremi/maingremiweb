@@ -4,6 +4,7 @@ import { forms } from "@apex/db/schema";
 import { locales, defaultLocale, type Locale } from "@apex/db/schema";
 
 const isLocale = (v: string): v is Locale => (locales as readonly string[]).includes(v);
+import { clientIp } from "@apex/core/client-ip";
 import { ipHash } from "./pow";
 
 export async function loadForm(slug: string) {
@@ -11,16 +12,8 @@ export async function loadForm(slug: string) {
   return f ?? null;
 }
 
-/**
- * The visitor's address behind a reverse proxy. Proxies APPEND the address they saw to X-Forwarded-For, so the
- * trustworthy entry is counted from the RIGHT: with one proxy in front (TRUSTED_PROXY_HOPS=1, the default) it is the
- * last entry. Anything a visitor writes into the header sits further left and is ignored, so it cannot be spoofed.
- */
-export function clientIp(headers: Headers, hops = Number(process.env.TRUSTED_PROXY_HOPS ?? 1)): string {
-  const list = (headers.get("x-forwarded-for") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
-  if (hops <= 0) return headers.get("x-real-ip") ?? "unknown";
-  return list[list.length - hops] ?? headers.get("x-real-ip") ?? "unknown";
-}
+// The address helper moved to @apex/core (the Signatures app needs it too); re-exported so nothing here or in the tests changes.
+export { clientIp };
 
 export const clientHash = (req: Request): string => ipHash(clientIp(req.headers));
 

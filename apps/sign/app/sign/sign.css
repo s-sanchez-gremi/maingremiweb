@@ -1,0 +1,39 @@
+/* The signer pages. Colours, type and radius come from the shared tokens only. Mobile first: one column, 44px touch targets. */
+.s-body { margin: 0; background: var(--bg2, #EFEAE0); color: var(--ink, #1A1715); font-family: var(--sans, system-ui, sans-serif); line-height: 1.5; }
+.s-head { background: var(--ink2, #171412); color: var(--ink-text); padding: 14px 16px; font-family: var(--serif, Georgia, serif); font-weight: 600; letter-spacing: 1px; }
+.s-wrap { max-width: 880px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+.s-card { background: var(--surface, #fff); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 12px; }
+.s-card h1, .s-card h2 { margin: 0; font-family: var(--serif, Georgia, serif); font-weight: 600; }
+.s-card h1 { font-size: 24px; }
+.s-card h2 { font-size: 18px; }
+.s-hint { color: var(--text2, #4D4741); font-size: 14px; margin: 0; }
+.s-note { border-left: 3px solid var(--accent, #D50032); padding: 4px 12px; background: var(--bg, #F7F4EE); white-space: pre-wrap; }
+.s-label { display: grid; gap: 4px; font-size: 14px; color: var(--text2, #4D4741); }
+.s-input, .s-textarea { font: inherit; color: var(--ink, #1A1715); padding: 10px 12px; min-height: 44px; border: 1px solid var(--field-border, #857E76); border-radius: var(--r); background: var(--surface, #fff); width: 100%; box-sizing: border-box; }
+.s-input:focus-visible, .s-textarea:focus-visible, .s-btn:focus-visible, .s-tab:focus-visible, .s-check input:focus-visible, .s-pad:focus-visible { outline: 2px solid var(--accent, #D50032); outline-offset: 2px; }
+.s-textarea { min-height: 88px; }
+.s-btn { font: inherit; font-weight: 600; min-height: 44px; padding: 0 18px; border-radius: var(--r); border: 1px solid var(--ink, #1A1715); background: var(--surface, #fff); color: var(--ink, #1A1715); cursor: pointer; }
+.s-btn.primary { background: var(--accent, #D50032); border-color: var(--accent, #D50032); color: #fff; }
+.s-btn.primary:hover:not(:disabled) { background: var(--accent-hover, #B0002A); }
+.s-btn:disabled { opacity: .55; cursor: default; }
+.s-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.s-tabs { display: flex; gap: 0; }
+.s-tab { font: inherit; min-height: 44px; padding: 0 16px; border: 1px solid var(--field-border, #857E76); background: var(--surface, #fff); color: var(--ink, #1A1715); cursor: pointer; }
+.s-tab + .s-tab { border-left: 0; }
+.s-tab[aria-pressed="true"] { background: var(--ink, #1A1715); color: #fff; }
+.s-check { display: flex; gap: 10px; align-items: flex-start; }
+.s-check input { width: 22px; height: 22px; margin-top: 2px; flex: none; }
+.s-err { color: var(--danger); background: var(--danger-bg); border: 1px solid var(--danger); padding: 8px 12px; border-radius: var(--r); margin: 0; }
+.s-pad { display: block; width: 100%; max-width: 600px; aspect-ratio: 3 / 1; background: var(--surface, #fff); border: 1px solid var(--field-border, #857E76); border-radius: var(--r); touch-action: none; cursor: crosshair; }
+.s-typed { font-family: "Segoe Script", "Brush Script MT", "Snell Roundhand", cursive; font-size: 28px; }
+/* the document */
+.s-pages { display: grid; gap: 12px; justify-items: center; }
+.s-page { position: relative; width: 100%; max-width: 800px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.18); }
+.s-page canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.s-page-n { position: absolute; top: 4px; right: 8px; font-size: 11px; color: var(--text2, #4D4741); z-index: 1; }
+.s-field { position: absolute; box-sizing: border-box; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 11px; line-height: 1.1; z-index: 2; }
+.s-field.mine { border: 2px solid var(--accent, #D50032); background: color-mix(in srgb, var(--accent, #D50032) 12%, transparent); color: var(--ink, #1A1715); }
+.s-field.other { border: 1px dashed var(--text2, #4D4741); background: color-mix(in srgb, var(--ink, #1A1715) 5%, transparent); color: var(--text2, #4D4741); }
+.s-field img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.s-field .s-typed { font-size: 1.6em; white-space: nowrap; }
+.s-card a { color: var(--accent); }
