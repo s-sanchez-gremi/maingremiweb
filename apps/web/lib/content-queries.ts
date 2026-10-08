@@ -4,7 +4,7 @@ import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@apex/db";
 import { categories, entries, entryTranslations, forms, media, settings, users, type LiveContent, type Locale } from "@apex/db/schema";
 import type { PublicForm } from "@apex/forms/public-form";
-import { defaultSettings, settingsSchema, type Settings } from "./settings-schema";
+import { defaultSettings, settingsSchema, type Settings } from "@apex/sections/settings-schema";
 
 export type PublicEntry = {
   entryId: string; type: "post" | "page"; locale: Locale; title: string; slug: string; sections: unknown[];
@@ -105,6 +105,7 @@ export async function queryAllLive() {
 export type { PublicForm };
 const publicForm = (f: typeof forms.$inferSelect): PublicForm => ({
   id: f.id, slug: f.slug, name: f.name, title: f.title, active: f.active, items: f.fields, consent: f.consent, confirmation: f.confirmation,
+  allowDraft: f.allowDrafts, allowEdit: f.allowEdits, checkOpen: f.closesAt !== null || f.maxResponses !== null, redirectUrl: f.redirectUrl,
   newsletter: { enabled: !!f.newsletter?.enabled, text: f.newsletter?.text ?? {} },   // notifications (staff addresses) are deliberately left out
 });
 export async function queryFormBySlug(slug: string): Promise<PublicForm | null> {

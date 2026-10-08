@@ -5,15 +5,10 @@ import { db } from "@apex/db";
 import { requireUser } from "@apex/core/auth";
 import { can } from "@apex/core/permissions";
 import { ConfirmButton } from "@apex/ui/components/ConfirmButton";
-import { clients, contacts, forms, leadNotes, leads, submissions, users, type Answer } from "@apex/db/schema";
+import { clients, contacts, forms, leadNotes, leads, submissions, users } from "@apex/db/schema";
+import { answerText } from "@apex/forms/answer-text";
 import { LEAD_STATUSES, statusLabel } from "@/lib/leads";
 import { addLeadNote, convertLead, eraseContactAction, saveLead } from "../actions";
-
-const answerText = (a: Answer) => {
-  const v = a.value as unknown;
-  if (a.type === "file" && v && typeof v === "object") return (v as { name?: string }).name ?? "";
-  return Array.isArray(v) ? v.join(", ") : typeof v === "boolean" ? (v ? "Sí" : "No") : String(v ?? "");
-};
 
 export default async function LeadPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string; error?: string }> }) {
   const me = await requireUser();

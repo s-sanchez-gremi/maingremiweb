@@ -20,7 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <label className="sr-only" htmlFor="admin-q">Cerca a l&apos;administració</label>
             <input id="admin-q" name="q" type="search" placeholder="Cerca…" maxLength={100} autoComplete="off" />
           </form>
-          <AdminNav isAdmin={can(user, "erp:write")} otherAppUrl={process.env.WEB_ADMIN_URL} />
+          <AdminNav isAdmin={can(user, "erp:write")} otherAppUrl={process.env.WEB_ADMIN_URL} formsUrl={process.env.FORMS_URL} hubUrl={process.env.HUB_URL} />
         </div>
         <div className="who">
           <span>{user.email}</span>

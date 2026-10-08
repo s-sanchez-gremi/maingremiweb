@@ -115,7 +115,7 @@ export async function saveField(e: Entity, id: string, name: string, raw: string
   if (changes.length) await logHistory(e, id, "update", changes, actor);
 }
 
-export type Actor = { id: string; email: string };
+export type Actor = { id: string | null; email: string }; // id is null for the system itself (a form creating a record): the history then names it in the email field
 
 /** Validates the submitted values against the entity's fields and writes them, logging who changed what. Returns the record id. */
 export async function saveRecord(e: Entity, id: string | null, get: (name: string) => string | undefined, actor?: Actor) {

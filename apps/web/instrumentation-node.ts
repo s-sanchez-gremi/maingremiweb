@@ -1,4 +1,3 @@
-import { bootstrapAdmin } from "./lib/bootstrap";
 import { checkEnv, shouldCheck } from "@apex/core/env-check";
 
 /** Staging/production only: stop immediately, with a clear message, if the configuration is unsafe or incomplete. */
@@ -9,5 +8,4 @@ export async function run() {
     console.error(`Invalid configuration, refusing to start:\n - ${problems.join("\n - ")}`);
     process.exit(1); // exit, don't limp along: a container that is "up" but misconfigured hides the problem
   }
-  await bootstrapAdmin(process.env); // no-op unless INITIAL_ADMIN_* is set AND there are no users yet
 }

@@ -2,14 +2,14 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@apex/db";
 import { categories, entries, entryTranslations, media, settings, users } from "@apex/db/schema";
-import { publish } from "../publish";
+import { goLive } from "./helpers";
 import { queryAllLive, queryAlternates, queryCategories, queryEntryBySlug, queryMedia, queryPosts, querySettings } from "../content-queries";
 
 const text = (body: string) => [{ id: "a", type: "text", data: { body } }];
 async function post(over: { slug: string; title?: string; locale?: "ca" | "es" | "en"; category?: string; on?: string; live?: boolean }) {
   const [e] = await db.insert(entries).values({ type: "post", categoryId: over.category ?? null, publishedOn: over.on ?? null }).returning();
   await db.insert(entryTranslations).values({ entryId: e.id, locale: over.locale ?? "ca", title: over.title ?? "T " + over.slug, slug: over.slug, sections: text("cos") });
-  if (over.live !== false) await publish(e.id, over.locale ?? "ca");
+  if (over.live !== false) await goLive(e.id, over.locale ?? "ca");
   return e.id;
 }
 
@@ -29,7 +29,7 @@ describe("public queries only see the live snapshot", () => {
     const live = await queryEntryBySlug("post", "ca", "viu");
     expect(live?.title).toBe("Original");
     expect(await queryEntryBySlug("post", "ca", "nou-slug")).toBeNull();
-    await publish(id, "ca");
+    await goLive(id, "ca");
     expect((await queryEntryBySlug("post", "ca", "nou-slug"))?.title).toBe("Canvi sense publicar");
     expect(await queryEntryBySlug("post", "ca", "viu")).toBeNull();
   });
@@ -65,7 +65,7 @@ describe("lists, categories, alternates", () => {
     const id = await post({ slug: "hola-ca" });
     await db.insert(entryTranslations).values({ entryId: id, locale: "es", title: "Hola", slug: "hola-es", sections: text("x") });
     expect(await queryAlternates(id)).toEqual([{ locale: "ca", slug: "hola-ca" }]); // es is only a draft
-    await publish(id, "es");
+    await goLive(id, "es");
     expect((await queryAlternates(id)).map((a) => a.locale).sort()).toEqual(["ca", "es"]);
     expect((await queryAllLive()).length).toBe(2);
   });

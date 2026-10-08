@@ -30,6 +30,8 @@ export function checkEnv(env: Env, opts: { botSecret?: boolean } = { botSecret: 
   if (env.S3_SECRET_KEY === "apexapexapex") problems.push("S3_SECRET_KEY still uses the local development value");
   need("S3_ACCESS_KEY"); need("S3_SECRET_KEY");
 
+  // Webhooks may only call public servers: the switch that lets them call this machine is for development and tests, never for a real environment.
+  if (env.WEBHOOK_ALLOW_PRIVATE) problems.push("WEBHOOK_ALLOW_PRIVATE must not be set in staging or production (webhooks would be able to reach internal addresses)");
   secret("CRON_SECRET", 24);
   if (opts.botSecret) secret("BOT_SECRET", 32); // only the app that runs the public form pipeline needs it
   return problems;

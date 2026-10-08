@@ -5,3 +5,4 @@ export * from "./crm";
 export * from "./erp";
 export * from "./records";
 export * from "./events";
+export * from "./sign";

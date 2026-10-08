@@ -32,6 +32,11 @@ describe("startup configuration check", () => {
     expect(checkEnv({ ...good, APP_ENV: "staging", DATABASE_URL: "postgres://apex_app:test-fixture-password@db.internal:5432/apex" })).toEqual([]);
     expect(checkEnv({ ...good, S3_REGION: "" }).join()).toMatch(/S3_REGION/);
   });
+  it("a real environment refuses the development switch that lets webhooks call internal addresses", () => {
+    expect(checkEnv({ ...good, WEBHOOK_ALLOW_PRIVATE: "1" }).join()).toMatch(/WEBHOOK_ALLOW_PRIVATE/);
+    expect(checkEnv({ ...good, APP_ENV: "staging", WEBHOOK_ALLOW_PRIVATE: "1" }).join()).toMatch(/WEBHOOK_ALLOW_PRIVATE/);
+    expect(checkEnv(good)).toEqual([]);
+  });
   it("requires https in production (staging may use http), and two different buckets", () => {
     expect(checkEnv({ ...good, SITE_URL: "http://apex.example" }).join()).toMatch(/https/);
     expect(checkEnv({ ...good, APP_ENV: "staging", SITE_URL: "http://staging.internal" })).toEqual([]);

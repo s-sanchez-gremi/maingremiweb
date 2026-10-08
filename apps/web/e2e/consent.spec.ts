@@ -155,7 +155,7 @@ test("Content-Security-Policy: no violations in normal use, and a third-party sc
   const violations: string[] = [];
   page.on("console", (m) => { if (/Content Security Policy|Refused to/i.test(m.text())) violations.push(m.text()); });
   await embedRoutes(page);
-  for (const path of ["/ca", "/ca/blog", "/ca/cookies", "/ca/form/camp", "/styleguide", "/admin/login"]) { await page.goto(path); await page.waitForLoadState("networkidle"); }
+  for (const path of ["/ca", "/ca/blog", "/ca/cookies", "/ca/form/camp", "/styleguide"]) { await page.goto(path); await page.waitForLoadState("networkidle"); }
   expect(violations).toEqual([]);
 
   const csp = (await request.get("/ca")).headers()["content-security-policy"];

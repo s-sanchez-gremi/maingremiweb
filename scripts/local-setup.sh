@@ -39,7 +39,7 @@ pnpm db:migrate
 psql_count() { docker compose exec -T db psql -U apex -d apex -tAc "select count(*) from $1" | tr -d '[:space:]'; }
 
 step "demo content"
-if [ "$(psql_count entries)" = "0" ]; then pnpm --filter web seed:demo; else echo "content already present, kept as is"; fi
+if [ "$(psql_count entries)" = "0" ]; then pnpm --filter admin seed:demo; else echo "content already present, kept as is"; fi
 
 step "admin user"
 if [ "$(psql_count users)" = "0" ]; then
@@ -49,13 +49,13 @@ if [ "$(psql_count users)" = "0" ]; then
     read -rsp "Admin password (min 12 characters): " password; echo
     [ "${#password}" -ge 12 ] || echo "Too short, try again."
   done
-  PASSWORD="$password" pnpm --filter web user:create "$email" admin
+  PASSWORD="$password" pnpm --filter admin user:create "$email" admin
 else
-  echo "users already exist, kept as is (add more with: PASSWORD=... pnpm --filter web user:create <email> <admin|editor>)"
+  echo "users already exist, kept as is (add more with: PASSWORD=... pnpm --filter admin user:create <email> <admin|editor>)"
 fi
 
-printf '\n\033[1mReady.\033[0m\n  Site:   http://localhost:3000/ca\n  Admin:  http://localhost:3000/admin   (website + content)\n  CRM:    http://localhost:3001/admin   (contacts, forms, projects, ERP)  portal: http://localhost:3001/portal\n  Mail:   http://localhost:8025\n'
+printf '\n\033[1mReady.\033[0m\n  Site:   http://localhost:3000/ca\n  Admin:  http://localhost:3003/admin   (the CMS: content, media, settings, users)\n  CRM:    http://localhost:3001/admin   (contacts, forms, projects, ERP)  portal: http://localhost:3001/portal\n  Mail:   http://localhost:8025\n'
 if [ "$START" = 1 ]; then
   printf '\nStarting the app (keep this window open; Ctrl+C stops it)...\n'
-  exec pnpm --filter web dev
+  exec pnpm --parallel --filter web --filter admin --filter crm dev
 fi
