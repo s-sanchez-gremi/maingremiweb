@@ -251,3 +251,47 @@ describe("saving changes", () => {
     expect(after.consentAt?.getTime()).toBe(before.consentAt?.getTime());
   });
 });
+
+describe("a form that creates CRM records", () => {
+  const routing = { target: "person", map: { name: name.id, email: email.id, phone: phone.id }, fixed: {} };
+  const records = (over: Partial<typeof forms.$inferInsert> = {}) => make({ destination: "records", routing: routing as never, ...over });
+
+  it("queues the response for the CRM again when the person edits it, keeping what the CRM said about the first run", async () => {
+    const f = await records();
+    const s = await send(f);
+    expect((await row(s.id)).routingStatus).toBe("pending");
+    await db.update(submissions).set({ routingStatus: "done", routedAt: new Date(), routingAttempts: 1, routedRecords: [{ entity: "people", id: crypto.randomUUID(), label: "Núria", action: "created", own: true, values: { phone: "600111222" } }] }).where(eq(submissions.id, s.id));
+    const edit = await applyEdit(f, s.editToken, { locale: "ca", answers: { [name.id]: "Núria Soler", [email.id]: s.address, [phone.id]: "600999888", [notes.id]: "x", [guests.id]: "2", [rating.id]: "4", [yn.id]: "no" } });
+    expect(edit).toEqual({ ok: true, changed: true });
+    const r = await row(s.id);
+    expect(r).toMatchObject({ routingStatus: "pending", routingAttempts: 0, routingError: null });
+    expect(r.routedAt).not.toBeNull();
+    expect(r.routedRecords).toEqual([expect.objectContaining({ entity: "people", own: true, values: { phone: "600111222" } })]); // the CRM compares with what it wrote
+  });
+
+  it("an edit that changes nothing does not queue anything", async () => {
+    const f = await records();
+    const s = await send(f);
+    await db.update(submissions).set({ routingStatus: "done", routedAt: new Date() }).where(eq(submissions.id, s.id));
+    const before = await row(s.id);
+    const same = { [name.id]: "Núria Soler", [email.id]: s.address, [phone.id]: "600111222", [company.id]: "Gràfiques Vila", [notes.id]: "Primera versió", [guests.id]: "2", [rating.id]: "4", [yn.id]: "yes", [why.id]: "Seat" };
+    expect(await applyEdit(f, s.editToken, { locale: "ca", answers: same })).toEqual({ ok: true, changed: false });
+    expect((await row(s.id)).routingStatus).toBe("done");
+  });
+
+  it("other destinations are not routed by an edit", async () => {
+    const f = await make({ destination: "responses_only" });
+    const s = await send(f);
+    await applyEdit(f, s.editToken, { locale: "ca", answers: { [name.id]: "Altre nom", [email.id]: s.address, [phone.id]: "600111222", [notes.id]: "x", [guests.id]: "2", [rating.id]: "4", [yn.id]: "no" } });
+    expect((await row(s.id)).routingStatus).toBeNull();
+  });
+
+  it("the email that identifies the person is locked in the edit link, like the contact's email of the other destination", async () => {
+    const f = await records();
+    const s = await send(f);
+    const view = await loadForEdit(f, s.editToken);
+    expect(view!.locked).toEqual([email.id]);
+    await applyEdit(f, s.editToken, { locale: "ca", answers: { [name.id]: "Núria Soler", [email.id]: "intrus@example.com", [phone.id]: "600111222", [notes.id]: "Canvi", [guests.id]: "2", [rating.id]: "4", [yn.id]: "no" } });
+    expect(value((await row(s.id)).answers, email.id)).toBe(s.address);
+  });
+});

@@ -11,13 +11,16 @@ import { clients, eventAttendance, events, forms, jobSeekers, labourCases, peopl
 import { answerText } from "@apex/forms/answer-text";
 import { checkRouting, fixedValue, normalizeRouting, routingTarget, type Routing } from "@apex/forms/routing";
 import type { Item } from "@apex/forms/fieldTypes";
-import { saveRecord, type Actor } from "./records/engine";
+import { getRecord, saveRecord, type Actor } from "./records/engine";
 import { entityByKey } from "./records/registry";
 import { RecordError } from "./records/fieldTypes";
 
 type FormRow = typeof forms.$inferSelect;
 type Sub = typeof submissions.$inferSelect;
-export type Routed = { entity: string; id: string; label: string; action: "created" | "updated" | "unchanged" };
+export type Routed = {
+  entity: string; id: string; label: string; action: "created" | "updated" | "unchanged";
+  own?: boolean; values?: Record<string, string>; // own: this response created the record; values: what the form wrote (see resync)
+};
 
 /** A problem with the form's setup or the response that retrying will not fix. */
 export class RoutingError extends Error {}
@@ -34,11 +37,35 @@ async function companyIdByName(name: string): Promise<string | null> {
   return rows.length === 1 ? rows[0].id : null;
 }
 
+/**
+ * The respondent edited a response the CRM had already processed (the edit link): bring the records THIS response created up to date. Only what the person
+ * changed is applied (the new answer differs from what the form wrote), and only where the CRM still holds exactly what the form wrote: a value staff
+ * have edited since is theirs and stays. A record staff deleted is not recreated. Records the response merely completed (an existing person) are never "own".
+ */
+async function resync(prior: Routed, entityKey: string, next: Record<string, string>, actor: Actor): Promise<Routed> {
+  const e = entity(entityKey);
+  const current = await getRecord(e, prior.id);
+  if (!current) return { ...prior, action: "unchanged" };
+  const was = prior.values ?? {};
+  const patch: Record<string, string> = {};
+  const written = { ...was };
+  for (const [name, value] of Object.entries(next)) {
+    if (value === (was[name] ?? "")) continue; // the person did not change this
+    if (String(current[name] ?? "") !== (was[name] ?? "")) continue; // staff changed it since: theirs wins
+    patch[name] = value;
+    written[name] = value;
+  }
+  if (!Object.keys(patch).length) return { ...prior, action: "unchanged" };
+  await saveRecord(e, prior.id, (n) => (n in patch ? patch[n] : undefined), actor);
+  return { ...prior, action: "updated", values: written };
+}
+
 type PersonValues = { name: string; email: string; phone: string; role: string; company: string; notes: string };
 
 /** Creates the person, or completes the one with this email (only blank values are filled in). */
-async function upsertPerson(v: PersonValues, form: FormRow, actor: Actor): Promise<Routed> {
+async function upsertPerson(v: PersonValues, form: FormRow, actor: Actor, prior?: Routed): Promise<Routed> {
   const e = entity("people");
+  if (prior) return resync(prior, "people", { name: v.name, email: v.email.trim().toLowerCase(), phone: v.phone, role: v.role, notes: v.notes, companyId: (await companyIdByName(v.company)) ?? "" }, actor);
   const email = v.email.trim().toLowerCase();
   const companyId = await companyIdByName(v.company);
   const [existing] = email ? await db.select().from(people).where(and(sql`lower(btrim(${people.email})) = ${email}`, isNull(people.archivedAt))).limit(1) : [];
@@ -54,11 +81,14 @@ async function upsertPerson(v: PersonValues, form: FormRow, actor: Actor): Promi
   }
   const values: Record<string, string> = { name: v.name, email, phone: v.phone, role: v.role, companyId: companyId ?? "", source: `Formulari: ${form.name}`, notes: v.notes };
   const id = await saveRecord(e, null, (n) => values[n], actor);
-  return { entity: "people", id, label: v.name, action: "created" };
+  const tracked = { ...values };
+  delete tracked.source;
+  return { entity: "people", id, label: v.name, action: "created", own: true, values: tracked };
 }
 
 /** Signs the person up to the event: once per person and event (a repeat changes nothing, except an invitation becoming a confirmation). */
-async function ensureAttendance(eventId: string, person: Routed, companyName: string, status: string, subId: string, form: FormRow, actor: Actor): Promise<Routed> {
+async function ensureAttendance(eventId: string, person: Routed, companyName: string, status: string, subId: string, form: FormRow, actor: Actor, prior?: Routed): Promise<Routed> {
+  if (prior) return resync(prior, "attendance", { companyId: (await companyIdByName(companyName)) ?? "" }, actor);
   const [ev] = await db.select({ id: events.id, name: events.name }).from(events).where(eq(events.id, eventId)).limit(1);
   if (!ev) throw new RoutingError("L'esdeveniment triat ja no existeix: tria'n un altre al formulari i torna-ho a provar");
   const e = entity("attendance");
@@ -74,18 +104,20 @@ async function ensureAttendance(eventId: string, person: Routed, companyName: st
   const values: Record<string, string> = { eventId, personId: person.id, companyId: companyId ?? "", status, notes: `Inscripció pel formulari «${form.name}»` };
   const id = await saveRecord(e, null, (n) => values[n], actor);
   await db.update(eventAttendance).set({ externalRef: `form:${subId}` }).where(eq(eventAttendance.id, id));
-  return { entity: "attendance", id, label: ev.name, action: "created" };
+  return { entity: "attendance", id, label: ev.name, action: "created", own: true, values: { companyId: values.companyId } };
 }
 
 type OnceTable = typeof labourCases | typeof trainingCourses | typeof jobSeekers;
 /** Creates one record for this response, once: a retry finds it by its external reference instead of creating another. */
-async function createOnce(table: OnceTable, entityKey: string, label: string, subId: string, values: Record<string, string>, actor: Actor): Promise<Routed> {
+async function createOnce(table: OnceTable, entityKey: string, label: string, subId: string, values: Record<string, string>, actor: Actor, track: string[], prior?: Routed): Promise<Routed> {
+  const tracked = Object.fromEntries(track.map((n) => [n, values[n] ?? ""])); // the values that come from the person's answers (not dates and statuses the CRM sets)
+  if (prior) return resync(prior, entityKey, tracked, actor);
   const ref = `form:${subId}`;
   const [dup] = await db.select({ id: table.id }).from(table).where(eq(table.externalRef, ref)).limit(1);
-  if (dup) return { entity: entityKey, id: dup.id, label, action: "unchanged" };
+  if (dup) return { entity: entityKey, id: dup.id, label, action: "unchanged", own: true, values: tracked };
   const id = await saveRecord(entity(entityKey), null, (n) => values[n], actor);
   await db.update(table).set({ externalRef: ref }).where(eq(table.id, id));
-  return { entity: entityKey, id, label, action: "created" };
+  return { entity: entityKey, id, label, action: "created", own: true, values: tracked };
 }
 
 /** Creates or updates the records one response asks for. Throws RoutingError / RecordError for problems that retrying will not fix. */
@@ -95,6 +127,8 @@ export async function routeSubmission(form: FormRow, sub: Sub): Promise<Routed[]
   if (!routing || issues.length) throw new RoutingError(`El formulari no té ben configurat què s'ha de crear: ${issues.join(" · ") || "falta la configuració"}`);
   const target = routingTarget(routing.target)!;
   const actor: Actor = { id: null, email: `Formulari «${form.name}»` };
+  // A response the CRM already processed that the person has edited since: update what this response created instead of creating it again.
+  const prior = new Map((sub.routedAt ? sub.routedRecords ?? [] : []).filter((r) => r.own).map((r) => [r.entity, r]));
   const answers = new Map(sub.answers.map((a) => [a.id, a]));
   const text = (name: string) => { const id = routing.map[name]; const a = id ? answers.get(id) : undefined; return a ? answerText(a).trim() : ""; };
   const person = (): PersonValues => ({ name: text("name"), email: text("email"), phone: text("phone"), role: text("role"), company: text("company"), notes: text("notes") });
@@ -103,22 +137,22 @@ export async function routeSubmission(form: FormRow, sub: Sub): Promise<Routed[]
 
   switch (target.key) {
     case "person":
-      return [await upsertPerson(person(), form, actor)];
+      return [await upsertPerson(person(), form, actor, prior.get("people"))];
     case "attendance": {
-      const p = await upsertPerson(person(), form, actor);
-      return [p, await ensureAttendance(fixedValue(routing, "eventId"), p, text("company"), fixedValue(routing, "status") || "confirmed", sub.id, form, actor)];
+      const p = await upsertPerson(person(), form, actor, prior.get("people"));
+      return [p, await ensureAttendance(fixedValue(routing, "eventId"), p, text("company"), fixedValue(routing, "status") || "confirmed", sub.id, form, actor, prior.get("attendance"))];
     }
     case "labour_case":
-      return [await createOnce(labourCases, "labour", text("title"), sub.id, { title: text("title"), companyId: await companyId(), summary: text("summary"), status: "open", openedOn: when }, actor)];
+      return [await createOnce(labourCases, "labour", text("title"), sub.id, { title: text("title"), companyId: await companyId(), summary: text("summary"), status: "open", openedOn: when }, actor, ["title", "companyId", "summary"], prior.get("labour"))];
     case "training":
-      return [await createOnce(trainingCourses, "training", text("name"), sub.id, { name: text("name"), companyId: await companyId(), participants: text("participants"), notes: text("notes") || `Sol·licitud pel formulari «${form.name}»`, status: "planned" }, actor)];
+      return [await createOnce(trainingCourses, "training", text("name"), sub.id, { name: text("name"), companyId: await companyId(), participants: text("participants"), notes: text("notes") || `Sol·licitud pel formulari «${form.name}»`, status: "planned" }, actor, ["name", "companyId", "participants", "notes"], prior.get("training"))];
     case "job_seeker": {
       const months = Number(fixedValue(routing, "keepMonths"));
       if (![6, 12, 24, 36].includes(months)) throw new RoutingError("Falta triar quants mesos es conserven les dades de la borsa de treball");
       const consentOn = sub.consentAt ? day(sub.consentAt) : "";
       const keepUntil = addMonths(when, months);
       const email = text("email").toLowerCase();
-      const [existing] = email ? await db.select().from(jobSeekers).where(and(sql`lower(btrim(${jobSeekers.email})) = ${email}`, isNull(jobSeekers.archivedAt))).limit(1) : [];
+      const [existing] = email && !prior.has("job-seekers") ? await db.select().from(jobSeekers).where(and(sql`lower(btrim(${jobSeekers.email})) = ${email}`, isNull(jobSeekers.archivedAt))).limit(1) : [];
       if (existing) { // a person who applies again: the record is completed and its retention dates only move forward
         const e = entity("job-seekers");
         const patch: Record<string, string | undefined> = {
@@ -130,7 +164,7 @@ export async function routeSubmission(form: FormRow, sub: Sub): Promise<Routed[]
         await saveRecord(e, existing.id, (n) => patch[n], actor);
         return [{ entity: "job-seekers", id: existing.id, label: existing.name, action: "updated" }];
       }
-      return [await createOnce(jobSeekers, "job-seekers", text("name"), sub.id, { name: text("name"), email: text("email"), phone: text("phone"), profile: text("profile"), status: "active", registeredOn: when, consentOn, keepUntil }, actor)];
+      return [await createOnce(jobSeekers, "job-seekers", text("name"), sub.id, { name: text("name"), email: text("email"), phone: text("phone"), profile: text("profile"), status: "active", registeredOn: when, consentOn, keepUntil }, actor, ["name", "email", "phone", "profile"], prior.get("job-seekers"))];
     }
   }
 }

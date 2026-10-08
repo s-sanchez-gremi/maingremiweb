@@ -76,7 +76,7 @@ export function checkRouting(items: Item[], raw: unknown): string[] {
   if (!routing) return ["Tria què s'ha de crear al CRM amb cada resposta"];
   const target = routingTarget(routing.target)!;
   const issues: string[] = [];
-  const answerable = new Map(items.filter((i) => formTypeByName[i.type]?.input && i.type !== "file").map((i) => [i.id, i]));
+  const answerable = new Map(items.filter((i) => (formTypeByName[i.type]?.input || i.type === "calculated") && i.type !== "file").map((i) => [i.id, i])); // a calculated result (a score, a total) can fill a value too
   const shown = (i: Item) => lt(i.data.label, "ca") || i.type;
   for (const m of target.map) {
     const id = routing.map[m.name];
@@ -87,7 +87,7 @@ export function checkRouting(items: Item[], raw: unknown): string[] {
       if (field.type !== "email") issues.push(`«${m.label}»: ha de ser un camp de tipus Correu («${shown(field)}» no ho és)`);
       else if (field.data.required !== "yes") issues.push(`«${shown(field)}»: el correu amb què s'identifica la persona ha de ser obligatori`);
     }
-    if (m.kind === "number" && field.type !== "number") issues.push(`«${m.label}»: ha de ser un camp de tipus Número («${shown(field)}» no ho és)`);
+    if (m.kind === "number" && field.type !== "number" && field.type !== "calculated") issues.push(`«${m.label}»: ha de ser un camp de tipus Número o un resultat calculat («${shown(field)}» no ho és)`);
   }
   const used = Object.values(routing.map);
   if (new Set(used).size !== used.length) issues.push("Un mateix camp del formulari no es pot fer servir per a dues dades diferents");

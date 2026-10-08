@@ -66,6 +66,13 @@ describe("checking a setup when the form is saved", () => {
   it("a number must come from a number field", () => {
     expect(issues({ ...valid.training, map: { ...valid.training.map, participants: notes.id } })).toContain("ha de ser un camp de tipus Número");
   });
+  it("a calculated result can fill a text or a number value, but not an email", () => {
+    const score = item("calculated", "Puntuació", { op: "sum", terms: [] });
+    const withScore = [...ITEMS, score];
+    expect(checkRouting(withScore, { ...valid.training, map: { ...valid.training.map, participants: score.id } })).toEqual([]);
+    expect(checkRouting(withScore, { ...valid.job_seeker, map: { ...valid.job_seeker.map, profile: score.id } })).toEqual([]);
+    expect(checkRouting(withScore, { ...valid.person, map: { ...valid.person.map, email: score.id } }).join(" | ")).toContain("ha de ser un camp de tipus Correu");
+  });
   it("one form field cannot fill two values", () => {
     expect(issues({ ...valid.person, map: { ...valid.person.map, phone: name.id } })).toContain("no es pot fer servir per a dues dades");
   });

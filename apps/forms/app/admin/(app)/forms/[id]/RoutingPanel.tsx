@@ -8,7 +8,7 @@ export type EventChoice = { id: string; label: string };
 
 export function RoutingPanel({ value, onChange, items, events }: { value: Routing | null; onChange: (r: Routing | null) => void; items: Item[]; events: EventChoice[] }) {
   const target = routingTarget(value?.target);
-  const answerable = items.filter((i) => formTypeByName[i.type]?.input && i.type !== "file");
+  const answerable = items.filter((i) => (formTypeByName[i.type]?.input || i.type === "calculated") && i.type !== "file");
   const nameOf = (i: Item) => lt(i.data.label, "ca") || formTypeByName[i.type].label;
   const set = (patch: Partial<Routing>) => value && onChange({ ...value, ...patch });
 

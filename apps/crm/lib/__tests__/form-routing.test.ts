@@ -60,7 +60,7 @@ describe("a person", () => {
     const form = await make(routing()), address = mail();
     const sub = await respond(form, { name: "Núria Soler", email: address.toUpperCase(), phone: "600111222", role: "Gerent", company: co.name.toUpperCase(), notes: "Vol més informació" });
     const r = await routeSubmission(form, sub);
-    expect(r).toEqual([{ entity: "people", id: expect.any(String), label: "Núria Soler", action: "created" }]);
+    expect(r).toEqual([{ entity: "people", id: expect.any(String), label: "Núria Soler", action: "created", own: true, values: expect.any(Object) }]);
     const p = await personByMail(address.toLowerCase());
     expect(p).toMatchObject({ name: "Núria Soler", phone: "600111222", role: "Gerent", companyId: co.id, notes: "Vol més informació", source: `Formulari: ${form.name}` });
     const [h] = await db.select().from(recordHistory).where(and(eq(recordHistory.entity, "people"), eq(recordHistory.recordId, p.id)));
@@ -153,6 +153,142 @@ describe("an event registration", () => {
   });
 });
 
+describe("when the person edits a response that was already sent to the CRM", () => {
+  const edited = async (sub: typeof submissions.$inferSelect, changes: Partial<Record<keyof typeof f, string>>, routed: Awaited<ReturnType<typeof routeSubmission>>) => {
+    const answers = sub.answers.map((a) => { const k = (Object.keys(f) as (keyof typeof f)[]).find((x) => f[x].id === a.id); return k && k in changes ? { ...a, value: changes[k]! } : a; });
+    const [s] = await db.update(submissions).set({ answers, routedAt: new Date(), routedRecords: routed, routingStatus: "pending" }).where(eq(submissions.id, sub.id)).returning();
+    return s;
+  };
+  const personRouting = (): Routing => ({ target: "person", map: map({ name: f.name, email: f.email, phone: f.phone, role: f.role, company: f.company, notes: f.notes }), fixed: {} });
+
+  it("updates what the response created with what the person changed, and leaves the rest alone", async () => {
+    const form = await make(personRouting()), address = mail();
+    const sub = await respond(form, { name: "Núria", email: address, phone: "600111222", role: "Gerent", notes: "Primera" });
+    const first = await routeSubmission(form, sub);
+    expect(first[0]).toMatchObject({ action: "created", own: true });
+    const next = await edited(sub, { phone: "699000111", notes: "Corregida" }, first);
+    const second = await routeSubmission(form, next);
+    expect(second[0]).toMatchObject({ entity: "people", id: first[0].id, action: "updated", own: true });
+    expect(await personByMail(address)).toMatchObject({ name: "Núria", phone: "699000111", role: "Gerent", notes: "Corregida" });
+    expect((await db.select().from(people).where(eq(people.email, address))).length).toBe(1);
+    const [h] = await db.select().from(recordHistory).where(and(eq(recordHistory.entity, "people"), eq(recordHistory.recordId, first[0].id), eq(recordHistory.action, "update")));
+    expect(h).toMatchObject({ userId: null, userName: `Formulari «${form.name}»` });
+  });
+
+  it("a value staff changed in the CRM since is theirs: the person's edit does not overwrite it", async () => {
+    const form = await make(personRouting()), address = mail();
+    const sub = await respond(form, { name: "Núria", email: address, phone: "600111222", role: "Gerent" });
+    const first = await routeSubmission(form, sub);
+    await db.update(people).set({ role: "Directora general" }).where(eq(people.id, first[0].id)); // staff
+    const second = await routeSubmission(form, await edited(sub, { phone: "699000111", role: "Cap" }, first));
+    expect(await personByMail(address)).toMatchObject({ phone: "699000111", role: "Directora general" });
+    expect(second[0].action).toBe("updated");
+  });
+
+  it("an edit that changes nothing the CRM holds, or a second run, changes nothing", async () => {
+    const form = await make(personRouting()), address = mail();
+    const sub = await respond(form, { name: "Núria", email: address, phone: "600111222" });
+    const first = await routeSubmission(form, sub);
+    const same = await routeSubmission(form, await edited(sub, {}, first));
+    expect(same[0].action).toBe("unchanged");
+    const next = await edited(sub, { phone: "699000111" }, first);
+    const a = await routeSubmission(form, next);
+    const b = await routeSubmission(form, { ...next, routedRecords: a }); // run again after the first resync
+    expect([a[0].action, b[0].action]).toEqual(["updated", "unchanged"]);
+  });
+
+  it("successive edits each apply, and the person can clear a value", async () => {
+    const form = await make(personRouting()), address = mail();
+    const sub = await respond(form, { name: "Núria", email: address, phone: "600111222", notes: "Nota" });
+    let routed = await routeSubmission(form, sub);
+    let cur = await edited(sub, { phone: "611111111" }, routed); routed = await routeSubmission(form, cur);
+    cur = await edited(cur, { phone: "622222222", notes: "" }, routed); routed = await routeSubmission(form, cur);
+    expect(await personByMail(address)).toMatchObject({ phone: "622222222", notes: "" });
+  });
+
+  it("a record staff deleted is not created again", async () => {
+    const form = await make(personRouting()), address = mail();
+    const sub = await respond(form, { name: "Núria", email: address, phone: "600111222" });
+    const first = await routeSubmission(form, sub);
+    await db.delete(people).where(eq(people.id, first[0].id));
+    const second = await routeSubmission(form, await edited(sub, { phone: "699000111" }, first));
+    expect(second[0].action).toBe("unchanged");
+    expect(await personByMail(address)).toBeUndefined();
+  });
+
+  it("a person that already existed (only completed by the response) is not 'owned': an edit goes through the same fill-the-blanks rule", async () => {
+    const address = mail();
+    await db.insert(people).values({ name: "Núria Soler", email: address, phone: "933000000" });
+    const form = await make(personRouting());
+    const sub = await respond(form, { name: "N.", email: address, phone: "600111222", role: "Gerent" });
+    const first = await routeSubmission(form, sub);
+    expect(first[0].own).toBeUndefined();
+    const second = await routeSubmission(form, await edited(sub, { phone: "699000111", role: "Directora" }, first));
+    expect(await personByMail(address)).toMatchObject({ phone: "933000000", role: "Gerent" }); // never overwritten
+    expect(second[0].action).toBe("unchanged");
+  });
+
+  it("a registration follows the company; a case, a course and a candidate follow what the person wrote", async () => {
+    const ev = await event(), co1 = await company("Primera " + crypto.randomUUID().slice(0, 4)), co2 = await company("Segona " + crypto.randomUUID().slice(0, 4));
+    const att = await make({ target: "attendance", map: map({ name: f.name, email: f.email, company: f.company }), fixed: { eventId: ev.id } });
+    const address = mail(), subA = await respond(att, { name: "Marta", email: address, company: co1.name });
+    const ra = await routeSubmission(att, subA);
+    const ra2 = await routeSubmission(att, await edited(subA, { company: co2.name }, ra));
+    expect(ra2.map((x) => x.action)).toEqual(["updated", "updated"]); // the person's company and the registration's company both follow
+    expect((await db.select().from(eventAttendance).where(eq(eventAttendance.eventId, ev.id)))[0]).toMatchObject({ companyId: co2.id, status: "confirmed" });
+
+    const lab = await make({ target: "labour_case", map: map({ title: f.subject, company: f.company, summary: f.summary }), fixed: {} });
+    const subL = await respond(lab, { subject: "Acomiadament", company: co1.name, summary: "Text inicial" });
+    const rl = await routeSubmission(lab, subL);
+    await routeSubmission(lab, await edited(subL, { summary: "Text ampliat" }, rl));
+    expect((await db.select().from(labourCases).where(eq(labourCases.id, rl[0].id)))[0]).toMatchObject({ title: "Acomiadament", summary: "Text ampliat", status: "open" });
+
+    const tr = await make({ target: "training", map: map({ name: f.course, participants: f.people }), fixed: {} });
+    const subT = await respond(tr, { course: "Excel", people: "4" });
+    const rt = await routeSubmission(tr, subT);
+    await routeSubmission(tr, await edited(subT, { people: "6" }, rt));
+    expect((await db.select().from(trainingCourses).where(eq(trainingCourses.id, rt[0].id)))[0]).toMatchObject({ name: "Excel", participants: 6 });
+
+    const js = await make({ target: "job_seeker", map: map({ name: f.name, email: f.email, phone: f.phone, profile: f.profile }), fixed: { keepMonths: "12" } });
+    const subJ = await respond(js, { name: "Candidata", email: mail(), phone: "600123456", profile: "Dissenyadora" });
+    const rj = await routeSubmission(js, subJ);
+    const rj2 = await routeSubmission(js, await edited(subJ, { profile: "Dissenyadora gràfica" }, rj));
+    expect(rj2[0]).toMatchObject({ action: "updated", own: true });
+    const [seeker] = await db.select().from(jobSeekers).where(eq(jobSeekers.id, rj[0].id));
+    expect(seeker.profile).toBe("Dissenyadora gràfica");
+    expect(seeker.keepUntil).toBeTruthy(); // the retention date set when it was created is not touched
+  });
+
+  it("through the scheduler: a response edited after it was done is processed again and ends up done", async () => {
+    const form = await make(personRouting()), address = mail();
+    const sub = await respond(form, { name: "Núria", email: address, phone: "600111222" }, { routingStatus: "pending" });
+    await processFormRouting();
+    const [done] = await db.select().from(submissions).where(eq(submissions.id, sub.id));
+    expect(done.routingStatus).toBe("done");
+    await db.update(submissions).set({ answers: done.answers.map((a) => (a.id === f.phone.id ? { ...a, value: "699000111" } : a)), routingStatus: "pending", routingAttempts: 0 }).where(eq(submissions.id, sub.id));
+    await processFormRouting();
+    expect((await db.select().from(submissions).where(eq(submissions.id, sub.id)))[0].routingStatus).toBe("done");
+    expect(await personByMail(address)).toMatchObject({ phone: "699000111" });
+  });
+});
+
+describe("a calculated result fills a value", () => {
+  it("a score can go into a candidate's profile and a total into the number of participants", async () => {
+    const score = item("calculated", "Puntuació", { op: "sum", terms: [] });
+    const form = await make({ target: "job_seeker", map: map({ name: f.name, email: f.email, profile: score }), fixed: { keepMonths: "12" } }, { fields: [f.name, f.email, f.phone, f.profile, f.people, score] as never });
+    const address = mail();
+    const [sub] = await db.insert(submissions).values({ formId: form.id, locale: "ca", routingStatus: null, answers: [
+      { id: f.name.id, type: "text", label: "Nom", value: "Candidata" }, { id: f.email.id, type: "email", label: "Correu", value: address }, { id: score.id, type: "calculated", label: "Puntuació", value: 17.5 },
+    ] }).returning();
+    const r = await routeSubmission(form, sub);
+    expect((await db.select().from(jobSeekers).where(eq(jobSeekers.id, r[0].id)))[0].profile).toBe("17.5");
+    const tr = await make({ target: "training", map: map({ name: f.course, participants: score }), fixed: {} }, { fields: [f.course, score] as never });
+    const [s2] = await db.insert(submissions).values({ formId: tr.id, locale: "ca", routingStatus: null, answers: [{ id: f.course.id, type: "text", label: "Curs", value: "Excel" }, { id: score.id, type: "calculated", label: "Total", value: 6 }] }).returning();
+    const rt = await routeSubmission(tr, s2);
+    expect((await db.select().from(trainingCourses).where(eq(trainingCourses.id, rt[0].id)))[0].participants).toBe(6);
+  });
+});
+
 describe("cases, training and the job board", () => {
   it("a labour case is created once per response, open, dated, linked to the company", async () => {
     const co = await company("Consulta laboral " + crypto.randomUUID().slice(0, 4));
@@ -232,7 +368,7 @@ describe("the scheduler job", () => {
     const [p] = await db.select().from(submissions).where(eq(submissions.id, pending.id));
     expect(p).toMatchObject({ routingStatus: "done", routingAttempts: 1, routingError: null });
     expect(p.routedAt).not.toBeNull();
-    expect(p.routedRecords).toEqual([{ entity: "people", id: expect.any(String), label: "Pendent", action: "created" }]);
+    expect(p.routedRecords).toEqual([{ entity: "people", id: expect.any(String), label: "Pendent", action: "created", own: true, values: expect.any(Object) }]);
     expect((await db.select().from(submissions).where(eq(submissions.id, done.id)))[0].routedRecords).toBeNull();
     expect((await db.select().from(submissions).where(eq(submissions.id, plain.id)))[0].routingStatus).toBeNull();
   });

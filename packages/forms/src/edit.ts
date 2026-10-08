@@ -10,6 +10,7 @@ import { contacts, submissions, type Answer, type Locale, type forms } from "@ap
 import { enqueueEmail } from "@apex/core/outbox";
 import { answerText } from "./answer-text";
 import { availability } from "./availability";
+import { normalizeRouting } from "./routing";
 import { hashToken } from "./drafts";
 import { parseAddresses } from "./addresses";
 import type { Item } from "./fieldTypes";
@@ -44,7 +45,13 @@ async function editable(form: FormRow, token: unknown, now: Date) {
 }
 
 const items = (form: FormRow) => form.fields as Item[];
-const lockedIds = (form: FormRow) => items(form).filter((i) => i.data.map === "email").map((i) => i.id);
+/** The email that identifies the person is locked in the edit link: for a contact + lead form it is the mapped email, for a form that creates CRM records the email field of its mapping. */
+const lockedIds = (form: FormRow) => {
+  const ids = new Set(items(form).filter((i) => i.data.map === "email").map((i) => i.id));
+  const routed = form.destination === "records" ? normalizeRouting(form.routing)?.map.email : undefined;
+  if (routed) ids.add(routed);
+  return [...ids];
+};
 
 /** A stored answer in the shape the form's inputs hold it (yes/no and marks are text there; a number is typed text). */
 const forBrowser = (a: Answer): unknown => {
@@ -122,6 +129,8 @@ export async function applyEdit(form: FormRow, token: unknown, input: { answers:
   await db.transaction(async (tx) => {
     await tx.update(submissions).set({
       answers: snapshot, editedAt: now, editCount: sub.editCount + 1, originalAnswers: sub.originalAnswers ?? sub.answers,
+      // a response already sent to the CRM is queued again: the CRM brings the records it created up to date (apps/crm/lib/form-routing.ts)
+      ...(form.destination === "records" && sub.routingStatus ? { routingStatus: "pending" as const, routingAttempts: 0, routingError: null } : {}),
     }).where(eq(submissions.id, sub.id));
     await enqueueWebhooks(tx, form, "response.updated", { id: sub.id, createdAt: sub.createdAt, locale: sub.locale, sourcePath: sub.sourcePath, theme: sub.theme, utm: sub.utm, answers: snapshot, changes, editCount: sub.editCount + 1 });
     // The contact keeps its identity (the email is locked); its name, phone and company follow the response, and a blank never erases what is known.
