@@ -124,6 +124,38 @@ test("a request is sent, the signer opens their link, reads the document, signs 
   await expect(page.locator(".top .chip")).toHaveText(/Signada/i);
   await expect(page.getByText("Ha signat").first()).toBeVisible();
   await expect(page.getByText(/Ha acceptat signar electrònicament/)).toBeVisible();
+
+  // the document is sealed (right after the last signature, or by the scheduler) and the signer is mailed a link to their own copy
+  let copy = "";
+  for (let i = 0; i < 30 && !copy; i++) {
+    await page.request.post("/api/cron/tick", { headers: CRON });
+    const r = await (await fetch(`${MAILPIT}/search?query=${encodeURIComponent(`to:${email} subject:"Document signat"`)}`)).json();
+    if (r.messages?.length) copy = /(https?:\/\/[^\s]+\/sign\/dl\/[A-Za-z0-9_-]{43})/.exec((await (await fetch(`${MAILPIT}/message/${r.messages[0].ID}`)).json()).Text)?.[1] ?? "";
+    else await page.waitForTimeout(500);
+  }
+  expect(copy).not.toBe("");
+  const w = await visitor(browser);
+  const dl = await w.ctx.request.get(copy.replace(/^https?:\/\/[^/]+/, ""));
+  expect(dl.status()).toBe(200);
+  expect(dl.headers()["content-type"]).toBe("application/pdf");
+  expect(dl.headers()["content-disposition"]).toContain("attachment");
+  const sealed = await dl.body();
+  expect(sealed.subarray(0, 5).toString()).toBe("%PDF-");
+  const raw = sealed.toString("latin1");
+  expect(raw).toContain("/ByteRange");            // a digital signature over the whole file
+  expect(raw).toContain("adbe.pkcs7.detached");
+  expect((await w.ctx.request.get("/sign/dl/" + "a".repeat(43))).status()).toBe(404);
+  await w.ctx.close();
+
+  // staff: the card, the download (a 60-second link), and the record of both downloads
+  await page.goto(reqUrl);
+  await expect(page.getByRole("heading", { name: "Document signat" })).toBeVisible();
+  const staffCopy = await page.request.get(reqUrl + "/signed");
+  expect(staffCopy.status()).toBe(200);
+  expect((await staffCopy.body()).subarray(0, 5).toString()).toBe("%PDF-");
+  await page.reload();
+  await expect(page.getByText(/Descarregat/).first()).toBeVisible();
+  await expect(page.getByText(/Document segellat/).first()).toBeVisible();
 });
 
 test("a signer can draw their signature, and the next signer only gets a link when it is their turn", async ({ page, browser }) => {

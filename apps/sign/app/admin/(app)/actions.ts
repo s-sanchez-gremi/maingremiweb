@@ -7,8 +7,9 @@ import {
   SignError, addField, addSigner, createDraft, deleteDraft, moveSigner, removeField, removeSigner, renameDocument, updateSettings,
 } from "@/lib/requests";
 import { sendRequest, voidRequest } from "@/lib/lifecycle";
+import { retrySeal } from "@/lib/sealing";
 
-const s =(fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
+const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const uuid = (fd: FormData, k = "id") => z.string().uuid().parse(fd.get(k));
 const page = (id: string) => `/admin/requests/${id}`;
 
@@ -97,4 +98,12 @@ export async function cancelRequest(fd: FormData) {
   const id = uuid(fd), to = page(id);
   try { await voidRequest(user.id, id); } catch (e) { fail(to, e); }
   redirect(`${to}?saved=voided`);
+}
+
+export async function retryRequestSeal(fd: FormData) {
+  await requireUser("sign:write");
+  const id = uuid(fd), to = page(id);
+  let result: "sealed" | "already" | "failed";
+  try { result = await retrySeal(id); } catch (e) { return fail(to, e); }
+  redirect(`${to}?saved=${result === "failed" ? "sealfailed" : "sealed"}`);
 }

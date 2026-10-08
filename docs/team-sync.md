@@ -2,6 +2,16 @@
 
 **For Claude Code:** at the start of a session, read the section addressed to the person you are working for, do each open item (they are safe to repeat), tell the person what you did or what needs their decision, and mark the item done (date + initials) in the same pull request as your next change. Add a new notice here when you change something the other person's side must act on (a new migration, a moved table, a new rule, a changed command). Never put secrets here.
 
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-08 from Sam (signatures app, step S4: sealing)
+
+Nothing in `apps/web`, `apps/admin` or `packages/sections` changed. Do once, after merging `main`:
+
+1. `pnpm install` (new libraries used only by `packages/sign`: `@signpdf/*`, `pkijs`, `asn1js`) and `pnpm db:migrate` (migration 0028: new columns on `sign_requests` and `sign_signers`, all additive and idempotent).
+2. `.env`: add `SIGN_SEAL_CERT=`, `SIGN_SEAL_KEY=` and `SIGN_SEAL_PASSPHRASE=` from `.env.example`, **empty**: in development the Signatures app makes a throwaway certificate by itself. Only a staging or production server needs real values (made with `pnpm --filter sign seal:generate`); nothing to do until the Signatures app is deployed (step S6).
+3. **Shared files that changed:** `db/migrations/0028_sign_sealing.sql`, `packages/db/src/schema/sign.ts`, `.env.example`, `pnpm-lock.yaml`. No change to `db/grants.sql` (the same tables and the same database user).
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
 ## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (signatures app, step S3: sending and the signer page)
 
 Nothing in `apps/web`, `apps/admin` or `packages/sections` changed in behaviour. Do once, after merging `main`:
@@ -43,7 +53,7 @@ Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 Heads-up only, **nothing to do now and nothing in your apps changes.** We decided to build electronic signatures in-house as a separate app, `apps/sign` (plan: `docs/esign-plan.md`, merged in #74; the new section "Signatures app" in `CLAUDE.md` summarises it). It is Sam's area. What matters to you:
 
 1. **You will be asked to review only the shared files** when the steps land: a migration + `db/grants.sql` (S2), the Dockerfile, compose, `deploy.sh`, Caddy and `scripts/*-drill.sh` (S6), `check-boundaries.sh`, CI and `CLAUDE.md`. Nothing in `apps/web`, `apps/admin` or `packages/sections`.
-2. **Rules that will apply to everyone:** `apps/sign` never imports another app and no app imports it; a new database role `apex_sign` (like `apex_forms`: create the role before `APPLY_GRANTS=1` on any environment that uses restricted users; we will add a notice when S1 and S6 land); new env vars `SIGN_DOMAIN`, `SIGN_URL` and a seal certificate (`SIGN_SEAL_P12` + passphrase) in S6.
+2. **Rules that will apply to everyone:** `apps/sign` never imports another app and no app imports it; a new database role `apex_sign` (like `apex_forms`: create the role before `APPLY_GRANTS=1` on any environment that uses restricted users; we will add a notice when S1 and S6 land); new env vars `SIGN_DOMAIN`, `SIGN_URL` and a seal certificate (`SIGN_SEAL_CERT` + `SIGN_SEAL_KEY` + passphrase) in S6.
 3. **Open for your opinion (section 9 of the plan):** a fourth separate staff login is accepted for the forms app; same trade-off here. Say so if you would rather share a login.
 4. **Legal:** the consent wording, retention of sealed PDFs and the list of allowed documents need the client's legal adviser, the same as the privacy policy text on your side. If you already talk to them, it saves a round.
 

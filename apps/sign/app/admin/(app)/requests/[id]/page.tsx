@@ -8,9 +8,9 @@ import { dayInMadrid } from "@apex/sign/time";
 import { PROBLEM_TEXT } from "@apex/sign/validate";
 import { FieldPlacer } from "@/components/FieldPlacer";
 import { checkRequest, getRequest, listEvents } from "@/lib/requests";
-import { cancelRequest, createField, createSigner, deleteField, deleteSigner, removeRequest, saveSettings, shiftSigner, submitRequest } from "../../actions";
+import { cancelRequest, retryRequestSeal, createField, createSigner, deleteField, deleteSigner, removeRequest, saveSettings, shiftSigner, submitRequest } from "../../actions";
 
-const SAVED: Record<string, string> = { created: "Esborrany creat.", settings: "Desat.", signer: "Signants actualitzats.", field: "Camps actualitzats.", sent: "Enviada: els signants ja han rebut el correu.", voided: "Sol·licitud anul·lada: els enllaços ja no funcionen." };
+const SAVED: Record<string, string> = { created: "Esborrany creat.", settings: "Desat.", signer: "Signants actualitzats.", field: "Camps actualitzats.", sent: "Enviada: els signants ja han rebut el correu.", voided: "Sol·licitud anul·lada: els enllaços ja no funcionen.", sealed: "Document segellat: els signants ja han rebut la còpia.", sealfailed: "No s'ha pogut segellar: el motiu és a la targeta Document signat." };
 const SIGNER_STATUS: Record<string, string> = { pending: "Pendent", opened: "L'ha oberta", signed: "Ha signat", declined: "Ha rebutjat" };
 const EVENT_LABEL: Record<string, string> = {
   created: "Esborrany creat", sent: "Enviada", opened: "Ha obert l'enllaç", consented: "Ha acceptat signar electrònicament", signed: "Ha signat", declined: "Ha rebutjat signar",
@@ -103,6 +103,25 @@ export default async function RequestPage({ params, searchParams }: { params: Pr
           <div className="col-side">
             {!editable && (
               <>
+                {request.status === "completed" && (
+                  <div className="card" id="signed">
+                    <h3>Document signat</h3>
+                    {request.sealedKey ? (
+                      <>
+                        <p className="hint">Segellat el {when(request.sealedAt)}{request.sealedSha256 ? ` · SHA-256 ${request.sealedSha256.slice(0, 16)}…` : ""}</p>
+                        <a className="btn primary" href={`/admin/requests/${id}/signed`} style={{ textAlign: "center" }}>Descarrega el document signat</a>
+                      </>
+                    ) : request.sealError ? (
+                      <>
+                        <p className="msg err" role="status">No s&apos;ha pogut segellar: {request.sealError}</p>
+                        <p className="hint">{request.sealAttempts >= 5 ? "S'han esgotat els intents automàtics." : `Es tornarà a provar ${request.sealAfter ? "a partir de " + when(request.sealAfter) : "aviat"}.`}</p>
+                        <form action={retryRequestSeal}><input type="hidden" name="id" value={id} /><button className="btn primary" type="submit">Torna-ho a provar</button></form>
+                      </>
+                    ) : (
+                      <p className="hint">S&apos;està segellant el document… En menys d&apos;un minut apareixerà aquí.</p>
+                    )}
+                  </div>
+                )}
                 <div className="card">
                   <h3>Seguiment</h3>
                   <p className="hint">Caduca el {request.expiresAt ? dayInMadrid(request.expiresAt) : "—"}{request.ordered ? " · signen en ordre" : ""}</p>

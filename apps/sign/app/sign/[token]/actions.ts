@@ -1,9 +1,12 @@
 "use server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { processOutbox } from "@apex/core/outbox";
 import { hashToken, looksLikeToken } from "@apex/sign/token";
 import { SignError } from "@/lib/requests";
 import { actionLimited, contextOf } from "@/lib/guard";
+import { sealPending } from "@/lib/sealing";
 import { declineSigning, submitSignature } from "@/lib/signing";
 import type { SignState } from "@/components/SignClient";
 
@@ -24,6 +27,12 @@ export async function signAction(_prev: SignState, fd: FormData): Promise<SignSt
     }, ctx);
     if (!res.ok) return { problems: res.problems };
     locale = res.locale;
+    if (res.completed) {
+      // the last signature: make the sealed copy and send it now, after the signer has their answer; the scheduler retries whatever fails here
+      after(async () => {
+        try { await sealPending({ limit: 3 }); await processOutbox(); } catch (e) { console.error("sealing after the last signature failed", e); }
+      });
+    }
   } catch (e) {
     if (e instanceof SignError) return { invalid: true }; // the link stopped working while the page was open (signed twice, cancelled, expired)
     throw e;
