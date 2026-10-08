@@ -18,10 +18,10 @@
     "@apex/ui": "workspace:*",
     "@node-rs/argon2": "^2.2.1",
     "drizzle-orm": "^0.45.3",
-    "next": "16.3.7",
+    "next": "16.3.8",
     "postgres": "^3.4.9",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
@@ -33,11 +33,11 @@
     "@types/react-dom": "^19",
     "esbuild": "^0.28.2",
     "eslint": "^9",
-    "eslint-config-next": "16.3.7",
+    "eslint-config-next": "16.3.8",
     "sharp": "^0.35.5",
     "tsx": "^4.23.15",
     "typescript": "^5",
-    "vitest": "^5.0.2"
+    "vitest": "^5.0.3"
   },
   "packageManager": "pnpm@10.34.6"
 }
