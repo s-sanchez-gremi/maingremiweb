@@ -15,7 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <aside className="side">
         <div>
           <div className="logo">APEX <span style={{ fontSize: 12, letterSpacing: 2 }}>FORMULARIS</span></div>
-          <FormsNav crmUrl={process.env.CRM_URL} webAdminUrl={process.env.WEB_ADMIN_URL} />
+          <FormsNav crmUrl={process.env.CRM_URL} webAdminUrl={process.env.WEB_ADMIN_URL} hubUrl={process.env.HUB_URL} />
         </div>
         <div className="who">
           <span>{user.email}</span>

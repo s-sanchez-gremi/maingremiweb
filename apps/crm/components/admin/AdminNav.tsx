@@ -12,13 +12,14 @@ const items = [
   { href: "/admin/account", label: "El meu compte", match: (p: string) => p.startsWith("/admin/account") },
 ];
 
-export function AdminNav({ isAdmin, otherAppUrl, formsUrl }: { isAdmin: boolean; otherAppUrl?: string; formsUrl?: string }) {
+export function AdminNav({ isAdmin, otherAppUrl, formsUrl, hubUrl }: { isAdmin: boolean; otherAppUrl?: string; formsUrl?: string; hubUrl?: string }) {
   const path = usePathname();
   return (
     <nav className="nav" aria-label="Principal">
       {items.filter((i) => !("adminOnly" in i) || isAdmin).map((i) => (
         <Link key={i.href} href={i.href} aria-current={i.match(path) ? "page" : undefined}>{i.label}</Link>
       ))}
+      {hubUrl && <a href={hubUrl}>← Portal (Hub)</a>}
       {formsUrl && <a href={`${formsUrl}/admin/forms`}>Formularis ↗</a>}
       {otherAppUrl && <a href={`${otherAppUrl}/admin`}>Web i continguts →</a>}
     </nav>

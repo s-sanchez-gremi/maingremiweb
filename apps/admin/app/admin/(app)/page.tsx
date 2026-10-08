@@ -52,7 +52,7 @@ export default async function Dashboard() {
           <Link href="/admin/media"><span className="ico"><Icon name="upload" size={22} /></span><span><strong>Puja fitxers</strong><small>Imatges, PDF, Word…</small></span></Link>
           {admin
             ? <Link href="/admin/settings?tab=menu"><span className="ico"><Icon name="menu" size={22} /></span><span><strong>Edita el menú</strong><small>I els botons de dalt</small></span></Link>
-            : <Link href="/ca"><span className="ico"><Icon name="external" size={22} /></span><span><strong>Veure la web</strong><small>Tal com la veuen els visitants</small></span></Link>}
+            : <a href={`${(process.env.SITE_URL ?? "").replace(/\/$/, "")}/ca`}><span className="ico"><Icon name="external" size={22} /></span><span><strong>Veure la web</strong><small>Tal com la veuen els visitants</small></span></a>}
         </div>
 
         <div className="dash">
