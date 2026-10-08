@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Runs ON THE SERVER, inside the environment directory (compose.yml, .env, Caddyfile next to it).
-#   ./deploy.sh <image-tag> [all|web|admin|crm|forms]
-# The apps (web = public website, admin = CMS admin, crm = CRM, ERP, portal, forms = form builder, responses, submission API) come from
-# ONE image but are released independently: each has its own service, its own version (APEX_TAG_WEB / _ADMIN / _CRM / _FORMS), its own
+#   ./deploy.sh <image-tag> [all|web|admin|crm|forms|hub]
+# The apps (web = public website, admin = CMS admin, crm = CRM, ERP, portal, forms = form builder, responses, submission API, hub = start page
+# linking every portal) come from
+# ONE image but are released independently: each has its own service, its own version (APEX_TAG_WEB / _ADMIN / _CRM / _FORMS / _HUB), its own
 # health check and its own rollback. "all" means every app service the compose file defines.
 # Steps: pull the image, apply pending database migrations (once, before anything starts), start the new version(s),
 # wait until each is healthy, warm the website cache. An app that does not become healthy is rolled back to ITS previous
@@ -10,14 +11,14 @@
 # keeps working against the migrated database.
 set -euo pipefail
 cd "$(dirname "$0")"
-TAG="${1:?usage: deploy.sh <image-tag> [all|web|admin|crm|forms]}"
+TAG="${1:?usage: deploy.sh <image-tag> [all|web|admin|crm|forms|hub]}"
 ONLY="${2:-all}"
 export COMPOSE_FILE="${COMPOSE_FILE:-compose.yml}"   # docker compose reads this itself (several files may be joined with ":")
 COMPOSE=(docker compose)
 WAIT="${HEALTH_WAIT_SECONDS:-120}"
 SERVICES="$("${COMPOSE[@]}" config --services)"   # captured, not piped: `| grep -q` can die of SIGPIPE under pipefail
-APPS=(); for s in web admin crm forms; do if grep -qx "$s" <<<"$SERVICES"; then APPS+=("$s"); fi; done
-case "$ONLY" in all) TARGETS=("${APPS[@]}") ;; web|admin|crm|forms) grep -qx "$ONLY" <<<"$SERVICES" || { echo "this stack has no $ONLY service"; exit 2; }; TARGETS=("$ONLY") ;; *) echo "second argument must be all, web, admin, crm or forms"; exit 2 ;; esac
+APPS=(); for s in web admin crm forms hub; do if grep -qx "$s" <<<"$SERVICES"; then APPS+=("$s"); fi; done
+case "$ONLY" in all) TARGETS=("${APPS[@]}") ;; web|admin|crm|forms|hub) grep -qx "$ONLY" <<<"$SERVICES" || { echo "this stack has no $ONLY service"; exit 2; }; TARGETS=("$ONLY") ;; *) echo "second argument must be all, web, admin, crm, forms or hub"; exit 2 ;; esac
 
 state() { echo ".current-tag-$1"; }
 prev() { cat "$(state "$1")" 2>/dev/null || true; }

@@ -10,9 +10,10 @@ NAME=apex-smoke-$$
 CRM_NAME=apex-smoke-crm-$$
 ADMIN_NAME=apex-smoke-admin-$$
 FORMS_NAME=apex-smoke-forms-$$
-PORT="${SMOKE_PORT:-3300}"; CRM_PORT=$((PORT + 1)); FORMS_PORT=$((PORT + 2)); ADMIN_PORT=$((PORT + 3))
+HUB_NAME=apex-smoke-hub-$$
+PORT="${SMOKE_PORT:-3300}"; CRM_PORT=$((PORT + 1)); FORMS_PORT=$((PORT + 2)); ADMIN_PORT=$((PORT + 3)); HUB_PORT=$((PORT + 4))
 DB=apex_smoke
-cleanup() { docker rm -f "$NAME" "$CRM_NAME" "$FORMS_NAME" "$ADMIN_NAME" >/dev/null 2>&1 || true; }
+cleanup() { docker rm -f "$NAME" "$CRM_NAME" "$FORMS_NAME" "$ADMIN_NAME" "$HUB_NAME" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
 NET=$(docker inspect "$(docker compose ps -q db)" --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}')
@@ -133,4 +134,13 @@ FH="$(curl -sI "localhost:$FORMS_PORT/admin/login")"
 grep -qi "x-frame-options: deny" <<<"$FH" && grep -qi "content-security-policy" <<<"$FH" && echo "ok: forms is not frameable and sends a Content-Security-Policy" || { echo "FAIL: forms security headers"; exit 1; }
 grep -qi "disallow: /" <<<"$(curl -s "localhost:$FORMS_PORT/robots.txt")" && echo "ok: forms robots.txt disallows everything"
 echo "ok: forms container health: $(docker inspect -f '{{.State.Health.Status}}' "$FORMS_NAME")"
+echo "== start the Hub (same image, command start-hub; no database, no login)"
+docker run -d --name "$HUB_NAME" --network "$NET" -p "$HUB_PORT:3000" -e NODE_ENV=production -e ADMIN_URL=https://admin.example.org -e CRM_URL=https://crm.example.org -e FORMS_URL=https://forms.example.org -e SITE_URL=https://www.example.org "$IMAGE" start-hub >/dev/null
+for i in $(seq 1 60); do curl -fsS "localhost:$HUB_PORT/api/health" >/dev/null 2>&1 && break; sleep 1; [ "$i" = 60 ] && { docker logs "$HUB_NAME" | tail -30; echo "FAIL: the Hub did not start"; exit 1; }; done
+HP="$(curl -s "localhost:$HUB_PORT/")"
+grep -q 'href="https://crm.example.org"' <<<"$HP" && grep -q "Aviat disponible" <<<"$HP" && echo "ok: hub links the configured portals and shows e-signature as coming soon" || { echo "FAIL: hub page"; echo "$HP" | head -20; exit 1; }
+HH="$(curl -sI "localhost:$HUB_PORT/")"
+grep -qi "x-frame-options: deny" <<<"$HH" && echo "ok: hub is not frameable" || { echo "FAIL: hub security headers"; exit 1; }
+grep -qi "disallow: /" <<<"$(curl -s "localhost:$HUB_PORT/robots.txt")" && echo "ok: hub robots.txt disallows everything"
+echo "ok: hub container health: $(docker inspect -f '{{.State.Health.Status}}' "$HUB_NAME")"
 echo "SMOKE TEST PASSED"

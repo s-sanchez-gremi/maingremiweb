@@ -80,6 +80,23 @@
 		-Server
 	}
 }
+# The Hub: one start page linking to every portal (no database, no login, only links). Staff-only like the other hosts, EXCEPT page
+# assets, robots.txt and the health check for monitors.
+{$HUB_DOMAIN} {
+	encode zstd gzip
+	@staff_outside {
+		not path /_next/* /robots.txt /api/health
+		not remote_ip {$ADMIN_ALLOWED_IPS:127.0.0.1/32}
+	}
+	route {
+		respond @staff_outside 404
+		reverse_proxy hub:3000
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+}
 # "www" goes to the canonical address.
 www.{$SITE_DOMAIN} {
 	redir https://{$SITE_DOMAIN}{uri} permanent
