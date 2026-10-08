@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Answer } from "@apex/db/schema";
 import type { Item } from "@apex/forms/fieldTypes";
-import { NONE, cellText, columnsOf, filterRows, groupableOf, lanes, valuesOf, type ResponseRow } from "@apex/forms/response-views";
+import { NONE, cellText, columnsOf, filterRows, groupableOf, lanes, moveAnswer, valuesOf, type ResponseRow } from "@apex/forms/response-views";
 
 const L = (ca: string) => ({ ca, es: ca, en: ca });
 const item = (type: string, label: string, data: Record<string, unknown> = {}): Item => ({ id: crypto.randomUUID(), type, data: { label: L(label), required: "no", ...data } });
@@ -92,5 +92,41 @@ describe("table cells", () => {
     expect(cellText(eva, columns[1])).toBe("");
     const a = item("address", "Adreça");
     expect(cellText(row([ans(a, { street: "Major 1", postalCode: "08001", city: "Barcelona" })]), { id: a.id, label: "Adreça", type: "address" })).toBe("Major 1, 08001 Barcelona");
+  });
+});
+
+describe("moving a card to another lane", () => {
+  const req = (i: Item) => ({ ...i, data: { ...i.data, required: "yes" } });
+  const a = (i: Item, value: unknown): Answer => ans(i, value);
+  it("a single choice takes the target lane; the same lane changes nothing", () => {
+    expect(moveAnswer(level, a(level, "Bàsic"), "Bàsic", "Premium")).toEqual({ ok: true, value: "Premium", changed: true });
+    expect(moveAnswer(level, a(level, "Premium"), "Premium", "Premium")).toMatchObject({ ok: true, changed: false });
+    expect(moveAnswer(level, undefined, NONE, "Bàsic")).toEqual({ ok: true, value: "Bàsic", changed: true }); // from «Sense resposta»
+  });
+  it("«Sense resposta» clears the answer, unless the question is required", () => {
+    expect(moveAnswer(level, a(level, "Bàsic"), "Bàsic", NONE)).toEqual({ ok: true, value: "", changed: true });
+    expect(moveAnswer(req(level), a(level, "Bàsic"), "Bàsic", NONE)).toMatchObject({ ok: false });
+  });
+  it("a lane that is no longer an option of the form cannot be a destination, but a card can leave it", () => {
+    expect(moveAnswer(level, a(level, "Bàsic"), "Bàsic", "Antic")).toMatchObject({ ok: false, error: expect.stringContaining("ja no és una opció") });
+    expect(moveAnswer(level, a(level, "Antic"), "Antic", "Premium")).toMatchObject({ ok: true, value: "Premium" });
+  });
+  it("a multiple choice swaps the source lane for the target one and keeps its other picks", () => {
+    expect(moveAnswer(topics, a(topics, ["A", "B"]), "A", "B")).toEqual({ ok: true, value: ["B"], changed: true });
+    const three = item("choice", "Tres", { multiple: "many", options: [{ label: L("A") }, { label: L("B") }, { label: L("C") }] });
+    expect(moveAnswer(three, a(three, ["A", "B"]), "A", "C")).toEqual({ ok: true, value: ["B", "C"], changed: true });
+    expect(moveAnswer(topics, a(topics, ["A"]), "A", NONE)).toEqual({ ok: true, value: [], changed: true });
+    expect(moveAnswer(req(topics), a(topics, ["A"]), "A", NONE)).toMatchObject({ ok: false });
+  });
+  it("yes/no, box and rating", () => {
+    expect(moveAnswer(ok, a(ok, true), "Sí", "No")).toEqual({ ok: true, value: false, changed: true });
+    expect(moveAnswer(ok, undefined, NONE, "Sí")).toMatchObject({ ok: true, value: true, changed: true });
+    expect(moveAnswer(box, a(box, false), NONE, "Marcada")).toEqual({ ok: true, value: true, changed: true });
+    expect(moveAnswer(box, a(box, true), "Marcada", NONE)).toEqual({ ok: true, value: false, changed: true });
+    expect(moveAnswer(stars, a(stars, 3), "3", "5")).toEqual({ ok: true, value: 5, changed: true });
+    expect(moveAnswer(stars, a(stars, 3), "3", "9")).toMatchObject({ ok: false });
+  });
+  it("a text question cannot be moved", () => {
+    expect(moveAnswer(name, a(name, "Anna"), "Anna", "Pau")).toMatchObject({ ok: false });
   });
 });

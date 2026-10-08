@@ -72,3 +72,35 @@ export const cellText = (row: ResponseRow, column: Column, max = 80): string => 
   const t = a ? answerText(a).replace(/\s+/g, " ").trim() : "";
   return t.length > max ? `${t.slice(0, max - 1)}…` : t;
 };
+
+export type Move = { ok: true; value: unknown; changed: boolean } | { ok: false; error: string };
+
+/**
+ * The answer a response gets when staff move its card from one lane to another: the new stored value of that choice question, or why it cannot be done.
+ * A single choice takes the target lane; a multiple choice swaps the source lane for the target one (its other picks stay); «Sense resposta» clears the
+ * answer, which a required question does not allow; a lane that is no longer an option of the form cannot be a destination.
+ */
+export function moveAnswer(item: Item, current: Answer | undefined, from: string, to: string): Move {
+  const required = item.data.required === "yes";
+  const clear = (empty: unknown): Move => (required ? { ok: false, error: "Aquesta pregunta és obligatòria: no es pot deixar sense resposta" } : done(empty));
+  const before = current?.value as unknown;
+  const done = (value: unknown): Move => ({ ok: true, value, changed: JSON.stringify(value) !== JSON.stringify(before ?? (item.type === "checkbox" ? false : "")) });
+  const options = optionValues(item);
+  const bad: Move = { ok: false, error: "No es pot moure a aquesta columna (ja no és una opció del formulari)" };
+  switch (item.type) {
+    case "dropdown": return to === NONE ? clear("") : options.includes(to) ? done(to) : bad;
+    case "choice": {
+      if (item.data.multiple !== "many") return to === NONE ? clear("") : options.includes(to) ? done(to) : bad;
+      const picked = (Array.isArray(before) ? before.map(String) : typeof before === "string" && before ? [before] : []).filter((v) => v !== from);
+      if (to !== NONE) { if (!options.includes(to)) return bad; if (!picked.includes(to)) picked.push(to); }
+      return picked.length ? done(picked) : clear([]);
+    }
+    case "yesno": return to === "Sí" ? done(true) : to === "No" ? done(false) : to === NONE ? clear("") : bad;
+    case "checkbox": return to === "Marcada" ? done(true) : to === NONE ? clear(false) : bad;
+    case "rating": {
+      const max = String(item.data.max) === "10" ? 10 : 5;
+      return to === NONE ? clear("") : /^\d{1,2}$/.test(to) && Number(to) >= 1 && Number(to) <= max ? done(Number(to)) : bad;
+    }
+    default: return { ok: false, error: "Aquesta pregunta no es pot moure" };
+  }
+}

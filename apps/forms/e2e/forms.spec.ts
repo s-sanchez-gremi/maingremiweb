@@ -1237,3 +1237,47 @@ test("analytics: drop-off per question, time to complete and a chart per choice 
   await page.getByRole("link", { name: "Estadístiques" }).click();
   await expect(page).toHaveURL(/\/analytics$/);
 });
+
+test("board: move a response to another lane with the select and by dragging; the first version is kept, a required question refuses «Sense resposta»", async ({ page }) => {
+  const nom = F("text", { label: L("Nom"), required: "yes" });
+  const lvl = F("dropdown", { label: L("Nivell"), options: [{ label: L("Bàsic") }, { label: L("Premium") }] });
+  const must = F("dropdown", { label: L("Obligatori"), required: "yes", options: [{ label: L("Sí") }, { label: L("No") }] });
+  const id = await seedForm("tauler-mou-e2e", [nom, lvl, must]);
+  const add = async (who: string, level: string) => (await sql`insert into submissions (form_id, answers, locale) values (${id}, ${sql.json([
+    { id: nom.id, type: "text", label: "Nom", value: who }, { id: lvl.id, type: "dropdown", label: "Nivell", value: level }, { id: must.id, type: "dropdown", label: "Obligatori", value: "Sí" },
+  ] as never)}, 'ca') returning id`)[0].id as string;
+  const anna = await add("Anna Vilà", "Premium"), pau = await add("Pau Sàbat", "Bàsic");
+  await login(page);
+  const level = async (sub: string) => ((await sql`select answers from submissions where id = ${sub}`)[0].answers as { id: string; value: unknown }[]).find((a) => a.id === lvl.id)?.value;
+  await page.goto(`/admin/forms/${id}/submissions?view=board&by=${lvl.id}`);
+
+  // the select (works without drag and drop)
+  const annaCard = page.locator("[data-card]", { hasText: "Anna Vilà" });
+  await annaCard.getByLabel(/^Mou la resposta/).selectOption({ label: "Bàsic" });
+  await annaCard.getByRole("button", { name: "Mou" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Resposta moguda" })).toBeVisible();
+  expect(await level(anna)).toBe("Bàsic");
+  const [row] = await sql`select staff_edited_at, original_answers, edit_count from submissions where id = ${anna}`;
+  expect(row.staff_edited_at).not.toBeNull();
+  expect(row.edit_count).toBe(0); // not the respondent's counter
+  expect((row.original_answers as { id: string; value: unknown }[]).find((a) => a.id === lvl.id)?.value).toBe("Premium"); // the first version is kept
+  await expect(page.getByRole("region", { name: "Bàsic: 2" })).toContainText("Anna Vilà");
+  await expect(page.getByText("canviada per l'equip").first()).toBeVisible();
+
+  // dragging
+  await page.locator("[data-card]", { hasText: "Pau Sàbat" }).dragTo(page.getByRole("region", { name: /^Premium/ }), { sourcePosition: { x: 4, y: 4 } }); // grabbed by its edge (the select inside would not start a drag)
+  await expect.poll(() => level(pau)).toBe("Premium");
+  await expect(page.getByRole("region", { name: "Premium: 1" })).toContainText("Pau Sàbat");
+
+  // a required question cannot be left without an answer, and nothing changes
+  await page.goto(`/admin/forms/${id}/submissions?view=board&by=${must.id}`);
+  await page.locator("[data-card]", { hasText: "Anna Vilà" }).getByLabel(/^Mou la resposta/).selectOption({ label: "Sense resposta" });
+  await page.locator("[data-card]", { hasText: "Anna Vilà" }).getByRole("button", { name: "Mou" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "obligatòria" })).toBeVisible();
+
+  // the card in the cards view says staff changed it, and the original is there
+  await page.goto(`/admin/forms/${id}/submissions?open=${anna}`);
+  await expect(page.getByText("Canviada per l'equip")).toBeVisible();
+  await page.getByText("Veure la resposta original").click();
+  await expect(page.getByText("Premium").first()).toBeVisible();
+});
