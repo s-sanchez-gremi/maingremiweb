@@ -70,7 +70,8 @@ export default async function Submissions({ params, searchParams }: { params: Pr
       </div>
       {s.routingStatus && (
         <div className="hint" style={{ display: "grid", gap: 6 }}>
-          {s.routingStatus === "pending" && <span><span className="chip">Pendent</span> El CRM encara no n&apos;ha creat els registres{s.routingError ? ` (ho ha provat ${s.routingAttempts} cops: ${s.routingError})` : ""}.</span>}
+          {s.routingStatus === "pending" && s.routedAt && <span><span className="chip">Pendent</span> La persona ha modificat la resposta: el CRM actualitzarà els registres que en va crear.</span>}
+                {s.routingStatus === "pending" && !s.routedAt && <span><span className="chip">Pendent</span> El CRM encara no n&apos;ha creat els registres{s.routingError ? ` (ho ha provat ${s.routingAttempts} cops: ${s.routingError})` : ""}.</span>}
           {s.routingStatus === "done" && (
             <span><span className="chip ok">Passat al CRM</span> {(s.routedRecords ?? []).map((r) => `${r.entity === "people" ? "Persona" : r.entity === "attendance" ? "Inscripció" : r.entity === "labour" ? "Cas laboral" : r.entity === "training" ? "Formació" : r.entity === "job-seekers" ? "Borsa de treball" : r.entity}: ${r.label} (${r.action === "created" ? "creat" : r.action === "updated" ? "completat" : "ja hi era"})`).join(" · ")}</span>
           )}

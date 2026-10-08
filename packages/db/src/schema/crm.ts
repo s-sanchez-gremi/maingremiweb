@@ -195,7 +195,8 @@ export const submissions = pgTable("submissions", {
   routingAttempts: integer("routing_attempts").notNull().default(0),
   routedAt: timestamp("routed_at", { withTimezone: true }),
   routingError: text("routing_error"),
-  routedRecords: jsonb("routed_records").$type<{ entity: string; id: string; label: string; action: "created" | "updated" | "unchanged" }[]>(),
+  // own: this response created the record, values: what the form wrote into it (so a later edit of the response only changes what the CRM still holds as the form wrote it)
+  routedRecords: jsonb("routed_records").$type<{ entity: string; id: string; label: string; action: "created" | "updated" | "unchanged"; own?: boolean; values?: Record<string, string> }[]>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
