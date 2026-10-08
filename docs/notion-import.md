@@ -65,5 +65,5 @@ Companies: the main list ("Agremiats", 577 rows) plus "Empreses" (303) merge int
 ## 8. Fields filled by later passes
 Migration 0019: *Cuota* → company `fee_status` (Corrent pagament / Impagament / Sense dades); sponsors' *esdeveniments*, *contactats*, *últim contacte*, *persona de contacte* (only when it is an e-mail), *proposta*, *seguiment* → their own fields (the rest stays in the notes); gala *SEIENTS* → seat tags (platea, llotja, llotja sponsor, vip, nominal) and *Categoria* → free category tags. Re-running fills them on rows imported earlier without touching what people edited since.
 
-## 9. Mailing lists (migration 0028)
+## 9. Mailing lists (migration 0029)
 `NOTION_DB_NEWSLETTERS` and `NOTION_DB_SCHOOL_LIST` (`--only newsletters,schoolList`) fill **Llistes de correu** (`/workspace/mailing-lists`, admin-only): one row per address per list (case-insensitive; repeated addresses are kept once and counted in the report; rows without a valid e-mail are skipped). Newsletter classification becomes tags, *Origen*/*campaign* the origin. **Consent date is left empty on purpose** (tab *Sense consentiment*) until the legal adviser fixes the basis; nothing is sent from Apex and nothing is pushed to any external tool. First run on the dev database: 230 newsletter addresses (14 repeated, 2 without e-mail) and 1,814 school addresses.
