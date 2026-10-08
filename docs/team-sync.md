@@ -180,6 +180,17 @@ Open question for you both (not urgent): the old CRM screens `/admin/clients` an
 Done: (none yet; Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
 Partial, 2026-10-02 JM (Claude, cloud session): step 5 checks are green on a branch from current `main` (boundaries, lint, types, unit tests except the media test that needs the Docker S3 mock). Steps 1 and 2 still have to be run once on Joan Marc's own computer.
 
+## For Joan Marc (apps/web, apps/admin) and his Claude — notice of 2026-10-07 from Sam (new app: the Hub start page)
+
+A sixth app, `apps/hub`, is a start page linking to every portal (CMS admin, CRM, Forms, e-signature). It has no database and no login; nothing in `apps/web` or `apps/admin` changes. Do once, after merging `main`:
+
+1. `pnpm install` and link its env: `ln -sf ../../.env apps/hub/.env` (`pnpm dev` now also starts it on :3005; `./scripts/ci.sh` links it itself). Add `SIGN_URL=` (empty) to your `.env` (see `.env.example`).
+2. **Deployed environments:** a new host `HUB_DOMAIN` (default `hub.<SITE_DOMAIN>`) needs its own DNS A record; new compose service `hub`, release tag `APEX_TAG_HUB`, `deploy.sh <tag> [all|web|admin|crm|forms|hub]`. The first release containing it is `deploy.sh <tag> all`. Details: `DEPLOY.md`, `deploy/ionos/*.env.example`.
+3. No migration, no grants change. E-signature is not built: its tile reads "coming soon" until `SIGN_URL` is set.
+4. Review note: `apps/hub` is reviewed by both of you (CODEOWNERS).
+
+Done: (Joan Marc or his Claude: add "YYYY-MM-DD JM" here when finished)
+
 ## For Sam (apps/crm) and his Claude
 
 Notice of 2026-10-02 from Joan Marc (website admin redesign):
