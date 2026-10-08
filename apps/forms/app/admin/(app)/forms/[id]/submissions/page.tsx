@@ -8,11 +8,12 @@ import { ConfirmButton } from "@apex/ui/components/ConfirmButton";
 import { answerText } from "@apex/forms/answer-text";
 import type { Item } from "@apex/forms/fieldTypes";
 import { NONE, cellText, columnsOf, filterRows, groupableOf, lanes } from "@apex/forms/response-views";
-import { removeSubmission, retryRouting } from "../../actions";
+import { DragBoard } from "@/components/DragBoard";
+import { moveResponse, removeSubmission, retryRouting } from "../../actions";
 
 const PAGE = 25;
 
-export default async function Submissions({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ p?: string; deleted?: string; retried?: string; view?: string; by?: string; q?: string; f?: string; v?: string; open?: string }> }) {
+export default async function Submissions({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ p?: string; deleted?: string; retried?: string; moved?: string; moveError?: string; view?: string; by?: string; q?: string; f?: string; v?: string; open?: string }> }) {
   await requireUser();
   const { id } = await params;
   const sp = await searchParams;
@@ -82,9 +83,10 @@ export default async function Submissions({ params, searchParams }: { params: Pr
           )}
         </div>
       )}
-      {s.editCount > 0 && (
+      {(s.editCount > 0 || s.staffEditedAt) && (
         <div className="hint" style={{ display: "grid", gap: 6 }}>
-          <span><span className="chip">Modificada {s.editCount} {s.editCount === 1 ? "cop" : "cops"}</span> per la persona; l&apos;última, el {s.editedAt?.toLocaleString("ca-ES")}</span>
+          {s.staffEditedAt && <span><span className="chip">Canviada per l&apos;equip</span> el {s.staffEditedAt.toLocaleString("ca-ES")}, en moure-la al tauler</span>}
+                {s.editCount > 0 && <span><span className="chip">Modificada {s.editCount} {s.editCount === 1 ? "cop" : "cops"}</span> per la persona; l&apos;última, el {s.editedAt?.toLocaleString("ca-ES")}</span>}
           {s.originalAnswers && (
             <details>
               <summary>Veure la resposta original</summary>
@@ -133,23 +135,36 @@ export default async function Submissions({ params, searchParams }: { params: Pr
       </table>
     </div>
   );
+  const boardLanes = by && shown ? lanes(shown, by, items.find((i) => i.id === by.id)) : [];
   const board = by && shown ? (
-    <div style={{ display: "flex", gap: 12, overflowX: "auto", alignItems: "flex-start" }}>
-      {lanes(shown, by, items.find((i) => i.id === by.id)).map((lane) => (
-        <section key={lane.value} aria-label={`${lane.label}: ${lane.rows.length}`} style={{ minWidth: 220, flex: "0 0 220px", background: "var(--paper-dark, #EFEAE0)", padding: 8, borderRadius: 4, display: "grid", gap: 8 }}>
+    <DragBoard>
+      {boardLanes.map((lane) => (
+        <section key={lane.value} data-lane={lane.value} aria-label={`${lane.label}: ${lane.rows.length}`} style={{ minWidth: 220, flex: "0 0 220px", background: "var(--paper-dark, #EFEAE0)", padding: 8, borderRadius: 4, display: "grid", gap: 8, minHeight: 80 }}>
           <h3 style={{ margin: 0, fontSize: 14 }}>{lane.label} <span className="hint">· {lane.rows.length}</span></h3>
           {lane.rows.map((r) => {
             const first = r.answers.find((a) => a.type !== "file" && answerText(a).trim() !== "" && a.id !== by.id);
+            const sub = rows.find((x) => x.s.id === r.id)?.s;
             return (
-              <Link key={r.id} href={link({ open: r.id, view: undefined, by: undefined })} className="card" style={{ display: "grid", gap: 2, textDecoration: "none", color: "inherit", padding: 8 }}>
-                <strong style={{ overflowWrap: "anywhere" }}>{first ? cellText(r, { id: first.id, label: first.label, type: first.type }, 50) : "(sense text)"}</strong>
-                <span className="hint" style={{ margin: 0 }}>{when(r.createdAt)}</span>
-              </Link>
+              <div key={r.id} data-card={r.id} draggable className="card" style={{ display: "grid", gap: 4, padding: 8, cursor: "grab" }}>
+                <Link href={link({ open: r.id, view: undefined, by: undefined })} draggable={false} style={{ display: "grid", gap: 2, textDecoration: "none", color: "inherit" }}>
+                  <strong style={{ overflowWrap: "anywhere" }}>{first ? cellText(r, { id: first.id, label: first.label, type: first.type }, 50) : "(sense text)"}</strong>
+                  <span className="hint" style={{ margin: 0 }}>{when(r.createdAt)}{sub?.staffEditedAt ? " · canviada per l'equip" : ""}</span>
+                </Link>
+                <form action={moveResponse} style={{ display: "flex", gap: 4 }}>
+                  <input type="hidden" name="formId" value={id} /><input type="hidden" name="id" value={r.id} /><input type="hidden" name="field" value={by.id} /><input type="hidden" name="from" value={lane.value} />
+                  <input type="hidden" name="q" value={q} /><input type="hidden" name="f" value={filterField?.id ?? ""} /><input type="hidden" name="v" value={filterValue} />
+                  <select name="to" defaultValue="" aria-label={`Mou la resposta del ${when(r.createdAt)} a…`} style={{ minWidth: 0, flex: 1 }}>
+                    <option value="" disabled>Mou a…</option>
+                    {boardLanes.filter((l) => l.value !== lane.value).map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+                  </select>
+                  <button className="btn" type="submit">Mou</button>
+                </form>
+              </div>
             );
           })}
         </section>
       ))}
-    </div>
+    </DragBoard>
   ) : <p className="hint">Aquest formulari no té cap pregunta d&apos;opcions (desplegable, opció múltiple, Sí / No, casella o valoració) per fer un tauler.</p>;
   const content = view === "board" && !by ? board : rows.length === 0 ? <p className="hint">{n === 0 ? "Encara no hi ha respostes." : "Cap resposta coincideix amb la cerca."}</p>
     : view === "table" ? table : view === "board" ? board : <>{pageRows.map(({ s, email }) => card(s, email))}</>;
@@ -188,8 +203,10 @@ export default async function Submissions({ params, searchParams }: { params: Pr
             </nav>
           )}
         </div>
-        {wide && <p className="hint" style={{ margin: 0 }}>{view === "board" ? "El tauler és només per mirar: obre una targeta per veure la resposta sencera. " : ""}Es miren les últimes 2.000 respostes{rows.length < n ? ` (${rows.length} coincideixen)` : ""}.</p>}
+        {wide && <p className="hint" style={{ margin: 0 }}>{view === "board" ? "Arrossega una targeta a una altra columna (o fes servir «Mou a…») per canviar la resposta de la pregunta; la resposta original es conserva. " : ""}Es miren les últimes 2.000 respostes{rows.length < n ? ` (${rows.length} coincideixen)` : ""}.</p>}
         {sp.deleted && <p role="status" className="msg ok">Resposta eliminada.</p>}
+        {sp.moved && <p role="status" className="msg ok">Resposta moguda. La resposta original es conserva.</p>}
+        {sp.moveError && <p role="alert" className="msg err">{sp.moveError.slice(0, 200)}</p>}
         {sp.retried && <p role="status" className="msg ok">Es tornarà a provar al CRM d&apos;aquí a un moment.</p>}
         {content}
         {pages > 1 && view !== "board" && (

@@ -129,6 +129,7 @@ export type WebhookEvent = "response.created" | "response.updated" | "ping";
 export type ResponseInfo = {
   id: string; createdAt: Date; locale: string; sourcePath: string; theme: string; utm: Record<string, string>; answers: Answer[];
   changes?: { label: string; was: string; now: string }[]; editCount?: number;
+  byStaff?: boolean; // the change was made by staff (a card moved on the board), not by the respondent
 };
 type FormInfo = { id: string; slug: string; name: string };
 
@@ -140,7 +141,7 @@ export function buildPayload(event: WebhookEvent, form: FormInfo, r: ResponseInf
     response: r && {
       id: r.id, createdAt: r.createdAt.toISOString(), locale: r.locale, sourcePath: r.sourcePath, theme: r.theme, utm: r.utm,
       answers: r.answers.map((a) => ({ id: a.id, label: a.label, type: a.type, value: a.type === "file" ? { name: (a.value as { name?: string } | null)?.name ?? "" } : a.value, text: answerText(a) })),
-      ...(r.changes ? { changes: r.changes, editCount: r.editCount } : {}),
+      ...(r.changes ? { changes: r.changes, editCount: r.editCount, changedBy: r.byStaff ? "staff" : "respondent" } : {}),
     },
   };
 }

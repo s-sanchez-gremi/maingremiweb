@@ -14,6 +14,10 @@ import { duplicateForm } from "@/lib/forms-copy";
 import { instantiateTemplate, templateByKey } from "@/lib/form-templates";
 import { cleanRedirect } from "@apex/forms/availability";
 import { checkRouting, normalizeRouting } from "@apex/forms/routing";
+import { answerText } from "@apex/forms/answer-text";
+import { enqueueWebhooks } from "@apex/forms/webhooks";
+import { GROUPABLE, moveAnswer } from "@apex/forms/response-views";
+import type { Item } from "@apex/forms/fieldTypes";
 import { madridLocalToDate } from "@/lib/madrid-time";
 
 /** A new, closed form: blank, or from a starter template (the button's `template` value; an unknown key means blank). */
@@ -117,4 +121,53 @@ export async function retryRouting(fd: FormData) {
   await db.update(submissions).set({ routingStatus: "pending", routingAttempts: 0, routingError: null })
     .where(and(eq(submissions.id, z.string().uuid().parse(fd.get("id"))), eq(submissions.formId, formId), eq(submissions.routingStatus, "failed")));
   redirect(`/admin/forms/${formId}/submissions?retried=1`);
+}
+
+const MOVE_ERRORS: Record<string, string> = { gone: "Aquesta resposta o aquesta pregunta ja no existeix", unmovable: "Aquesta pregunta no es pot moure" };
+
+/**
+ * Staff move a response to another lane of the board: the choice answer is changed on their behalf. The first version is kept (the same place a respondent's
+ * edit keeps it) and staff_edited_at says so, webhooks hear about it as a response.updated, and a response already sent to the CRM is queued again.
+ */
+export async function moveResponse(fd: FormData) {
+  await requireUser("forms:write");
+  const formId = z.string().uuid().parse(fd.get("formId"));
+  const id = z.string().uuid().parse(fd.get("id"));
+  const field = z.string().uuid().parse(fd.get("field"));
+  const from = z.string().max(300).parse(fd.get("from") ?? "");
+  const to = z.string().max(300).parse(fd.get("to") ?? "");
+  // where to come back to (the board as the person left it)
+  const back = new URLSearchParams({ view: "board", by: field });
+  const q = String(fd.get("q") ?? "").slice(0, 100), f = String(fd.get("f") ?? ""), v = String(fd.get("v") ?? "").slice(0, 100);
+  if (q) back.set("q", q);
+  if (/^[0-9a-f-]{36}$/.test(f)) { back.set("f", f); if (v) back.set("v", v); }
+  const base = `/admin/forms/${formId}/submissions`;
+
+  const result = await db.transaction(async (tx) => {
+    const [sub] = await tx.select().from(submissions).where(and(eq(submissions.id, id), eq(submissions.formId, formId))).for("update"); // not at the same moment as the person's own edit
+    const [form] = await tx.select().from(forms).where(eq(forms.id, formId));
+    const item = (form?.fields as Item[] | undefined)?.find((i) => i.id === field);
+    if (!sub || !form || !item) return "gone";
+    if (!GROUPABLE.includes(item.type)) return "unmovable";
+    const before = sub.answers.find((a) => a.id === field);
+    const move = moveAnswer(item, before, from, to);
+    if (!move.ok) return move.error;
+    if (!move.changed) return null;
+    const label = String(((item.data.label as { ca?: string } | undefined)?.ca) ?? item.type);
+    const after = { id: field, type: item.type, label: before?.label ?? label, value: move.value } as (typeof sub.answers)[number];
+    const snapshot = before ? sub.answers.map((a) => (a.id === field ? after : a)) : [...sub.answers, after];
+    const now = new Date();
+    await tx.update(submissions).set({
+      answers: snapshot, staffEditedAt: now, originalAnswers: sub.originalAnswers ?? sub.answers,
+      ...(form.destination === "records" && sub.routingStatus ? { routingStatus: "pending" as const, routingAttempts: 0, routingError: null } : {}),
+    }).where(eq(submissions.id, id));
+    await enqueueWebhooks(tx, form, "response.updated", {
+      id: sub.id, createdAt: sub.createdAt, locale: sub.locale, sourcePath: sub.sourcePath, theme: sub.theme, utm: sub.utm, answers: snapshot,
+      changes: [{ label: after.label, was: before ? answerText(before) : "", now: answerText(after) }], editCount: sub.editCount, byStaff: true,
+    });
+    return null;
+  });
+  if (result) back.set("moveError", MOVE_ERRORS[result] ?? result);
+  else back.set("moved", "1");
+  redirect(`${base}?${back.toString()}`);
 }

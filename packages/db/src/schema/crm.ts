@@ -177,6 +177,7 @@ export const submissions = pgTable("submissions", {
   projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
   clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
   answers: jsonb().$type<Answer[]>().notNull(),
+  staffEditedAt: timestamp("staff_edited_at", { withTimezone: true }), // staff moved the response to another lane of the board (the first version is kept in originalAnswers)
   durationSeconds: integer("duration_seconds"), // from the first interaction to sending (Forms v2, item 9)
   locale: text().notNull(),
   sourcePath: text("source_path").notNull().default(""),
